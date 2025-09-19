@@ -10,6 +10,8 @@ public class Recordatorio {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idRecordatorio;
 
+    private Integer usuarioId;
+
     @ManyToOne(optional = false)
     private Usuario usuario;
 
@@ -24,6 +26,8 @@ public class Recordatorio {
     // getters and setters
     public Long getIdRecordatorio() { return idRecordatorio; }
     public void setIdRecordatorio(Long idRecordatorio) { this.idRecordatorio = idRecordatorio; }
+    public Integer getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Integer usuarioId) { this.usuarioId = usuarioId; }
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
     public String getTitulo() { return titulo; }

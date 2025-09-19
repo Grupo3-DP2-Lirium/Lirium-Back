@@ -21,9 +21,11 @@ public class Memorial {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
     private String tipoRelacion; // opcion libre
+    private String fotoPerfilURL;
     private String portadaURL;
     private boolean esColaborativo;
     private boolean esJournal;
+    private Double espacioUsado;
 
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
@@ -45,12 +47,16 @@ public class Memorial {
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public String getTipoRelacion() { return tipoRelacion; }
     public void setTipoRelacion(String tipoRelacion) { this.tipoRelacion = tipoRelacion; }
+    public String getFotoPerfilURL() { return fotoPerfilURL; }
+    public void setFotoPerfilURL(String fotoPerfilURL) { this.fotoPerfilURL = fotoPerfilURL; }
     public String getPortadaURL() { return portadaURL; }
     public void setPortadaURL(String portadaURL) { this.portadaURL = portadaURL; }
     public boolean isEsColaborativo() { return esColaborativo; }
     public void setEsColaborativo(boolean esColaborativo) { this.esColaborativo = esColaborativo; }
     public boolean isEsJournal() { return esJournal; }
     public void setEsJournal(boolean esJournal) { this.esJournal = esJournal; }
+    public Double getEspacioUsado() { return espacioUsado; }
+    public void setEspacioUsado(Double espacioUsado) { this.espacioUsado = espacioUsado; }
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
     public LocalDateTime getFechaActualizacion() { return fechaActualizacion; }

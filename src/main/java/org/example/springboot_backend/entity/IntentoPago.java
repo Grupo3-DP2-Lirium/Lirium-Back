@@ -11,6 +11,9 @@ public class IntentoPago {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idIntentoPago;
 
+    private Integer usuarioId;
+    private Integer planId;
+
     @ManyToOne(optional = false)
     private Usuario usuario;
 
@@ -29,6 +32,10 @@ public class IntentoPago {
     // getters and setters
     public Long getIdIntentoPago() { return idIntentoPago; }
     public void setIdIntentoPago(Long idIntentoPago) { this.idIntentoPago = idIntentoPago; }
+    public Integer getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Integer usuarioId) { this.usuarioId = usuarioId; }
+    public Integer getPlanId() { return planId; }
+    public void setPlanId(Integer planId) { this.planId = planId; }
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
     public Plan getPlan() { return plan; }

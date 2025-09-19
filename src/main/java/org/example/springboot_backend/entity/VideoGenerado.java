@@ -22,10 +22,11 @@ public class VideoGenerado {
     private String titulo;
     @Column(columnDefinition = "TEXT")
     private String descripcion;
-    private String videoURL;
+    private String s3keyURL;
 
     @Enumerated(EnumType.STRING)
-    private EstadoVideo estado = EstadoVideo.PENDIENTE;
+    private EstadoVideo estadoReel = EstadoVideo.PENDIENTE;
+    private String tipo; // documental, reel
 
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
@@ -43,10 +44,12 @@ public class VideoGenerado {
     public void setTitulo(String titulo) { this.titulo = titulo; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public String getVideoURL() { return videoURL; }
-    public void setVideoURL(String videoURL) { this.videoURL = videoURL; }
-    public EstadoVideo getEstado() { return estado; }
-    public void setEstado(EstadoVideo estado) { this.estado = estado; }
+    public String getS3keyURL() { return s3keyURL; }
+    public void setS3keyURL(String s3keyURL) { this.s3keyURL = s3keyURL; }
+    public EstadoVideo getEstadoReel() { return estadoReel; }
+    public void setEstadoReel(EstadoVideo estadoReel) { this.estadoReel = estadoReel; }
+    public String getTipo() { return tipo; }
+    public void setTipo(String tipo) { this.tipo = tipo; }
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
     public LocalDateTime getFechaActualizacion() { return fechaActualizacion; }

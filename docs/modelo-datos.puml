@@ -1,0 +1,250 @@
+@startuml Lirium-Back-Modelo-Datos
+
+!define ENTITY class
+!define ENUM enum
+
+' Enums
+ENUM UserStatus {
+    ACTIVE
+    SUSPENDED
+    DELETED
+}
+
+ENUM TipoPlan {
+    FREE
+    PREMIUM
+    MENSUAL
+    PREMIUM_ANUAL
+}
+
+ENUM EstadoSuscripcion {
+    NINGUNO
+    ACTIVO
+    CANCELADO
+    EXPIRADO
+}
+
+ENUM EstadoIntentoPago {
+    CREADO
+    APROBADO
+    RECHAZADO
+    CANCELADO
+}
+
+ENUM EstadoVideo {
+    PENDIENTE
+    GENERADO
+    FALLIDO
+}
+
+ENUM MetodoPago {
+    TARJETA
+    PAYPAL
+    WALLETS
+}
+
+ENUM ReactionType {
+    HEART
+    CANDLE
+    PRAY
+    LIKE
+}
+
+' Entidades principales
+ENTITY TipoUsuario {
+    +Long idTipo
+    +String nombre
+    --
+    +registrarMemoria(): void
+}
+
+ENTITY Usuario {
+    +Long idUsuario
+    +String nombre
+    +String primerApellido
+    +String segundoApellido
+    +String email
+    +String passWordHash
+    +UserStatus status
+    +double espacioUsado
+    +double capacidadTotal
+    +LocalDate fechaCreado
+    +LocalDate fechaActualizado
+    +LocalDateTime fechaUltimaSesion
+    --
+    +crearMemorial(): void
+    +agregarColaborador(): void
+    +registrarMemoria(): void
+}
+
+ENTITY Memorial {
+    +Long idMemorial
+    +String nombre
+    +String apodo
+    +LocalDate fechaNacimiento
+    +String genero
+    +String descripcion
+    +String tipoRelacion
+    +String fotoPerfil_URL
+    +String portada_URL
+    +boolean esColaborativo
+    +boolean esJournal
+    +double espacioUsado
+    +LocalDateTime fechaCreacion
+    +LocalDateTime fechaActualizacion
+}
+
+ENTITY CategoriaPregunta {
+    +Long idCategoriaPregunta
+    +String nombre
+}
+
+ENTITY Pregunta {
+    +Long idPregunta
+    +String texto
+    +boolean esPropia
+}
+
+ENTITY Respuesta {
+    +Long idRespuesta
+    +String contenido
+}
+
+ENTITY Memoria {
+    +Long idMemoria
+    +String tipo
+    +String preguntaAsociada
+    +String titulo
+    +String descripcion
+    +LocalDate fechaFoto
+    +String ubicacion
+    +boolean visible
+    +String s3key_URL
+    +double espacioUsado
+    +List<String> tags
+    +LocalDateTime fechaCreacion
+    +LocalDateTime fechaActualizacion
+}
+
+ENTITY Colaborador {
+    +Long idColaborador
+    +String estadoInvitacion
+    --
+    +registrarMemoria(): void
+}
+
+ENTITY Comentario {
+    +Long idComentario
+    +String cuerpo
+    +LocalDateTime fechaCreacion
+}
+
+ENTITY Reaccion {
+    +Long idReaccion
+    +ReactionType tipo
+    +LocalDateTime fechaCreacion
+}
+
+ENTITY Plan {
+    +Long idPlan
+    +TipoPlan tipoPlan
+    +String descripcion
+    +Double precio
+    +String moneda
+    +Boolean activo
+}
+
+ENTITY Suscripcion {
+    +Long idSuscripcion
+    +int usuarioId
+    +int planId
+    +TipoPlan tipoPlan
+    +EstadoSuscripcion estado
+    +LocalDateTime fechaInicio
+    +LocalDateTime fechaFin
+    +MetodoPago actualMetodoPago
+    +LocalDateTime fechaCreacion
+    +LocalDateTime fechaActualizacion
+}
+
+ENTITY IntentoPago {
+    +Long idIntentoPago
+    +int usuarioId
+    +int planId
+    +double monto
+    +EstadoIntentoPago estado
+    +String notas
+    +LocalDateTime fechaCreacion
+    +LocalDateTime fechaActualizacion
+}
+
+ENTITY VideoGenerado {
+    +Long idReel
+    +String prompt
+    +String titulo
+    +String descripcion
+    +String s3key_URL
+    +EstadoVideo estadoReel
+    +String tipo
+    +LocalDateTime fechaCreacion
+    +LocalDateTime fechaActualizacion
+}
+
+ENTITY Evento {
+    +Long idEvento
+    +String titulo
+    +String descripcion
+    +LocalDateTime fecha
+}
+
+ENTITY Recordatorio {
+    +Long idRecordatorio
+    +int usuarioId
+    +String titulo
+    +String descripcion
+    +LocalDateTime fechaAviso
+    +boolean activo
+    +LocalDateTime fechaCreacion
+    +LocalDateTime fechaActualizacion
+}
+
+' Relaciones
+Usuario }|--|| TipoUsuario : tipo
+Usuario ||--o{ Memorial : usuario
+Usuario ||--o{ Colaborador : usuario
+Usuario ||--o{ Comentario : usuario
+Usuario ||--o{ Reaccion : usuario
+Usuario ||--o{ Suscripcion : usuario
+Usuario ||--o{ IntentoPago : usuario
+Usuario ||--o{ VideoGenerado : creador
+Usuario ||--o{ Recordatorio : usuario
+Usuario ||--o{ Pregunta : autor
+
+Memorial ||--o{ Memoria : memorial
+Memorial ||--o{ Evento : memorial
+
+CategoriaPregunta ||--o{ Pregunta : categoria
+
+Pregunta ||--o{ Respuesta : pregunta
+
+Memoria }o--o| Pregunta : pregunta
+Memoria }o--o| Respuesta : respuesta
+Memoria }o--|| Usuario : autor
+Memoria ||--o{ Colaborador : memoria
+Memoria ||--o{ Comentario : memoria
+Memoria ||--o{ Reaccion : memoria
+Memoria ||--o{ VideoGenerado : memoria
+
+Plan ||--o{ Suscripcion : plan
+Plan ||--o{ IntentoPago : plan
+
+' Relaciones con enums
+Usuario ||--o{ UserStatus
+Suscripcion ||--o{ EstadoSuscripcion
+Suscripcion ||--o{ MetodoPago
+IntentoPago ||--o{ EstadoIntentoPago
+VideoGenerado ||--o{ EstadoVideo
+Reaccion ||--o{ ReactionType
+Plan ||--o{ TipoPlan
+
+@enduml
