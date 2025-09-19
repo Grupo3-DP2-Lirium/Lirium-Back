@@ -2,12 +2,13 @@ package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
 import org.example.springboot_backend.enums.PlanType;
+import java.util.UUID;
 
 @Entity
 public class Plan {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idPlan;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idPlan;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -26,8 +27,8 @@ public class Plan {
     private Boolean active = true;
 
     // getters and setters
-    public Long getIdPlan() { return idPlan; }
-    public void setIdPlan(Long idPlan) { this.idPlan = idPlan; }
+    public UUID getIdPlan() { return idPlan; }
+    public void setIdPlan(UUID idPlan) { this.idPlan = idPlan; }
     public PlanType getPlanType() { return planType; }
     public void setPlanType(PlanType planType) { this.planType = planType; }
     public String getDescription() { return description; }

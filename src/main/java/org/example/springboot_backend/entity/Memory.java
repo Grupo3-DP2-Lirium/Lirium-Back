@@ -7,12 +7,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.UUID;
 
 @Entity
 public class Memory {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idMemory;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idMemory;
 
     @ManyToOne(optional = false)
     private Memorial memorial;
@@ -51,8 +52,8 @@ public class Memory {
     private LocalDateTime updatedDate;
 
     // getters and setters
-    public Long getIdMemory() { return idMemory; }
-    public void setIdMemory(Long idMemory) { this.idMemory = idMemory; }
+    public UUID getIdMemory() { return idMemory; }
+    public void setIdMemory(UUID idMemory) { this.idMemory = idMemory; }
     public Memorial getMemorial() { return memorial; }
     public void setMemorial(Memorial memorial) { this.memorial = memorial; }
     public MemoryOriginType getType() { return type; }

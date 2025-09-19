@@ -3,12 +3,13 @@ package org.example.springboot_backend.entity;
 import jakarta.persistence.*;
 import org.example.springboot_backend.enums.VideoStatus;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 public class GeneratedVideo {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idReel;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idReel;
 
     @Column(columnDefinition = "TEXT")
     private String prompt;
@@ -36,8 +37,8 @@ public class GeneratedVideo {
     private LocalDateTime updatedDate;
 
     // getters and setters  
-    public Long getIdReel() { return idReel; }
-    public void setIdReel(Long idReel) { this.idReel = idReel; }
+    public UUID getIdReel() { return idReel; }
+    public void setIdReel(UUID idReel) { this.idReel = idReel; }
     public String getPrompt() { return prompt; }
     public void setPrompt(String prompt) { this.prompt = prompt; }
     public String getTitle() { return title; }

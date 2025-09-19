@@ -3,12 +3,13 @@ package org.example.springboot_backend.entity;
 import jakarta.persistence.*;
 import org.example.springboot_backend.enums.PaymentAttemptStatus;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 public class PaymentAttempt {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idPaymentAttempt;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idPaymentAttempt;
 
     private int userId;
     private int planId;
@@ -39,8 +40,8 @@ public class PaymentAttempt {
     private String failureReason;
 
     // getters and setters
-    public Long getIdPaymentAttempt() { return idPaymentAttempt; }
-    public void setIdPaymentAttempt(Long idPaymentAttempt) { this.idPaymentAttempt = idPaymentAttempt; }
+    public UUID getIdPaymentAttempt() { return idPaymentAttempt; }
+    public void setIdPaymentAttempt(UUID idPaymentAttempt) { this.idPaymentAttempt = idPaymentAttempt; }
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
     public int getPlanId() { return planId; }

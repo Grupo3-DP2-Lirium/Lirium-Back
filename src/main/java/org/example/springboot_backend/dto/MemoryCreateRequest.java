@@ -4,9 +4,10 @@ import org.example.springboot_backend.enums.MemoryOriginType;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public class MemoryCreateRequest {
-    private Long memorialId;
+    private UUID memorialId;
     private MemoryOriginType type;
     private String title;
     private String description;
@@ -18,11 +19,11 @@ public class MemoryCreateRequest {
     private Long questionId;
     private Long answerId;
 
-    public Long getMemorialId() {
+    public UUID getMemorialId() {
         return memorialId;
     }
 
-    public void setMemorialId(Long memorialId) {
+    public void setMemorialId(UUID memorialId) {
         this.memorialId = memorialId;
     }
 

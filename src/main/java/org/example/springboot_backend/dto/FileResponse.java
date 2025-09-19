@@ -1,9 +1,10 @@
 package org.example.springboot_backend.dto;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class FileResponse {
-    private Long idFile;
+    private UUID idFile;
     private String fileName;
     private String originalFileName;
     private String fileType;
@@ -12,11 +13,11 @@ public class FileResponse {
     private Double fileSize;
     private LocalDateTime uploadedDate;
 
-    public Long getIdFile() {
+    public UUID getIdFile() {
         return idFile;
     }
 
-    public void setIdFile(Long idFile) {
+    public void setIdFile(UUID idFile) {
         this.idFile = idFile;
     }
 

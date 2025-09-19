@@ -5,9 +5,10 @@ import org.example.springboot_backend.enums.MemoryOriginType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public class MemoryResponse {
-    private Long idMemory;
+    private UUID idMemory;
     private MemoryOriginType type;
     private String title;
     private String description;
@@ -20,11 +21,11 @@ public class MemoryResponse {
     private Double totalUsedSpace;
     private LocalDateTime createdDate;
 
-    public Long getIdMemory() {
+    public UUID getIdMemory() {
         return idMemory;
     }
 
-    public void setIdMemory(Long idMemory) {
+    public void setIdMemory(UUID idMemory) {
         this.idMemory = idMemory;
     }
 

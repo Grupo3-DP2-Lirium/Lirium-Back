@@ -8,15 +8,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface FileRepository extends JpaRepository<File, Long> {
+public interface FileRepository extends JpaRepository<File, UUID> {
     
     // Buscar archivos por memoria
     List<File> findByMemory(Memory memory);
     
     // Buscar archivos por ID de memoria
-    List<File> findByMemory_IdMemory(Long memoryId);
+    List<File> findByMemory_IdMemory(UUID memoryId);
     
     // Buscar archivos por tipo
     List<File> findByFileType(String fileType);
@@ -28,14 +29,14 @@ public interface FileRepository extends JpaRepository<File, Long> {
     List<File> findByStorageProvider(String storageProvider);
     
     // Buscar archivos de una memoria por tipo
-    List<File> findByMemory_IdMemoryAndFileType(Long memoryId, String fileType);
+    List<File> findByMemory_IdMemoryAndFileType(UUID memoryId, String fileType);
     
     // Calcular el tamaño total de archivos de una memoria
     @Query("SELECT COALESCE(SUM(f.fileSize), 0) FROM File f WHERE f.memory.idMemory = :memoryId")
-    Double calculateTotalFileSizeByMemoryId(@Param("memoryId") Long memoryId);
+    Double calculateTotalFileSizeByMemoryId(@Param("memoryId") UUID memoryId);
     
     // Contar archivos por memoria
-    Long countByMemory_IdMemory(Long memoryId);
+    Long countByMemory_IdMemory(UUID memoryId);
     
     // Buscar archivos huérfanos (sin memoria asociada)
     List<File> findByMemoryIsNull();

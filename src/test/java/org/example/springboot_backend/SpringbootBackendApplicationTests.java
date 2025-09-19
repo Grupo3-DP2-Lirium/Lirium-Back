@@ -12,5 +12,5 @@ class SpringbootBackendApplicationTests {
     void contextLoads() {
         // Test básico que verifica que el contexto se puede cargar con BD
     }
-
+    
 }

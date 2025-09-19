@@ -2,12 +2,13 @@ package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 public class File {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idFile;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idFile;
 
     @Column(nullable = false)
     private String fileName;
@@ -61,8 +62,8 @@ public class File {
     }
 
     // Getters and setters
-    public Long getIdFile() { return idFile; }
-    public void setIdFile(Long idFile) { this.idFile = idFile; }
+    public UUID getIdFile() { return idFile; }
+    public void setIdFile(UUID idFile) { this.idFile = idFile; }
 
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }

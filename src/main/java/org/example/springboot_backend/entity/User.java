@@ -7,13 +7,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idUser;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idUser;
 
     private String firstName;
     private String firstLastName;
@@ -41,8 +42,8 @@ public class User {
     private LocalDateTime lastSessionDate;
 
     // getters and setters
-    public Long getIdUser() { return idUser; }
-    public void setIdUser(Long idUser) { this.idUser = idUser; }
+    public UUID getIdUser() { return idUser; }
+    public void setIdUser(UUID idUser) { this.idUser = idUser; }
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
     public String getFirstLastName() { return firstLastName; }

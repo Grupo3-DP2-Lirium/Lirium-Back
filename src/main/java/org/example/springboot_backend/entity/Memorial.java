@@ -4,12 +4,13 @@ import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 public class Memorial {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idMemorial;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idMemorial;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "id_user", nullable = false)
@@ -32,8 +33,8 @@ public class Memorial {
     private LocalDateTime updatedDate;
 
     // getters and setters
-    public Long getIdMemorial() { return idMemorial; }
-    public void setIdMemorial(Long idMemorial) { this.idMemorial = idMemorial; }
+    public UUID getIdMemorial() { return idMemorial; }
+    public void setIdMemorial(UUID idMemorial) { this.idMemorial = idMemorial; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
     public String getName() { return name; }

@@ -5,12 +5,13 @@ import org.example.springboot_backend.enums.SubscriptionStatus;
 import org.example.springboot_backend.enums.PlanType;
 import org.example.springboot_backend.enums.PaymentMethod;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 public class Subscription {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long idSubscription;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID idSubscription;
 
     private int userId;
     private int planId;
@@ -39,8 +40,8 @@ public class Subscription {
     private LocalDateTime updatedDate;
 
     // getters and setters
-    public Long getIdSubscription() { return idSubscription; }
-    public void setIdSubscription(Long idSubscription) { this.idSubscription = idSubscription; }
+    public UUID getIdSubscription() { return idSubscription; }
+    public void setIdSubscription(UUID idSubscription) { this.idSubscription = idSubscription; }
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
     public int getPlanId() { return planId; }
