@@ -12,53 +12,54 @@ public class Memorial {
     private Long idMemorial;
 
     @ManyToOne(optional = false)
-    private Usuario usuario; // propietario/creador del memorial
+    @JoinColumn(name = "id_user", nullable = false)
+    private User user; // owner/creator of the memorial
 
-    private String nombre; // nombre de la persona
-    private String apodo;
-    private LocalDate fechaNacimiento;
-    private String genero;
+    private String name; // name of the person
+    private String nickname;
+    private LocalDate birthDate;
+    private String gender;
     @Column(columnDefinition = "TEXT")
-    private String descripcion;
-    private String tipoRelacion; // opcion libre
-    private String fotoPerfilURL;
-    private String portadaURL;
-    private boolean esColaborativo;
-    private boolean esJournal;
-    private Double espacioUsado;
+    private String description;
+    private String relationType; // free option
+    private String profilePhotoURL;
+    private String coverURL;
+    private boolean isCollaborative;
+    private boolean isJournal;
+    private Double usedSpace;
 
-    private LocalDateTime fechaCreacion;
-    private LocalDateTime fechaActualizacion;
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
 
     // getters and setters
     public Long getIdMemorial() { return idMemorial; }
     public void setIdMemorial(Long idMemorial) { this.idMemorial = idMemorial; }
-    public Usuario getUsuario() { return usuario; }
-    public void setUsuario(Usuario usuario) { this.usuario = usuario; }
-    public String getNombre() { return nombre; }
-    public void setNombre(String nombre) { this.nombre = nombre; }
-    public String getApodo() { return apodo; }
-    public void setApodo(String apodo) { this.apodo = apodo; }
-    public LocalDate getFechaNacimiento() { return fechaNacimiento; }
-    public void setFechaNacimiento(LocalDate fechaNacimiento) { this.fechaNacimiento = fechaNacimiento; }
-    public String getGenero() { return genero; }
-    public void setGenero(String genero) { this.genero = genero; }
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public String getTipoRelacion() { return tipoRelacion; }
-    public void setTipoRelacion(String tipoRelacion) { this.tipoRelacion = tipoRelacion; }
-    public String getFotoPerfilURL() { return fotoPerfilURL; }
-    public void setFotoPerfilURL(String fotoPerfilURL) { this.fotoPerfilURL = fotoPerfilURL; }
-    public String getPortadaURL() { return portadaURL; }
-    public void setPortadaURL(String portadaURL) { this.portadaURL = portadaURL; }
-    public boolean isEsColaborativo() { return esColaborativo; }
-    public void setEsColaborativo(boolean esColaborativo) { this.esColaborativo = esColaborativo; }
-    public boolean isEsJournal() { return esJournal; }
-    public void setEsJournal(boolean esJournal) { this.esJournal = esJournal; }
-    public Double getEspacioUsado() { return espacioUsado; }
-    public void setEspacioUsado(Double espacioUsado) { this.espacioUsado = espacioUsado; }
-    public LocalDateTime getFechaCreacion() { return fechaCreacion; }
-    public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
-    public LocalDateTime getFechaActualizacion() { return fechaActualizacion; }
-    public void setFechaActualizacion(LocalDateTime fechaActualizacion) { this.fechaActualizacion = fechaActualizacion; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
+    public LocalDate getBirthDate() { return birthDate; }
+    public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public String getRelationType() { return relationType; }
+    public void setRelationType(String relationType) { this.relationType = relationType; }
+    public String getProfilePhotoURL() { return profilePhotoURL; }
+    public void setProfilePhotoURL(String profilePhotoURL) { this.profilePhotoURL = profilePhotoURL; }
+    public String getCoverURL() { return coverURL; }
+    public void setCoverURL(String coverURL) { this.coverURL = coverURL; }
+    public boolean isCollaborative() { return isCollaborative; }
+    public void setCollaborative(boolean collaborative) { this.isCollaborative = collaborative; }
+    public boolean isJournal() { return isJournal; }
+    public void setJournal(boolean journal) { this.isJournal = journal; }
+    public Double getUsedSpace() { return usedSpace; }
+    public void setUsedSpace(Double usedSpace) { this.usedSpace = usedSpace; }
+    public LocalDateTime getCreatedDate() { return createdDate; }
+    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public LocalDateTime getUpdatedDate() { return updatedDate; }
+    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }

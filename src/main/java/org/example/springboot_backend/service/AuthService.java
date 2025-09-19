@@ -2,8 +2,9 @@ package org.example.springboot_backend.service;
 
 import org.example.springboot_backend.dto.LoginRequest;
 import org.example.springboot_backend.dto.LoginResponse;
-import org.example.springboot_backend.entity.Usuario;
-import org.example.springboot_backend.repository.UsuarioRepository;
+import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.entity.Role;
+import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,14 +13,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, 
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, 
                       JwtService jwtService, AuthenticationManager authenticationManager) {
-        this.usuarioRepository = usuarioRepository;
+        this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
@@ -30,11 +31,17 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String token = jwtService.generateToken(usuario.getEmail());
+        String token = jwtService.generateToken(user.getEmail());
         
-        return new LoginResponse(token, usuario.getEmail(), usuario.getRol().getNombre());
+        // Get the first role name (assuming user has at least one role)
+        String roleName = user.getRoles().stream()
+                .findFirst()
+                .map(Role::getName)
+                .orElse("USER");
+        
+        return new LoginResponse(token, user.getEmail(), roleName);
     }
 }

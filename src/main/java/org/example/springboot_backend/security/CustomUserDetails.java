@@ -1,34 +1,36 @@
 package org.example.springboot_backend.security;
 
-import org.example.springboot_backend.entity.Usuario;
+import org.example.springboot_backend.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
     
-    private final Usuario usuario;
+    private final User user;
 
-    public CustomUserDetails(Usuario usuario) {
-        this.usuario = usuario;
+    public CustomUserDetails(User user) {
+        this.user = user;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().getNombre()));
+        return user.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(permission -> new SimpleGrantedAuthority(permission.getName()))
+                .toList();
     }
 
     @Override
     public String getPassword() {
-        return usuario.getPassWordHash();
+        return user.getPasswordHash();
     }
 
     @Override
     public String getUsername() {
-        return usuario.getEmail();
+        return user.getEmail();
     }
 
     @Override
@@ -38,7 +40,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return usuario.getStatus().name().equals("ACTIVE");
+        return user.getStatus().name().equals("ACTIVE");
     }
 
     @Override
@@ -48,10 +50,10 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return usuario.getStatus().name().equals("ACTIVE");
+        return user.getStatus().name().equals("ACTIVE");
     }
 
-    public Usuario getUsuario() {
-        return usuario;
+    public User getUser() {
+        return user;
     }
 }

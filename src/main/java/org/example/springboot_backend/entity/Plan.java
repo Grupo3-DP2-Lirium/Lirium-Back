@@ -1,7 +1,7 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
-import org.example.springboot_backend.enums.TipoPlan;
+import org.example.springboot_backend.enums.PlanType;
 
 @Entity
 public class Plan {
@@ -10,24 +10,32 @@ public class Plan {
     private Long idPlan;
 
     @Enumerated(EnumType.STRING)
-    private TipoPlan tipoPlan; // FREE, PREMIUM, MENSUAL, PREMIUM_ANUAL
+    @Column(nullable = false)
+    private PlanType planType;
 
-    private String descripcion;
-    private Double precio;
-    private String moneda;
-    private Boolean activo = true;
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private Double price;
+
+    @Column(length = 3)
+    private String currency;
+
+    @Column(nullable = false)
+    private Boolean active = true;
 
     // getters and setters
     public Long getIdPlan() { return idPlan; }
     public void setIdPlan(Long idPlan) { this.idPlan = idPlan; }
-    public TipoPlan getTipoPlan() { return tipoPlan; }
-    public void setTipoPlan(TipoPlan tipoPlan) { this.tipoPlan = tipoPlan; }
-    public String getDescripcion() { return descripcion; }
-    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public Double getPrecio() { return precio; }
-    public void setPrecio(Double precio) { this.precio = precio; }
-    public String getMoneda() { return moneda; }
-    public void setMoneda(String moneda) { this.moneda = moneda; }
-    public Boolean getActivo() { return activo; }
-    public void setActivo(Boolean activo) { this.activo = activo; }
+    public PlanType getPlanType() { return planType; }
+    public void setPlanType(PlanType planType) { this.planType = planType; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 }

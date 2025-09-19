@@ -10,35 +10,34 @@ ENUM UserStatus {
     DELETED
 }
 
-ENUM TipoPlan {
+ENUM PlanType {
     FREE
-    PREMIUM
-    MENSUAL
-    PREMIUM_ANUAL
+    PREMIUM_MONTHLY
+    PREMIUM_ANNUAL
 }
 
-ENUM EstadoSuscripcion {
-    NINGUNO
-    ACTIVO
-    CANCELADO
-    EXPIRADO
+ENUM SubscriptionStatus {
+    NONE
+    ACTIVE
+    CANCELLED
+    EXPIRED
 }
 
-ENUM EstadoIntentoPago {
-    CREADO
-    APROBADO
-    RECHAZADO
-    CANCELADO
+ENUM PaymentAttemptStatus {
+    CREATED
+    APPROVED
+    REJECTED
+    CANCELLED
 }
 
-ENUM EstadoVideo {
-    PENDIENTE
-    GENERADO
-    FALLIDO
+ENUM VideoStatus {
+    PENDING
+    GENERATED
+    FAILED
 }
 
-ENUM MetodoPago {
-    TARJETA
+ENUM PaymentMethod {
+    CARD
     PAYPAL
     WALLETS
 }
@@ -51,200 +50,217 @@ ENUM ReactionType {
 }
 
 ' Entidades principales
-ENTITY TipoUsuario {
-    +Long idTipo
-    +String nombre
+ENTITY Role {
+    +Long idRole
+    +String name
     --
-    +registrarMemoria(): void
+    +assignPermission(): void
 }
 
-ENTITY Usuario {
-    +Long idUsuario
-    +String nombre
-    +String primerApellido
-    +String segundoApellido
-    +String email
-    +String passWordHash
-    +UserStatus status
-    +double espacioUsado
-    +double capacidadTotal
-    +LocalDate fechaCreado
-    +LocalDate fechaActualizado
-    +LocalDateTime fechaUltimaSesion
+ENTITY Permission {
+    +Long idPermission
+    +String name
+    +String description
     --
-    +crearMemorial(): void
-    +agregarColaborador(): void
-    +registrarMemoria(): void
+    +validateAccess(): boolean
+}
+
+ENTITY RolePermission {
+    +Long idRolePermission
+    --
+    +linkRolePermission(): void
+}
+
+ENTITY User {
+    +Long idUser
+    +String firstName
+    +String firstLastName
+    +String secondLastName
+    +String email
+    +String passwordHash
+    +UserStatus status
+    +double usedSpace
+    +double totalCapacity
+    +LocalDate createdDate
+    +LocalDate updatedDate
+    +LocalDateTime lastSessionDate
+    --
+    +createMemorial(): void
+    +addCollaborator(): void
+    +registerMemory(): void
 }
 
 ENTITY Memorial {
     +Long idMemorial
-    +String nombre
-    +String apodo
-    +LocalDate fechaNacimiento
-    +String genero
-    +String descripcion
-    +String tipoRelacion
-    +String fotoPerfil_URL
-    +String portada_URL
-    +boolean esColaborativo
-    +boolean esJournal
-    +double espacioUsado
-    +LocalDateTime fechaCreacion
-    +LocalDateTime fechaActualizacion
+    +String name
+    +String nickname
+    +LocalDate birthDate
+    +String gender
+    +String description
+    +String relationType
+    +String profilePhoto_URL
+    +String cover_URL
+    +boolean isCollaborative
+    +boolean isJournal
+    +double usedSpace
+    +LocalDateTime createdDate
+    +LocalDateTime updatedDate
 }
 
-ENTITY CategoriaPregunta {
-    +Long idCategoriaPregunta
-    +String nombre
+ENTITY QuestionCategory {
+    +Long idQuestionCategory
+    +String name
 }
 
-ENTITY Pregunta {
-    +Long idPregunta
-    +String texto
-    +boolean esPropia
+ENTITY Question {
+    +Long idQuestion
+    +String text
+    +boolean isOwn
 }
 
-ENTITY Respuesta {
-    +Long idRespuesta
-    +String contenido
+ENTITY Answer {
+    +Long idAnswer
+    +String content
 }
 
-ENTITY Memoria {
-    +Long idMemoria
-    +String tipo
-    +String preguntaAsociada
-    +String titulo
-    +String descripcion
-    +LocalDate fechaFoto
-    +String ubicacion
+ENTITY Memory {
+    +Long idMemory
+    +String type
+    +String associatedQuestion
+    +String title
+    +String description
+    +LocalDate photoDate
+    +String location
     +boolean visible
     +String s3key_URL
-    +double espacioUsado
+    +double usedSpace
     +List<String> tags
-    +LocalDateTime fechaCreacion
-    +LocalDateTime fechaActualizacion
+    +LocalDateTime createdDate
+    +LocalDateTime updatedDate
 }
 
-ENTITY Colaborador {
-    +Long idColaborador
-    +String estadoInvitacion
+ENTITY Collaborator {
+    +Long idCollaborator
+    +String invitationStatus
     --
-    +registrarMemoria(): void
+    +registerMemory(): void
 }
 
-ENTITY Comentario {
-    +Long idComentario
-    +String cuerpo
-    +LocalDateTime fechaCreacion
+ENTITY Comment {
+    +Long idComment
+    +String body
+    +LocalDateTime createdDate
 }
 
-ENTITY Reaccion {
-    +Long idReaccion
-    +ReactionType tipo
-    +LocalDateTime fechaCreacion
+ENTITY Reaction {
+    +Long idReaction
+    +ReactionType type
+    +LocalDateTime createdDate
 }
 
 ENTITY Plan {
     +Long idPlan
-    +TipoPlan tipoPlan
-    +String descripcion
-    +Double precio
-    +String moneda
-    +Boolean activo
+    +PlanType planType
+    +String description
+    +Double price
+    +String currency
+    +Boolean active
 }
 
-ENTITY Suscripcion {
-    +Long idSuscripcion
-    +int usuarioId
+ENTITY Subscription {
+    +Long idSubscription
+    +int userId
     +int planId
-    +TipoPlan tipoPlan
-    +EstadoSuscripcion estado
-    +LocalDateTime fechaInicio
-    +LocalDateTime fechaFin
-    +MetodoPago actualMetodoPago
-    +LocalDateTime fechaCreacion
-    +LocalDateTime fechaActualizacion
+    +PlanType planType
+    +SubscriptionStatus status
+    +LocalDateTime startDate
+    +LocalDateTime endDate
+    +PaymentMethod currentPaymentMethod
+    +LocalDateTime createdDate
+    +LocalDateTime updatedDate
 }
 
-ENTITY IntentoPago {
-    +Long idIntentoPago
-    +int usuarioId
+ENTITY PaymentAttempt {
+    +Long idPaymentAttempt
+    +int userId
     +int planId
-    +double monto
-    +EstadoIntentoPago estado
-    +String notas
-    +LocalDateTime fechaCreacion
-    +LocalDateTime fechaActualizacion
+    +double amount
+    +PaymentAttemptStatus status
+    +String notes
+    +LocalDateTime createdDate
+    +LocalDateTime updatedDate
 }
 
-ENTITY VideoGenerado {
+ENTITY GeneratedVideo {
     +Long idReel
     +String prompt
-    +String titulo
-    +String descripcion
+    +String title
+    +String description
     +String s3key_URL
-    +EstadoVideo estadoReel
-    +String tipo
-    +LocalDateTime fechaCreacion
-    +LocalDateTime fechaActualizacion
+    +VideoStatus reelStatus
+    +String type
+    +LocalDateTime createdDate
+    +LocalDateTime updatedDate
 }
 
-ENTITY Evento {
-    +Long idEvento
-    +String titulo
-    +String descripcion
-    +LocalDateTime fecha
+ENTITY Event {
+    +Long idEvent
+    +String title
+    +String description
+    +LocalDateTime date
 }
 
-ENTITY Recordatorio {
-    +Long idRecordatorio
-    +int usuarioId
-    +String titulo
-    +String descripcion
-    +LocalDateTime fechaAviso
-    +boolean activo
-    +LocalDateTime fechaCreacion
-    +LocalDateTime fechaActualizacion
+ENTITY Reminder {
+    +Long idReminder
+    +int userId
+    +String title
+    +String description
+    +LocalDateTime notificationDate
+    +boolean active
+    +LocalDateTime createdDate
+    +LocalDateTime updatedDate
 }
 
 ' Relaciones
-Usuario }|--|| TipoUsuario : tipo
-Usuario ||--o{ Memorial : usuario
-Usuario ||--o{ Colaborador : usuario
-Usuario ||--o{ Comentario : usuario
-Usuario ||--o{ Reaccion : usuario
-Usuario ||--o{ Suscripcion : usuario
-Usuario ||--o{ IntentoPago : usuario
-Usuario ||--o{ VideoGenerado : creador
-Usuario ||--o{ Recordatorio : usuario
-Usuario ||--o{ Pregunta : autor
+User }|--|| Role : role
+User ||--o{ Memorial : user
+User ||--o{ Collaborator : user
+User ||--o{ Comment : user
+User ||--o{ Reaction : user
+User ||--o{ Subscription : user
+User ||--o{ PaymentAttempt : user
+User ||--o{ GeneratedVideo : creator
+User ||--o{ Reminder : user
+User ||--o{ Question : author
 
-Memorial ||--o{ Memoria : memorial
-Memorial ||--o{ Evento : memorial
+Role ||--o{ RolePermission : role
+Permission ||--o{ RolePermission : permission
 
-CategoriaPregunta ||--o{ Pregunta : categoria
+Memorial ||--o{ Memory : memorial
+Memorial ||--o{ Event : memorial
 
-Pregunta ||--o{ Respuesta : pregunta
+QuestionCategory ||--o{ Question : category
 
-Memoria }o--o| Pregunta : pregunta
-Memoria }o--o| Respuesta : respuesta
-Memoria }o--|| Usuario : autor
-Memoria ||--o{ Colaborador : memoria
-Memoria ||--o{ Comentario : memoria
-Memoria ||--o{ Reaccion : memoria
-Memoria ||--o{ VideoGenerado : memoria
+Question ||--o{ Answer : question
 
-Plan ||--o{ Suscripcion : plan
-Plan ||--o{ IntentoPago : plan
+Memory }o--o| Question : question
+Memory }o--o| Answer : answer
+Memory }o--|| User : author
+Memory ||--o{ Collaborator : memory
+Memory ||--o{ Comment : memory
+Memory ||--o{ Reaction : memory
+Memory ||--o{ GeneratedVideo : memory
+
+Plan ||--o{ Subscription : plan
+Plan ||--o{ PaymentAttempt : plan
 
 ' Relaciones con enums
-Usuario ||--o{ UserStatus
-Suscripcion ||--o{ EstadoSuscripcion
-Suscripcion ||--o{ MetodoPago
-IntentoPago ||--o{ EstadoIntentoPago
-VideoGenerado ||--o{ EstadoVideo
-Reaccion ||--o{ ReactionType
-Plan ||--o{ TipoPlan
+User ||--o{ UserStatus
+Subscription ||--o{ SubscriptionStatus
+Subscription ||--o{ PaymentMethod
+PaymentAttempt ||--o{ PaymentAttemptStatus
+GeneratedVideo ||--o{ VideoStatus
+Reaction ||--o{ ReactionType
+Plan ||--o{ PlanType
 
 @enduml
