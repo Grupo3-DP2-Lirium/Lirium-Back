@@ -18,7 +18,7 @@ public class Usuario {
     private String email;
 
     @ManyToOne(optional = false)
-    private TipoUsuario tipo;
+    private Rol rol;
 
     private String passWordHash;
 
@@ -43,8 +43,8 @@ public class Usuario {
     public void setSegundoApellido(String segundoApellido) { this.segundoApellido = segundoApellido; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-    public TipoUsuario getTipo() { return tipo; }
-    public void setTipo(TipoUsuario tipo) { this.tipo = tipo; }
+    public Rol getRol() { return rol; }
+    public void setRol(Rol rol) { this.rol = rol; }
     public String getPassWordHash() { return passWordHash; }
     public void setPassWordHash(String passWordHash) { this.passWordHash = passWordHash; }
     public UserStatus getStatus() { return status; }
