@@ -13,7 +13,7 @@ public class PaymentAttempt {
     private int userId;
     private int planId;
 
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private double amount;
 
     @Enumerated(EnumType.STRING)

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 public class Memory {
@@ -35,8 +36,10 @@ public class Memory {
     @ManyToOne(optional = false)
     private User author;
 
-    private String s3keyURL;
-    private Double usedSpace;
+    @OneToMany(mappedBy = "memory", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<File> files = new ArrayList<>();
+
+    private Double totalUsedSpace; // Suma del tamaño de todos los archivos
 
     @ElementCollection
     private List<String> tags;
@@ -73,10 +76,37 @@ public class Memory {
     public void setVisible(boolean visible) { this.visible = visible; }
     public User getAuthor() { return author; }
     public void setAuthor(User author) { this.author = author; }
-    public String getS3keyURL() { return s3keyURL; }
-    public void setS3keyURL(String s3keyURL) { this.s3keyURL = s3keyURL; }
-    public Double getUsedSpace() { return usedSpace; }
-    public void setUsedSpace(Double usedSpace) { this.usedSpace = usedSpace; }
+    public List<File> getFiles() { return files; }
+    public void setFiles(List<File> files) { this.files = files; }
+    public Double getTotalUsedSpace() { return totalUsedSpace; }
+    public void setTotalUsedSpace(Double totalUsedSpace) { this.totalUsedSpace = totalUsedSpace; }
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
+
+    // Métodos de utilidad para manejar archivos
+    public void addFile(File file) {
+        files.add(file);
+        file.setMemory(this);
+        updateTotalUsedSpace();
+    }
+
+    public void removeFile(File file) {
+        files.remove(file);
+        file.setMemory(null);
+        updateTotalUsedSpace();
+    }
+
+    private void updateTotalUsedSpace() {
+        this.totalUsedSpace = files.stream()
+                .mapToDouble(File::getFileSize)
+                .sum();
+    }
+
+    public boolean hasFiles() {
+        return files != null && !files.isEmpty();
+    }
+
+    public int getFileCount() {
+        return files != null ? files.size() : 0;
+    }
 }

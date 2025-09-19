@@ -20,7 +20,7 @@ public class GeneratedVideo {
     private String description;
 
     @Column
-    private String s3key_URL;
+    private String videoUrl; // URL general donde está almacenado el video
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -44,8 +44,8 @@ public class GeneratedVideo {
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public String getS3key_URL() { return s3key_URL; }
-    public void setS3key_URL(String s3key_URL) { this.s3key_URL = s3key_URL; }
+    public String getVideoUrl() { return videoUrl; }
+    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
     public VideoStatus getReelStatus() { return reelStatus; }
     public void setReelStatus(VideoStatus reelStatus) { this.reelStatus = reelStatus; }
     public String getType() { return type; }
