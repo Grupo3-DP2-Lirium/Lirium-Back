@@ -1,6 +1,7 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
+import org.example.springboot_backend.enums.MemoryOriginType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +17,9 @@ public class Memory {
     @ManyToOne(optional = false)
     private Memorial memorial;
 
-    private String type; // texto, foto, audio, video
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MemoryOriginType type;
 
     private String associatedQuestion;
 
@@ -52,8 +55,8 @@ public class Memory {
     public void setIdMemory(Long idMemory) { this.idMemory = idMemory; }
     public Memorial getMemorial() { return memorial; }
     public void setMemorial(Memorial memorial) { this.memorial = memorial; }
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public MemoryOriginType getType() { return type; }
+    public void setType(MemoryOriginType type) { this.type = type; }
     public String getAssociatedQuestion() { return associatedQuestion; }
     public void setAssociatedQuestion(String associatedQuestion) { this.associatedQuestion = associatedQuestion; }
     public Question getQuestion() { return question; }

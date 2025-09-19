@@ -24,6 +24,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+    
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
@@ -31,9 +33,28 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// Task para correr en modo desarrollo
+task bootRunDev(type: org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = 'Run the application with development profile'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.example.springboot_backend.SpringbootBackendApplication'
+    args '--spring.profiles.active=dev'
+}
+
+// Task para correr en modo producción
+task bootRunProd(type: org.springframework.boot.gradle.tasks.run.BootRun) {
+    group = 'application'
+    description = 'Run the application with production profile'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.example.springboot_backend.SpringbootBackendApplication'
+    args '--spring.profiles.active=prod'
 }
