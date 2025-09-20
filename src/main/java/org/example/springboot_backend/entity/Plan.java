@@ -5,6 +5,7 @@ import org.example.springboot_backend.enums.PlanType;
 import java.util.UUID;
 
 @Entity
+@Table(name = "subscription_plans")
 public class Plan {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

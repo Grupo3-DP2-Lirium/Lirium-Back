@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@Table(name = "files")
 public class File {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

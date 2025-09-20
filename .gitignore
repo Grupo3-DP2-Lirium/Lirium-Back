@@ -37,3 +37,7 @@ out/
 .vscode/
 
 .fake
+
+### Production configuration ###
+# Exclude production configuration files with sensitive credentials
+src/main/resources/application-prod.properties

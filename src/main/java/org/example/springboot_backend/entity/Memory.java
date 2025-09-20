@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 @Entity
+@Table(name = "memories")
 public class Memory {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

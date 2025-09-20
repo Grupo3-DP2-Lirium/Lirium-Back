@@ -16,7 +16,7 @@ public class LocalFileStorageService implements FileStorageService {
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
-    @Value("${server.port:8081}")
+    @Value("${server.port:8080}")
     private String serverPort;
 
     @Override

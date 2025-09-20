@@ -1,0 +1,21 @@
+# .dockerignore
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.cache
+.DS_Store
+*.log
+build/
+.gradle/
+target/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+.idea/
+*.iml
+*.ipr
+*.iws

@@ -4,8 +4,11 @@ import org.example.springboot_backend.dto.LoginRequest;
 import org.example.springboot_backend.dto.LoginResponse;
 import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.entity.Role;
+import org.example.springboot_backend.exception.UserNotFoundException;
+import org.example.springboot_backend.exception.InvalidCredentialsException;
 import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 
@@ -24,12 +27,16 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (BadCredentialsException e) {
+            throw new InvalidCredentialsException("Invalid email or password. Please check your credentials and try again.");
+        }
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User with email '" + request.getEmail() + "' not found"));
 
         String token = jwtService.generateToken(user.getEmail());
         
