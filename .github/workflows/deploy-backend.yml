@@ -76,6 +76,6 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         echo "🚀 Deployment completed successfully!"
-        echo "📡 API URL: https://lirium-backend--0000006.calmsmoke-a4ab58e7.eastus2.azurecontainerapps.io"
+        echo "📡 API URL: https://lirium-backend.calmsmoke-a4ab58e7.eastus2.azurecontainerapps.io"
         echo "✨ Features included: Improved error handling, optimized Docker image, and secure table names"
         echo "🔧 Environment: Production with validate mode"
