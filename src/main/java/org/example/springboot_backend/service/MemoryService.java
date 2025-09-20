@@ -101,7 +101,12 @@ public class MemoryService implements IMemoryService {
         List<File> savedFiles = new ArrayList<>();
         
         for (MultipartFile file : files) {
-            String folder = "memories/" + memory.getAuthor().getIdUser() + "/" + memory.getIdMemory();
+            // Nueva estructura: user-{userId}/memorials/{memorialId}/memories/{memoryId}
+            String folder = String.format("user-%s/memorials/%s/memories/%s", 
+                memory.getAuthor().getIdUser(),
+                memory.getMemorial().getIdMemorial(),
+                memory.getIdMemory());
+            
             StorageResult result = fileStorageService.uploadFile(file, folder);
             
             if (result.isSuccess()) {
@@ -112,7 +117,7 @@ public class MemoryService implements IMemoryService {
                 fileEntity.setFileType(determineFileType(file.getContentType()));
                 fileEntity.setFileUrl(result.getFileUrl());
                 fileEntity.setFileSize(result.getFileSize());
-                fileEntity.setStorageProvider("local");
+                fileEntity.setStorageProvider("azure");
                 fileEntity.setStoragePath(result.getStoragePath());
                 fileEntity.setMemory(memory);
                 
