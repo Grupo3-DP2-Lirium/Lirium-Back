@@ -5,6 +5,7 @@ import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryResponse;
 import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.enums.MemoryOriginType;
+import org.example.springboot_backend.exception.InsufficientStorageException;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.FileStorageService;
 import org.example.springboot_backend.service.storage.StorageResult;
@@ -37,11 +38,20 @@ public class MemoryService implements IMemoryService {
     private AnswerRepository answerRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private FileStorageService fileStorageService;
 
     @Override
     public MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author) {
         validateRequest(request, author);
+        
+        // Validar espacio disponible antes de procesar archivos
+        if (files != null && files.length > 0) {
+            double totalFilesSize = calculateTotalFilesSize(files);
+            validateUserStorageCapacity(author, totalFilesSize);
+        }
         
         Memorial memorial = memorialRepository.findById(request.getMemorialId())
             .orElseThrow(() -> new RuntimeException("Memorial not found"));
@@ -55,6 +65,9 @@ public class MemoryService implements IMemoryService {
             Double totalSpace = calculateTotalSpace(savedFiles);
             memory.setTotalUsedSpace(totalSpace);
             memory = memoryRepository.save(memory);
+            
+            // Actualizar el espacio usado del usuario
+            updateUserUsedSpace(author, totalSpace);
         }
 
         return buildResponse(memory, savedFiles);
@@ -178,5 +191,38 @@ public class MemoryService implements IMemoryService {
         response.setFileSize(file.getFileSize());
         response.setUploadedDate(file.getUploadedDate());
         return response;
+    }
+
+    private double calculateTotalFilesSize(MultipartFile[] files) {
+        double totalSize = 0;
+        for (MultipartFile file : files) {
+            totalSize += file.getSize();
+        }
+        return totalSize;
+    }
+
+    private void validateUserStorageCapacity(User user, double additionalSpace) {
+        double currentUsedSpace = user.getUsedSpace() != null ? user.getUsedSpace() : 0.0;
+        double totalCapacity = user.getTotalCapacity() != null ? user.getTotalCapacity() : 0.0;
+        double newUsedSpace = currentUsedSpace + additionalSpace;
+
+        if (newUsedSpace > totalCapacity) {
+            double availableSpace = totalCapacity - currentUsedSpace;
+            double requiredSpaceMB = additionalSpace / (1024 * 1024); // Convert bytes to MB
+            double availableSpaceMB = availableSpace / (1024 * 1024); // Convert bytes to MB
+            
+            throw new InsufficientStorageException(
+                String.format("Insufficient storage space. Required: %.2f MB, Available: %.2f MB. " +
+                    "Please free up space or upgrade your storage plan.", 
+                    requiredSpaceMB, availableSpaceMB)
+            );
+        }
+    }
+
+    private void updateUserUsedSpace(User user, double additionalSpace) {
+        double currentUsedSpace = user.getUsedSpace() != null ? user.getUsedSpace() : 0.0;
+        double newUsedSpace = currentUsedSpace + additionalSpace;
+        user.setUsedSpace(newUsedSpace);
+        userRepository.save(user);
     }
 }

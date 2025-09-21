@@ -76,6 +76,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
+    @ExceptionHandler(InsufficientStorageException.class)
+    public ResponseEntity<ErrorResponse> handleInsufficientStorage(
+            InsufficientStorageException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Insufficient Storage",
+            HttpStatus.PAYLOAD_TOO_LARGE.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(errorResponse);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
             MethodArgumentNotValidException ex, WebRequest request) {
