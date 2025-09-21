@@ -1,45 +1,28 @@
-package org.example.springboot_backend.entity;
-
-import jakarta.persistence.*;
+package org.example.springboot_backend.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
-public class Memorial {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+public class MemorialResponse {
     private UUID idMemorial;
-
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "id_user", nullable = false)
-    private User user; // owner/creator of the memorial
-
-    private String name; // name of the person
+    private String name;
     private String nickname;
     private LocalDate birthDate;
     private String gender;
-    @Column(columnDefinition = "TEXT")
     private String description;
-    private String relationType; // free option
-    private boolean isCollaborative;
-    private boolean isJournal;
+    private String relationType;
+    private FileResponse profilePhoto;
+    private String coverURL;
+    private boolean collaborative;
+    private boolean journal;
     private Double usedSpace;
-
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "profile_photo_id")
-    private File profilePhoto;
-    private String coverURL; // It's random, use some of the images uploaded in memories
-
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 
-    // getters and setters
+    // getters y setters
     public UUID getIdMemorial() { return idMemorial; }
     public void setIdMemorial(UUID idMemorial) { this.idMemorial = idMemorial; }
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getNickname() { return nickname; }
@@ -52,18 +35,18 @@ public class Memorial {
     public void setDescription(String description) { this.description = description; }
     public String getRelationType() { return relationType; }
     public void setRelationType(String relationType) { this.relationType = relationType; }
+    public FileResponse getProfilePhoto() { return profilePhoto; }
+    public void setProfilePhoto(FileResponse profilePhoto) { this.profilePhoto = profilePhoto; }
     public String getCoverURL() { return coverURL; }
     public void setCoverURL(String coverURL) { this.coverURL = coverURL; }
-    public boolean isCollaborative() { return isCollaborative; }
-    public void setCollaborative(boolean collaborative) { this.isCollaborative = collaborative; }
-    public boolean isJournal() { return isJournal; }
-    public void setJournal(boolean journal) { this.isJournal = journal; }
+    public boolean isCollaborative() { return collaborative; }
+    public void setCollaborative(boolean collaborative) { this.collaborative = collaborative; }
+    public boolean isJournal() { return journal; }
+    public void setJournal(boolean journal) { this.journal = journal; }
     public Double getUsedSpace() { return usedSpace; }
     public void setUsedSpace(Double usedSpace) { this.usedSpace = usedSpace; }
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
-    public File getProfilePhoto() { return profilePhoto; }
-    public void setProfilePhoto(File profilePhoto) { this.profilePhoto = profilePhoto; }
 }
