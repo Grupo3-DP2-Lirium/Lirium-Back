@@ -1,10 +1,10 @@
 package org.example.springboot_backend.service.storage;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,11 +15,7 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
 
-    @Value("${app.upload.dir:uploads}")
-    private String uploadDir;
-
-    @Value("${server.port:8080}")
-    private String serverPort;
+    private final String baseFolder = "C:\\Users\\mlcis\\Desktop\\DP2_2025_2";
 
     @Override
     public StorageResult uploadFile(MultipartFile file, String folder) {
@@ -27,43 +23,36 @@ public class LocalFileStorageService implements FileStorageService {
             String originalFileName = file.getOriginalFilename();
             String fileExtension = getFileExtension(originalFileName);
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
-            
-            Path uploadPath = Paths.get(uploadDir, folder);
-            Files.createDirectories(uploadPath);
-            
-            Path filePath = uploadPath.resolve(uniqueFileName);
-            Files.copy(file.getInputStream(), filePath);
-            
-            String storagePath = folder + "/" + uniqueFileName;
-            String fileUrl = "http://localhost:" + serverPort + "/api/files/download/" + storagePath;
+
+            Path folderPath = Paths.get(baseFolder, folder);
+            Files.createDirectories(folderPath);
+
+            Path filePath = folderPath.resolve(uniqueFileName);
+            file.transferTo(filePath.toFile());
+
+            String fileUrl = folder + "/" + uniqueFileName;
             Double fileSize = (double) file.getSize() / (1024 * 1024);
-            
-            return new StorageResult(uniqueFileName, storagePath, fileUrl, fileSize);
-            
+
+            return new StorageResult(uniqueFileName, filePath.toString(), fileUrl, fileSize);
+
         } catch (IOException e) {
-            return StorageResult.error("Failed to store file: " + e.getMessage());
+            return StorageResult.error("Failed to upload file locally: " + e.getMessage());
         }
     }
 
     @Override
     public void deleteFile(String storagePath) {
-        try {
-            Path filePath = Paths.get(uploadDir, storagePath);
-            Files.deleteIfExists(filePath);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to delete file: " + storagePath, e);
-        }
+        File file = new File(storagePath);
+        if (file.exists()) file.delete();
     }
 
     @Override
     public String getFileUrl(String storagePath) {
-        return "http://localhost:" + serverPort + "/api/files/download/" + storagePath;
+        return storagePath;
     }
 
     private String getFileExtension(String fileName) {
-        if (fileName == null || !fileName.contains(".")) {
-            return "";
-        }
+        if (fileName == null || !fileName.contains(".")) return "";
         return fileName.substring(fileName.lastIndexOf("."));
     }
 }

@@ -117,7 +117,7 @@ public class MemoryService implements IMemoryService {
                 fileEntity.setFileType(determineFileType(file.getContentType()));
                 fileEntity.setFileUrl(result.getFileUrl());
                 fileEntity.setFileSize(result.getFileSize());
-                fileEntity.setStorageProvider("azure");
+                fileEntity.setStorageProvider("local");  // ahora es local, no azure
                 fileEntity.setStoragePath(result.getStoragePath());
                 fileEntity.setMemory(memory);
                 
