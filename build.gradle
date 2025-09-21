@@ -53,13 +53,11 @@ task bootRunDev(type: org.springframework.boot.gradle.tasks.run.BootRun) {
     args '--spring.profiles.active=dev'
 }
 
-// jvmArgs = ["-Djava.library.path=C:/Users/mlcis/Downloads/sqljdbc_13.2.0.0_enu/sqljdbc_13.2/enu/auth/x64"]
-
+// Task para correr en modo producción
 task bootRunProd(type: org.springframework.boot.gradle.tasks.run.BootRun) {
     group = 'application'
     description = 'Run the application with production profile'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.example.springboot_backend.SpringbootBackendApplication'
     args '--spring.profiles.active=prod'
-    jvmArgs = ["-Djava.library.path=C:/Users/mlcis/Downloads/sqljdbc_13.2.0.0_enu/sqljdbc_13.2/enu/auth/x64"]
 }
