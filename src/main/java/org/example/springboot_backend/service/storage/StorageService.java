@@ -107,7 +107,7 @@ public class StorageService {
                 fileEntity.setFileType(determineFileType(file.getContentType()));
                 fileEntity.setFileUrl(result.getFileUrl());
                 fileEntity.setFileSize(result.getFileSize());
-                fileEntity.setStorageProvider("azure");
+                fileEntity.setStorageProvider("local");
                 fileEntity.setStoragePath(result.getStoragePath());
                 fileEntity.setMemory(memory);
                 
@@ -144,7 +144,7 @@ public class StorageService {
         fileEntity.setFileType(determineFileType(file.getContentType()));
         fileEntity.setFileUrl(result.getFileUrl());
         fileEntity.setFileSize(result.getFileSize());
-        fileEntity.setStorageProvider("azure");
+        fileEntity.setStorageProvider("local");
         fileEntity.setStoragePath(result.getStoragePath());
 
         return fileRepository.save(fileEntity);
