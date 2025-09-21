@@ -23,14 +23,11 @@ public class Memorial {
     @Column(columnDefinition = "TEXT")
     private String description;
     private String relationType; // free option
+    private String profilePhotoURL;
+    private String coverURL;
     private boolean isCollaborative;
     private boolean isJournal;
     private Double usedSpace;
-
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "profile_photo_id")
-    private File profilePhoto;
-    private String coverURL; // It's random, use some of the images uploaded in memories
 
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
@@ -52,6 +49,8 @@ public class Memorial {
     public void setDescription(String description) { this.description = description; }
     public String getRelationType() { return relationType; }
     public void setRelationType(String relationType) { this.relationType = relationType; }
+    public String getProfilePhotoURL() { return profilePhotoURL; }
+    public void setProfilePhotoURL(String profilePhotoURL) { this.profilePhotoURL = profilePhotoURL; }
     public String getCoverURL() { return coverURL; }
     public void setCoverURL(String coverURL) { this.coverURL = coverURL; }
     public boolean isCollaborative() { return isCollaborative; }
@@ -64,6 +63,4 @@ public class Memorial {
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
-    public File getProfilePhoto() { return profilePhoto; }
-    public void setProfilePhoto(File profilePhoto) { this.profilePhoto = profilePhoto; }
 }
