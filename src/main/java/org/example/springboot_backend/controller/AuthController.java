@@ -1,8 +1,12 @@
 package org.example.springboot_backend.controller;
 
+import jakarta.validation.Valid;
 import org.example.springboot_backend.dto.LoginRequest;
 import org.example.springboot_backend.dto.LoginResponse;
+import org.example.springboot_backend.dto.RegisterUserDTO;
+import org.example.springboot_backend.dto.UserResponseDTO;
 import org.example.springboot_backend.service.AuthService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +23,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponseDTO> register(@Valid @RequestBody RegisterUserDTO registerRequest) {
+        UserResponseDTO newUser = authService.registerUser(registerRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
     }
 
     @PostMapping("/logout")
