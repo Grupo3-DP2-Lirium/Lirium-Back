@@ -1,14 +1,22 @@
 package org.example.springboot_backend.controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.springframework.http.MediaType;
+import org.example.springboot_backend.dto.MemorialRequest;
+import org.example.springboot_backend.dto.MemorialResponse;
 import org.example.springboot_backend.entity.Memorial;
 import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.UserRepository;
+import org.example.springboot_backend.service.IMemorialService;
+import org.example.springboot_backend.service.IMemoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,70 +28,38 @@ import java.util.UUID;
 public class MemorialController {
 
     @Autowired
-    private MemorialRepository memorialRepository;
+    private IMemorialService memorialService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private UserRepository userRepository;
 
-    // Crear memorial
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> createMemorial(@RequestBody Memorial memorial, Authentication authentication) {
+    public ResponseEntity<?> createMemorial(
+            @RequestPart("memorial") String memorialJson,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            Authentication authentication) {
+
         try {
+            // Parseamos el JSON a un DTO MemorialRequest
+            MemorialRequest request = objectMapper.readValue(memorialJson, MemorialRequest.class);
+
+            // Obtenemos al usuario autenticado
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            memorial.setUser(user);
-            memorial.setCreatedDate(LocalDateTime.now());
-            memorial.setUpdatedDate(LocalDateTime.now());
+            // Llamamos al service en lugar de usar directamente el repository
+            MemorialResponse response = memorialService.createMemorial(request, file, user);
 
-            Memorial saved = memorialRepository.save(memorial);
-            return ResponseEntity.ok(saved);
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error creating memorial: " + e.getMessage());
         }
     }
 
-    // Listar memorials del usuario autenticado
-    @GetMapping
-    @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> getMyMemorials(Authentication authentication) {
-        try {
-            String userEmail = authentication.getName();
-            User user = userRepository.findByEmail(userEmail)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            List<Memorial> memorials = memorialRepository.findByUser(user);
-            return ResponseEntity.ok(memorials);
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error fetching memorials: " + e.getMessage());
-        }
-    }
-
-    // Obtener memorial por ID
-    @GetMapping("/{id}")
-    @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> getMemorial(@PathVariable UUID id, Authentication authentication) {
-        return memorialRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    // Eliminar memorial
-    @DeleteMapping("/{id}")
-    @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> deleteMemorial(@PathVariable UUID id, Authentication authentication) {
-        try {
-            if (!memorialRepository.existsById(id)) {
-                return ResponseEntity.notFound().build();
-            }
-            memorialRepository.deleteById(id);
-            return ResponseEntity.ok("Memorial deleted");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error deleting memorial: " + e.getMessage());
-        }
-    }
 }
