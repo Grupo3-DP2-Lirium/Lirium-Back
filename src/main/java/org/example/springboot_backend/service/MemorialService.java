@@ -1,19 +1,17 @@
 package org.example.springboot_backend.service;
 
+import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
-import org.example.springboot_backend.entity.Memorial;
-import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.repository.MemorialRepository;
+import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -22,11 +20,83 @@ public class MemorialService implements IMemorialService {
     @Autowired
     private MemorialRepository memorialRepository;
 
+    @Autowired
+    private StorageService storageService;
+
+    // Create a new Memorial with optional profile photo.
     @Override
-    public MemorialResponse createMemorial(MemorialRequest memorial, MultipartFile file, User author) {
-        
-        Memorial saved = memorialRepository.save(memorial);
-        return buildResponse(saved);
+    public MemorialResponse createMemorial(MemorialRequest request, MultipartFile profilePhoto, User user) {
+
+        // Validate storage space if photo exists
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            double photoSize = profilePhoto.getSize(); // Size in bytes
+            storageService.validateUserStorageCapacity(user, photoSize);
+        }
+
+        // Build Memorial entity from request
+        Memorial memorial = new Memorial();
+        memorial.setName(request.getName());
+        memorial.setNickname(request.getNickname());
+        memorial.setBirthDate(request.getBirthDate());
+        memorial.setGender(request.getGender());
+        memorial.setDescription(request.getDescription());
+        memorial.setRelationType(request.getRelationType());
+        memorial.setCollaborative(request.isCollaborative());
+        memorial.setJournal(request.isJournal());
+        memorial.setCreatedDate(LocalDateTime.now());
+        memorial.setUser(user);
+
+        memorial = memorialRepository.save(memorial);
+
+        // Upload profile photo if exists
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+            // Subir foto y obtener File
+            File uploadedFile = storageService.processSingleFile(profilePhoto, memorial);
+
+            // Asignar la foto al memorial
+            memorial.setProfilePhoto(uploadedFile);
+
+            // Increase user's used storage
+            storageService.increaseUserUsedSpace(user, profilePhoto.getSize());
+            // Save memorial to get ID
+            memorial = memorialRepository.save(memorial);
+        }
+
+        return buildResponse(memorial);
     }
     
+    private MemorialResponse buildResponse(Memorial memorial) {
+        MemorialResponse response = new MemorialResponse();
+        response.setIdMemorial(memorial.getIdMemorial());
+        response.setName(memorial.getName());
+        response.setNickname(memorial.getNickname());
+        response.setBirthDate(memorial.getBirthDate());
+        response.setGender(memorial.getGender());
+        response.setDescription(memorial.getDescription());
+        response.setRelationType(memorial.getRelationType());
+        response.setCollaborative(memorial.isCollaborative());
+        response.setJournal(memorial.isJournal());
+        response.setCreatedDate(memorial.getCreatedDate());
+
+        // Agregar info de profilePhoto si existe
+        if (memorial.getProfilePhoto() != null) {
+            File file = memorial.getProfilePhoto();
+            response.setProfilePhoto(buildFileResponse(file));
+        }
+
+        return response;
+    }
+
+    private FileResponse buildFileResponse(File file) {
+        FileResponse response = new FileResponse();
+        response.setIdFile(file.getIdFile());
+        response.setFileName(file.getFileName());
+        response.setOriginalFileName(file.getOriginalFileName());
+        response.setFileType(file.getFileType());
+        response.setMimeType(file.getMimeType());
+        response.setFileUrl(file.getFileUrl());
+        response.setFileSize(file.getFileSize());
+        response.setUploadedDate(file.getUploadedDate());
+        return response;
+    }
 }

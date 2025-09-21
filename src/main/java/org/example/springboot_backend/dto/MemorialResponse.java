@@ -12,7 +12,7 @@ public class MemorialResponse {
     private String gender;
     private String description;
     private String relationType;
-    private String profilePhotoURL;
+    private FileResponse profilePhoto;
     private String coverURL;
     private boolean collaborative;
     private boolean journal;
@@ -20,7 +20,7 @@ public class MemorialResponse {
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 
-    // Getters y setters
+    // getters y setters
     public UUID getIdMemorial() { return idMemorial; }
     public void setIdMemorial(UUID idMemorial) { this.idMemorial = idMemorial; }
     public String getName() { return name; }
@@ -35,8 +35,8 @@ public class MemorialResponse {
     public void setDescription(String description) { this.description = description; }
     public String getRelationType() { return relationType; }
     public void setRelationType(String relationType) { this.relationType = relationType; }
-    public String getProfilePhotoURL() { return profilePhotoURL; }
-    public void setProfilePhotoURL(String profilePhotoURL) { this.profilePhotoURL = profilePhotoURL; }
+    public FileResponse getProfilePhoto() { return profilePhoto; }
+    public void setProfilePhoto(FileResponse profilePhoto) { this.profilePhoto = profilePhoto; }
     public String getCoverURL() { return coverURL; }
     public void setCoverURL(String coverURL) { this.coverURL = coverURL; }
     public boolean isCollaborative() { return collaborative; }

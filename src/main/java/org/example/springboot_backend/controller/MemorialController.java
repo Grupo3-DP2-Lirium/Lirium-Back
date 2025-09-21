@@ -4,12 +4,9 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.MediaType;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
-import org.example.springboot_backend.entity.Memorial;
 import org.example.springboot_backend.entity.User;
-import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.IMemorialService;
-import org.example.springboot_backend.service.IMemoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,10 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/memorials")
@@ -61,5 +54,4 @@ public class MemorialController {
             return ResponseEntity.badRequest().body("Error creating memorial: " + e.getMessage());
         }
     }
-
 }
