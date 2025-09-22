@@ -8,6 +8,9 @@ import org.example.springboot_backend.enums.MemoryOriginType;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -64,6 +68,46 @@ public class MemoryService implements IMemoryService {
         }
 
         return buildResponse(memory, savedFiles);
+    }
+
+    @Override
+    public Page<MemoryResponse> listByMemorial(UUID memorialId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Memory> result = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId, pageable);
+
+        return result.map(memory -> {
+            MemoryResponse r = new MemoryResponse();
+            r.setIdMemory(memory.getIdMemory());
+            r.setType(memory.getType());
+            r.setTitle(memory.getTitle());
+            r.setDescription(memory.getDescription());
+            r.setPhotoDate(memory.getPhotoDate());
+            r.setLocation(memory.getLocation());
+            r.setVisible(memory.isVisible());
+            r.setTags(memory.getTags());
+            r.setAssociatedQuestion(memory.getAssociatedQuestion());
+            r.setTotalUsedSpace(memory.getTotalUsedSpace());
+            r.setCreatedDate(memory.getCreatedDate());
+
+            if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+                r.setFiles(memory.getFiles().stream().map(f -> {
+                    FileResponse fr = new FileResponse();
+                    fr.setIdFile(f.getIdFile());
+                    fr.setFileName(f.getFileName());
+                    fr.setOriginalFileName(f.getOriginalFileName());
+                    fr.setFileType(f.getFileType());
+                    fr.setMimeType(f.getMimeType());
+                    fr.setFileUrl(f.getFileUrl());
+                    fr.setFileSize(f.getFileSize());
+                    fr.setUploadedDate(f.getUploadedDate());
+                    return fr;
+                }).toList());
+            } else {
+                r.setFiles(List.of());
+            }
+
+            return r;
+        });
     }
 
     private void validateRequest(MemoryCreateRequest request, User author) {
