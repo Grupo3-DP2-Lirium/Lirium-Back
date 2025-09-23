@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
+                .requestMatchers("/api/image-enhancer/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .anyRequest().authenticated()
             )
