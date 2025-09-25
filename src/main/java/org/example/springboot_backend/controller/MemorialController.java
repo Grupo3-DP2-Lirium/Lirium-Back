@@ -1,6 +1,7 @@
 package org.example.springboot_backend.controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import org.example.springboot_backend.entity.Memorial;
 import org.springframework.http.MediaType;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
@@ -12,8 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.example.springboot_backend.repository.MemorialRepository;
+
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/memorials")
@@ -28,6 +33,9 @@ public class MemorialController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private MemorialRepository memorialRepository;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
@@ -52,6 +60,30 @@ public class MemorialController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error creating memorial: " + e.getMessage());
+        }
+    }
+    // HU02 - Obtener memoriales colaborativos
+    @GetMapping("/collaborative")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getCollaborativeMemorials() {
+        try {
+            List<Memorial> collaborativeMemorials = memorialRepository.findByIsCollaborativeTrue();
+            return ResponseEntity.ok(collaborativeMemorials);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching collaborative memorials: " + e.getMessage());
+        }
+    }
+
+    // HU05 - Obtener preguntas predefinidas
+    @GetMapping("/predefined-questions")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getPredefinedQuestions() {
+        try {
+            // Implementar lógica para obtener preguntas predefinidas
+            // Por ahora retornamos una respuesta básica
+            return ResponseEntity.ok("Predefined questions endpoint - to be implemented");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching predefined questions: " + e.getMessage());
         }
     }
 }

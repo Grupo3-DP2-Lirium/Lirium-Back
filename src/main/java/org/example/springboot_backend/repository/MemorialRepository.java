@@ -9,4 +9,5 @@ import java.util.List;
 
 public interface MemorialRepository extends JpaRepository<Memorial, UUID> {
     List<Memorial> findByUser(User user);
+    List<Memorial> findByIsCollaborativeTrue();
 }
