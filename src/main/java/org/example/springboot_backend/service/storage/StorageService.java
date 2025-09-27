@@ -86,7 +86,7 @@ public class StorageService {
         return files.stream().mapToDouble(f -> f.getFileSize() != null ? f.getFileSize() : 0).sum();
     }
 
-    // Upload multiple files and save them to the database.
+    // Upload multiple files and save them to the database for a Memory
     public List<File> processFiles(MultipartFile[] files, Memory memory) {
         List<File> savedFiles = new ArrayList<>();
         

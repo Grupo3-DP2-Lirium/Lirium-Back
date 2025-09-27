@@ -33,7 +33,7 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
-     @Bean
+    /* @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         if (!securityEnabled) {
             // Configuración para cuando la seguridad está deshabilitada (app.security.enabled=false)
@@ -55,14 +55,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/memories").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/memories").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }
- /*   @Bean
+    }*/
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -74,14 +74,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/memories").permitAll()  // <-- agrega esta línea
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-*/
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
