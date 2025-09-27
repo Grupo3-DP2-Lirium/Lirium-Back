@@ -23,17 +23,17 @@ public class MemorialService implements IMemorialService {
     @Autowired
     private StorageService storageService;
 
-    // Create a new Memorial with optional profile photo.
+    // Create a new Memorial with optional profile photo
     @Override
     public MemorialResponse createMemorial(MemorialRequest request, MultipartFile profilePhoto, User user) {
 
-        // Validate storage space if photo exists
+        // Validate storage if photo exists
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            double photoSize = profilePhoto.getSize(); // Size in bytes
+            double photoSize = profilePhoto.getSize(); // in bytes
             storageService.validateUserStorageCapacity(user, photoSize);
         }
 
-        // Build Memorial entity from request
+        // Build Memorial entity
         Memorial memorial = new Memorial();
         memorial.setName(request.getName());
         memorial.setNickname(request.getNickname());
@@ -48,23 +48,24 @@ public class MemorialService implements IMemorialService {
 
         memorial = memorialRepository.save(memorial);
 
-        // Upload profile photo if exists
+        // Handle profile photo
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            // Subir foto y obtener File
+            // Upload photo and get File
             File uploadedFile = storageService.processSingleFile(profilePhoto, memorial);
 
-            // Asignar la foto al memorial
+            // Link photo to memorial
             memorial.setProfilePhoto(uploadedFile);
 
-            // Increase user's used storage
+            // Update user storage usage
             storageService.increaseUserUsedSpace(user, profilePhoto.getSize());
-            // Save memorial to get ID
+
+            // Save again with photo
             memorial = memorialRepository.save(memorial);
         }
 
         return buildResponse(memorial);
     }
-    
+
     private MemorialResponse buildResponse(Memorial memorial) {
         MemorialResponse response = new MemorialResponse();
         response.setIdMemorial(memorial.getIdMemorial());
@@ -78,7 +79,7 @@ public class MemorialService implements IMemorialService {
         response.setJournal(memorial.isJournal());
         response.setCreatedDate(memorial.getCreatedDate());
 
-        // Agregar info de profilePhoto si existe
+        // Add profile photo if exists
         if (memorial.getProfilePhoto() != null) {
             File file = memorial.getProfilePhoto();
             response.setProfilePhoto(buildFileResponse(file));
@@ -99,4 +100,5 @@ public class MemorialService implements IMemorialService {
         response.setUploadedDate(file.getUploadedDate());
         return response;
     }
+
 }

@@ -37,31 +37,34 @@ public class MemorialController {
     @Autowired
     private MemorialRepository memorialRepository;
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // HU09 - Create a memorial
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> createMemorial(
             @RequestPart("memorial") String memorialJson,
             @RequestPart(value = "file", required = false) MultipartFile file,
             Authentication authentication) {
-
         try {
-            // Parseamos el JSON a un DTO MemorialRequest
+            // Parse JSON to MemorialRequest
             MemorialRequest request = objectMapper.readValue(memorialJson, MemorialRequest.class);
 
-            // Obtenemos al usuario autenticado
+            // Get authenticated user
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Llamamos al service en lugar de usar directamente el repository
+            // Call service to create memorial
             MemorialResponse response = memorialService.createMemorial(request, file, user);
 
+            // Return success response
             return ResponseEntity.ok(response);
-
         } catch (Exception e) {
+            // Return error response
             return ResponseEntity.badRequest().body("Error creating memorial: " + e.getMessage());
         }
     }
+
+    
     // HU02 - Obtener memoriales colaborativos
     @GetMapping("/collaborative")
     @SecurityRequirement(name = "Bearer Authentication")
