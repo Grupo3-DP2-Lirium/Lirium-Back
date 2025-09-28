@@ -37,7 +37,7 @@ public class MemorialController {
     @Autowired
     private MemorialRepository memorialRepository;
 
-    // HU09 - Create a memorial
+    // Create a memorial
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> createMemorial(
@@ -63,6 +63,22 @@ public class MemorialController {
             return ResponseEntity.badRequest().body("Error creating memorial: " + e.getMessage());
         }
     }
+
+    @GetMapping(value = "/getMemorials", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMyMemorials(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName(); // aquí obtienes al usuario del token
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            List<MemorialResponse> memorials = memorialService.getMyMemorials(user);
+            return ResponseEntity.ok(memorials);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching memorials: " + e.getMessage());
+        }
+    }
+
 
     
     // HU02 - Obtener memoriales colaborativos
