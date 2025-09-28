@@ -22,7 +22,7 @@ import org.springframework.http.HttpHeaders;
 @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
 
-    private final String baseFolder = "C:\\Users\\mlcis\\Desktop\\DP2_2025_2";
+    private final String baseFolder = "C:\\Users\\RODRIGO\\Pictures\\Screenshots";
 
     @Override
     public StorageResult uploadFile(MultipartFile file, String folder) {
