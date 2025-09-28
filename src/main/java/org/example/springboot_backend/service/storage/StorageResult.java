@@ -72,4 +72,5 @@ public class StorageResult {
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
+
 }

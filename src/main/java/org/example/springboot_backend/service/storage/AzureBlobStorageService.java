@@ -7,6 +7,8 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobHttpHeaders;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -98,5 +100,10 @@ public class AzureBlobStorageService implements FileStorageService {
             return "";
         }
         return fileName.substring(fileName.lastIndexOf("."));
+    }
+
+    @Override
+    public ResponseEntity<Resource> downloadFile(String folder, String fileName) {
+        throw new UnsupportedOperationException("Unimplemented method 'downloadFile'");
     }
 }
