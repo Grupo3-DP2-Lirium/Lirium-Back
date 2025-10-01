@@ -10,8 +10,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Base64;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 
 @Service
 @Transactional
@@ -23,17 +31,17 @@ public class MemorialService implements IMemorialService {
     @Autowired
     private StorageService storageService;
 
-    // Create a new Memorial with optional profile photo.
+    // Create a new Memorial with optional profile photo
     @Override
     public MemorialResponse createMemorial(MemorialRequest request, MultipartFile profilePhoto, User user) {
 
-        // Validate storage space if photo exists
+        // Validate storage if photo exists
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            double photoSize = profilePhoto.getSize(); // Size in bytes
+            double photoSize = profilePhoto.getSize(); // in bytes
             storageService.validateUserStorageCapacity(user, photoSize);
         }
 
-        // Build Memorial entity from request
+        // Build Memorial entity
         Memorial memorial = new Memorial();
         memorial.setName(request.getName());
         memorial.setNickname(request.getNickname());
@@ -48,23 +56,31 @@ public class MemorialService implements IMemorialService {
 
         memorial = memorialRepository.save(memorial);
 
-        // Upload profile photo if exists
+        // Handle profile photo
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            // Subir foto y obtener File
+            // Upload photo and get File
             File uploadedFile = storageService.processSingleFile(profilePhoto, memorial);
 
-            // Asignar la foto al memorial
+            // Link photo to memorial
             memorial.setProfilePhoto(uploadedFile);
 
-            // Increase user's used storage
+            // Update user storage usage
             storageService.increaseUserUsedSpace(user, profilePhoto.getSize());
-            // Save memorial to get ID
+
+            // Save again with photo
             memorial = memorialRepository.save(memorial);
         }
 
         return buildResponse(memorial);
     }
-    
+
+    // List memorials for a user
+    @Override
+    public java.util.List<MemorialResponse> getMyMemorials(User user) {
+        java.util.List<Memorial> memorials = memorialRepository.findByUser(user);
+        return memorials.stream().map(this::buildResponse).toList();
+    }
+
     private MemorialResponse buildResponse(Memorial memorial) {
         MemorialResponse response = new MemorialResponse();
         response.setIdMemorial(memorial.getIdMemorial());
@@ -78,7 +94,7 @@ public class MemorialService implements IMemorialService {
         response.setJournal(memorial.isJournal());
         response.setCreatedDate(memorial.getCreatedDate());
 
-        // Agregar info de profilePhoto si existe
+        // Add profile photo if exists
         if (memorial.getProfilePhoto() != null) {
             File file = memorial.getProfilePhoto();
             response.setProfilePhoto(buildFileResponse(file));
@@ -87,7 +103,8 @@ public class MemorialService implements IMemorialService {
         return response;
     }
 
-    private FileResponse buildFileResponse(File file) {
+    // Original method
+    /*private FileResponse buildFileResponse(File file) {
         FileResponse response = new FileResponse();
         response.setIdFile(file.getIdFile());
         response.setFileName(file.getFileName());
@@ -98,5 +115,29 @@ public class MemorialService implements IMemorialService {
         response.setFileSize(file.getFileSize());
         response.setUploadedDate(file.getUploadedDate());
         return response;
+    }*/
+
+    private FileResponse buildFileResponse(File file) {
+        FileResponse response = new FileResponse();
+        response.setIdFile(file.getIdFile());
+        response.setFileName(file.getFileName());
+        response.setOriginalFileName(file.getOriginalFileName());
+        response.setFileType(file.getFileType());
+        response.setMimeType(file.getMimeType());
+        response.setFileSize(file.getFileSize());
+        response.setUploadedDate(file.getUploadedDate());
+
+        try {
+            Path path = Paths.get(file.getStoragePath());
+            byte[] fileBytes = Files.readAllBytes(path);
+            String base64 = Base64.getEncoder().encodeToString(fileBytes);
+            response.setFileContentBase64(base64);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return response;
     }
+
+
 }
