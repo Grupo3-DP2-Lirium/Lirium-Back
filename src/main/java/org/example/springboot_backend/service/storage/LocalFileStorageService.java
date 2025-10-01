@@ -15,7 +15,7 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
 
-    private final String baseFolder = "C:\\Users\\mlcis\\Desktop\\DP2_2025_2";
+    private final String baseFolder = "D:\\DP2";
 
     @Override
     public StorageResult uploadFile(MultipartFile file, String folder) {
