@@ -11,5 +11,4 @@ import java.util.UUID;
 public interface IMemoryService {
     MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author);
     Page<MemoryResponse> listByMemorial(UUID idMemory, int page, int size);
-    //Page<MemoryResponse> listMyMemories(User user, int page, int size);
 }

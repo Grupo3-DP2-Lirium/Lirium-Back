@@ -22,40 +22,79 @@ import org.springframework.http.HttpHeaders;
 @ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorageService implements FileStorageService {
 
-    private final String baseFolder = "D:\\DP2";
-    //private final String baseFolder = System.getProperty("user.dir") + "/storage";
+    private final String baseFolder = System.getProperty("user.dir") + "/storage";
 
     @Override
     public StorageResult uploadFile(MultipartFile file, String folder) {
         try {
+            // Validar que el archivo no esté vacío
+            if (file == null || file.isEmpty()) {
+                return StorageResult.error("File is null or empty");
+            }
+
             String originalFileName = file.getOriginalFilename();
+            if (originalFileName == null) {
+                return StorageResult.error("Original filename is null");
+            }
+
             String fileExtension = getFileExtension(originalFileName);
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
 
-            Path folderPath = Paths.get(baseFolder, folder);
-            Files.createDirectories(folderPath);
+            // RUTA ABSOLUTA - Para crear directorios y guardar archivo físico
+            Path absoluteFolderPath = Paths.get(baseFolder).resolve(folder).normalize();
+            Path absoluteFilePath = absoluteFolderPath.resolve(uniqueFileName);
 
-            Path filePath = folderPath.resolve(uniqueFileName);
-            file.transferTo(filePath.toFile());
+            System.out.println("DEBUG LocalFileStorage - Base folder: " + baseFolder);
+            System.out.println("DEBUG LocalFileStorage - Folder parameter: " + folder);
+            System.out.println("DEBUG LocalFileStorage - Absolute folder path: " + absoluteFolderPath.toString());
+            System.out.println("DEBUG LocalFileStorage - Absolute file path: " + absoluteFilePath.toString());
 
+            // Crear directorios si no existen (usando ruta absoluta)
+            Files.createDirectories(absoluteFolderPath);
+
+            // Transferir el archivo (usando ruta absoluta)
+            file.transferTo(absoluteFilePath.toFile());
+
+            // RUTA RELATIVA - Para guardar en la base de datos
+            String relativeStoragePath = folder + "/" + uniqueFileName;
+
+            System.out.println("DEBUG LocalFileStorage - Relative storage path for DB: " + relativeStoragePath);
+
+            // Construir la URL relativa
             String fileUrl = folder + "/" + uniqueFileName;
-            Double fileSize = (double) file.getSize() / (1024 * 1024);
+            Double fileSize = (double) file.getSize(); // Keep size in bytes
 
-            return new StorageResult(uniqueFileName, filePath.toString(), fileUrl, fileSize);
+            // Devolver la ruta RELATIVA en storagePath para que se guarde en BD
+            return new StorageResult(uniqueFileName, relativeStoragePath, fileUrl, fileSize);
 
         } catch (IOException e) {
             return StorageResult.error("Failed to upload file locally: " + e.getMessage());
+        } catch (Exception e) {
+            return StorageResult.error("Unexpected error during file upload: " + e.getMessage());
         }
     }
 
     @Override
     public void deleteFile(String storagePath) {
-        File file = new File(storagePath);
-        if (file.exists()) file.delete();
+        // Si storagePath es relativo, construir la ruta absoluta
+        Path absolutePath;
+        if (Paths.get(storagePath).isAbsolute()) {
+            // Es una ruta absoluta (para retrocompatibilidad)
+            absolutePath = Paths.get(storagePath);
+        } else {
+            // Es una ruta relativa, construir la absoluta
+            absolutePath = Paths.get(baseFolder).resolve(storagePath);
+        }
+
+        File file = absolutePath.toFile();
+        if (file.exists()) {
+            file.delete();
+        }
     }
 
     @Override
     public String getFileUrl(String storagePath) {
+        // Para almacenamiento local, la URL es la misma ruta relativa
         return storagePath;
     }
 
@@ -64,10 +103,10 @@ public class LocalFileStorageService implements FileStorageService {
         return fileName.substring(fileName.lastIndexOf("."));
     }
 
-    @Override 
+    @Override
     public ResponseEntity<Resource> downloadFile(String folder, String fileName) {
         try {
-            // Construye la ruta de forma segura
+            // Construye la ruta absoluta para leer el archivo
             Path filePath = Paths.get(baseFolder).resolve(folder).resolve(fileName).normalize();
 
             if (!Files.exists(filePath)) {
