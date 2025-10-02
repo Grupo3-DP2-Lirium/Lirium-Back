@@ -8,6 +8,7 @@ import org.example.springboot_backend.enums.MemoryOriginType;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +40,9 @@ public class MemoryService implements IMemoryService {
     @Autowired
     private StorageService storageService;
 
+    // AGREGAR: Inyectar la ruta base desde las properties
+    @Value("${app.storage.base-path:D:\\DP2\\}")
+    private String basePath;
 
     @Override
     public MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author) {
@@ -97,7 +101,15 @@ public class MemoryService implements IMemoryService {
                     fr.setOriginalFileName(f.getOriginalFileName());
                     fr.setFileType(f.getFileType());
                     fr.setMimeType(f.getMimeType());
-                    fr.setFileUrl(f.getFileUrl());
+
+                    String fileUrl = f.getFileUrl();
+                    if (!fileUrl.startsWith("D:") && !fileUrl.startsWith("D\\")) {
+                        fileUrl = basePath + "\\" + fileUrl;
+                    }
+                    // Normalizar TODAS las barras a backslash
+                    fileUrl = fileUrl.replace("/", "\\");
+                    fr.setFileUrl(fileUrl);
+
                     fr.setFileSize(f.getFileSize() != null ? f.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
                     fr.setUploadedDate(f.getUploadedDate());
                     return fr;
@@ -176,7 +188,19 @@ public class MemoryService implements IMemoryService {
         response.setOriginalFileName(file.getOriginalFileName());
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
-        response.setFileUrl(file.getFileUrl());
+
+        String fileUrl = file.getFileUrl();
+
+        // Agregar base path si no existe
+        if (!fileUrl.startsWith("D:") && !fileUrl.startsWith("D\\")) {
+            fileUrl = basePath + "\\" + fileUrl;
+        }
+
+        // ✅ Normalizar TODAS las barras a backslash
+        fileUrl = fileUrl.replace("/", "\\");
+
+        response.setFileUrl(fileUrl);
+
         response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
         return response;
