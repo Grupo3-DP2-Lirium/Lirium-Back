@@ -90,7 +90,7 @@ public class AuthService {
         // Configuración por defecto
         newUser.setStatus(UserStatus.ACTIVE);
         newUser.setUsedSpace(0.0);
-        newUser.setTotalCapacity(10240.0); // 10 GB en MB
+        newUser.setTotalCapacity(10240.0 * 1024 * 1024); // 10 GB en bytes (10240 MB * 1024 * 1024)
         newUser.setCreatedDate(LocalDate.now());
         newUser.setUpdatedDate(LocalDate.now());
         
@@ -114,8 +114,8 @@ public class AuthService {
         dto.setSecondLastName(user.getSecondLastName());
         dto.setEmail(user.getEmail());
         dto.setStatus(user.getStatus());
-        dto.setUsedSpace(user.getUsedSpace());
-        dto.setTotalCapacity(user.getTotalCapacity());
+        dto.setUsedSpace(user.getUsedSpace() != null ? user.getUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
+        dto.setTotalCapacity(user.getTotalCapacity() != null ? user.getTotalCapacity() / (1024 * 1024) : 0.0); // Convert bytes to MB
         dto.setCreatedDate(user.getCreatedDate());
         dto.setUpdatedDate(user.getUpdatedDate());
         dto.setLastSessionDate(user.getLastSessionDate());

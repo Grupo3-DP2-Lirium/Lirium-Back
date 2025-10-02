@@ -86,7 +86,7 @@ public class MemoryService implements IMemoryService {
             r.setVisible(memory.isVisible());
             r.setTags(memory.getTags());
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
-            r.setTotalUsedSpace(memory.getTotalUsedSpace());
+            r.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
             r.setCreatedDate(memory.getCreatedDate());
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
@@ -98,7 +98,7 @@ public class MemoryService implements IMemoryService {
                     fr.setFileType(f.getFileType());
                     fr.setMimeType(f.getMimeType());
                     fr.setFileUrl(f.getFileUrl());
-                    fr.setFileSize(f.getFileSize());
+                    fr.setFileSize(f.getFileSize() != null ? f.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
                     fr.setUploadedDate(f.getUploadedDate());
                     return fr;
                 }).toList());
@@ -158,7 +158,7 @@ public class MemoryService implements IMemoryService {
         response.setVisible(memory.isVisible());
         response.setTags(memory.getTags());
         response.setAssociatedQuestion(memory.getAssociatedQuestion());
-        response.setTotalUsedSpace(memory.getTotalUsedSpace());
+        response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setCreatedDate(memory.getCreatedDate());
 
         List<FileResponse> fileResponses = files.stream()
@@ -177,7 +177,7 @@ public class MemoryService implements IMemoryService {
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
         response.setFileUrl(file.getFileUrl());
-        response.setFileSize(file.getFileSize());
+        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
         return response;
     }

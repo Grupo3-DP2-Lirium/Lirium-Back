@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -35,10 +36,27 @@ public class MemoryController {
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> createMemory(
             @RequestPart("memory") String memoryJson,
-            @RequestPart(value = "files", required = false) MultipartFile[] files,
+            @RequestParam(value = "files", required = false) List<MultipartFile> filesList,
             Authentication authentication) {
         
         try {
+            // Convert List to Array for service compatibility
+            MultipartFile[] files = null;
+            if (filesList != null && !filesList.isEmpty()) {
+                files = filesList.toArray(new MultipartFile[0]);
+            }
+            
+            // DEBUG: Log information about received files
+            System.out.println("DEBUG MemoryController - Received files list: " + (filesList != null ? filesList.size() + " files" : "null"));
+            System.out.println("DEBUG MemoryController - Converted files array: " + (files != null ? files.length + " files" : "null"));
+            if (files != null) {
+                for (int i = 0; i < files.length; i++) {
+                    MultipartFile file = files[i];
+                    System.out.println("DEBUG MemoryController - File " + i + ": " + 
+                        (file != null ? file.getOriginalFilename() + " (size: " + file.getSize() + ")" : "null"));
+                }
+            }
+            
             // Parse JSON string to MemoryCreateRequest object
             MemoryCreateRequest request = objectMapper.readValue(memoryJson, MemoryCreateRequest.class);
             
