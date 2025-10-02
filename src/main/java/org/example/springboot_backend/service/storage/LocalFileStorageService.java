@@ -23,6 +23,7 @@ import org.springframework.http.HttpHeaders;
 public class LocalFileStorageService implements FileStorageService {
 
     private final String baseFolder = "D:\\DP2";
+    //private final String baseFolder = System.getProperty("user.dir") + "/storage";
 
     @Override
     public StorageResult uploadFile(MultipartFile file, String folder) {
@@ -63,7 +64,7 @@ public class LocalFileStorageService implements FileStorageService {
         return fileName.substring(fileName.lastIndexOf("."));
     }
 
-    @Override
+    @Override 
     public ResponseEntity<Resource> downloadFile(String folder, String fileName) {
         try {
             // Construye la ruta de forma segura

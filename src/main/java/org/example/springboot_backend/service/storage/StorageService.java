@@ -8,6 +8,7 @@ import org.example.springboot_backend.exception.InsufficientStorageException;
 import org.example.springboot_backend.repository.FileRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +23,9 @@ public class StorageService {
 
     @Autowired
     private FileStorageService fileStorageService;
+
+    @Value("${app.storage.provider:local}")
+    private String storageProvider;
 
     /**
      * Validates if the user has enough storage space for a new file
@@ -96,6 +100,12 @@ public class StorageService {
                 memory.getAuthor().getIdUser(),
                 memory.getMemorial().getIdMemorial(),
                 memory.getIdMemory());
+            
+            System.out.println("DEBUG - Processing file: " + file.getOriginalFilename());
+            System.out.println("DEBUG - Folder path: " + folder);
+            System.out.println("DEBUG - Memory ID: " + memory.getIdMemory());
+            System.out.println("DEBUG - Memorial ID: " + memory.getMemorial().getIdMemorial());
+            System.out.println("DEBUG - User ID: " + memory.getAuthor().getIdUser());
             
             StorageResult result = fileStorageService.uploadFile(file, folder);
             
