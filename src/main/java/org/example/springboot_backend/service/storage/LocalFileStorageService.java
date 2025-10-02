@@ -43,12 +43,12 @@ public class LocalFileStorageService implements FileStorageService {
             // RUTA ABSOLUTA - Para crear directorios y guardar archivo físico
             Path absoluteFolderPath = Paths.get(baseFolder).resolve(folder).normalize();
             Path absoluteFilePath = absoluteFolderPath.resolve(uniqueFileName);
-            
+
             System.out.println("DEBUG LocalFileStorage - Base folder: " + baseFolder);
             System.out.println("DEBUG LocalFileStorage - Folder parameter: " + folder);
             System.out.println("DEBUG LocalFileStorage - Absolute folder path: " + absoluteFolderPath.toString());
             System.out.println("DEBUG LocalFileStorage - Absolute file path: " + absoluteFilePath.toString());
-            
+
             // Crear directorios si no existen (usando ruta absoluta)
             Files.createDirectories(absoluteFolderPath);
 
@@ -57,7 +57,7 @@ public class LocalFileStorageService implements FileStorageService {
 
             // RUTA RELATIVA - Para guardar en la base de datos
             String relativeStoragePath = folder + "/" + uniqueFileName;
-            
+
             System.out.println("DEBUG LocalFileStorage - Relative storage path for DB: " + relativeStoragePath);
 
             // Construir la URL relativa
@@ -85,7 +85,7 @@ public class LocalFileStorageService implements FileStorageService {
             // Es una ruta relativa, construir la absoluta
             absolutePath = Paths.get(baseFolder).resolve(storagePath);
         }
-        
+
         File file = absolutePath.toFile();
         if (file.exists()) {
             file.delete();
@@ -103,7 +103,7 @@ public class LocalFileStorageService implements FileStorageService {
         return fileName.substring(fileName.lastIndexOf("."));
     }
 
-    @Override 
+    @Override
     public ResponseEntity<Resource> downloadFile(String folder, String fileName) {
         try {
             // Construye la ruta absoluta para leer el archivo
