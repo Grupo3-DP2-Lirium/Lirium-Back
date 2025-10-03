@@ -81,6 +81,13 @@ public class MemorialService implements IMemorialService {
         return memorials.stream().map(this::buildResponse).toList();
     }
 
+    // List memorials where user is a collaborator
+    @Override
+    public java.util.List<MemorialResponse> getCollaborativeMemorials(User user) {
+        java.util.List<Memorial> memorials = memorialRepository.findMemorialsByCollaborator(user);
+        return memorials.stream().map(this::buildResponse).toList();
+    }
+
     private MemorialResponse buildResponse(Memorial memorial) {
         MemorialResponse response = new MemorialResponse();
         response.setIdMemorial(memorial.getIdMemorial());
