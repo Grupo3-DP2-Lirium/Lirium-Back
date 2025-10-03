@@ -88,6 +88,11 @@ jobs:
         springdoc.swagger-ui.path=/swagger-ui.html
         springdoc.swagger-ui.operationsSorter=method
         springdoc.swagger-ui.tagsSorter=alpha
+
+        # Aumentar límites de upload
+        spring.servlet.multipart.max-file-size=150MB
+        spring.servlet.multipart.max-request-size=200MB
+        spring.servlet.multipart.enabled=true
         EOF
 
     # 7. Login a Azure
