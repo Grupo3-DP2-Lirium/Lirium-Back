@@ -123,11 +123,7 @@ public class MemoryService implements IMemoryService {
     }
 
     private void validateRequest(MemoryCreateRequest request, User author) {
-        if (request.getType() == MemoryOriginType.QUESTION_RESPONSE) {
-            if (request.getQuestionId() == null || request.getAnswerId() == null) {
-                throw new RuntimeException("QuestionId and AnswerId are required for QUESTION_RESPONSE type");
-            }
-        }
+        // Validation logic can be added here in the future if needed
     }
 
     private Memory buildMemoryFromRequest(MemoryCreateRequest request, Memorial memorial, User author) {
