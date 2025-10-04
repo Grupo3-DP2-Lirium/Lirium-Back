@@ -79,6 +79,21 @@ public class MemorialController {
         }
     }
 
+    @GetMapping(value = "/getCollaborativeMemorials", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getCollaborativeMemorials(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName(); // aquí obtienes al usuario del token
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            List<MemorialResponse> memorials = memorialService.getCollaborativeMemorials(user);
+            return ResponseEntity.ok(memorials);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching collaborative memorials: " + e.getMessage());
+        }
+    }
+
 
     
     // HU02 - Obtener memoriales colaborativos

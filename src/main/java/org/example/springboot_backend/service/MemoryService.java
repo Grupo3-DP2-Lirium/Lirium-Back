@@ -8,6 +8,7 @@ import org.example.springboot_backend.enums.MemoryOriginType;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,9 @@ public class MemoryService implements IMemoryService {
     @Autowired
     private StorageService storageService;
 
+    // AGREGAR: Inyectar la ruta base desde las properties
+    @Value("${app.storage.base-path:D:\\DP2\\}")
+    private String basePath;
 
     @Override
     public MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author) {
@@ -90,7 +94,7 @@ public class MemoryService implements IMemoryService {
             r.setVisible(memory.isVisible());
             r.setTags(memory.getTags());
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
-            r.setTotalUsedSpace(memory.getTotalUsedSpace());
+            r.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
             r.setCreatedDate(memory.getCreatedDate());
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
@@ -102,7 +106,7 @@ public class MemoryService implements IMemoryService {
                     fr.setFileType(f.getFileType());
                     fr.setMimeType(f.getMimeType());
                     fr.setFileUrl(f.getFileUrl());
-                    fr.setFileSize(f.getFileSize());
+                    fr.setFileSize(f.getFileSize() != null ? f.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
                     fr.setUploadedDate(f.getUploadedDate());
                     return fr;
                 }).toList());
@@ -115,11 +119,7 @@ public class MemoryService implements IMemoryService {
     }
 
     private void validateRequest(MemoryCreateRequest request, User author) {
-        if (request.getType() == MemoryOriginType.QUESTION_RESPONSE) {
-            if (request.getQuestionId() == null || request.getAnswerId() == null) {
-                throw new RuntimeException("QuestionId and AnswerId are required for QUESTION_RESPONSE type");
-            }
-        }
+        // Validation logic can be added here in the future if needed
     }
 
     private Memory buildMemoryFromRequest(MemoryCreateRequest request, Memorial memorial, User author) {
@@ -162,7 +162,7 @@ public class MemoryService implements IMemoryService {
         response.setVisible(memory.isVisible());
         response.setTags(memory.getTags());
         response.setAssociatedQuestion(memory.getAssociatedQuestion());
-        response.setTotalUsedSpace(memory.getTotalUsedSpace());
+        response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setCreatedDate(memory.getCreatedDate());
 
         List<FileResponse> fileResponses = files.stream()
@@ -181,7 +181,7 @@ public class MemoryService implements IMemoryService {
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
         response.setFileUrl(file.getFileUrl());
-        response.setFileSize(file.getFileSize());
+        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
         return response;
     }

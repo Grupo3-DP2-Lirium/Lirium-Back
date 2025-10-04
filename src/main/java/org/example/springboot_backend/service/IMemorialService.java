@@ -11,4 +11,5 @@ import org.springframework.web.multipart.MultipartFile;
 public interface IMemorialService {
     MemorialResponse createMemorial(MemorialRequest memorial, MultipartFile file, User user);
     List<MemorialResponse> getMyMemorials(User user);
+    List<MemorialResponse> getCollaborativeMemorials(User user);
 }

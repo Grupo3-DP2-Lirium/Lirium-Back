@@ -65,8 +65,8 @@ public class AzureBlobStorageService implements FileStorageService {
             // Construir URL pública del archivo
             String fileUrl = blobClient.getBlobUrl();
             
-            // Calcular tamaño en MB
-            Double fileSize = (double) file.getSize() / (1024 * 1024);
+            // Mantener tamaño en bytes
+            Double fileSize = (double) file.getSize(); // Keep size in bytes
             
             return new StorageResult(uniqueFileName, blobPath, fileUrl, fileSize);
             

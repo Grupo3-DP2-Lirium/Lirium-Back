@@ -10,15 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 
 @Service
@@ -81,6 +74,13 @@ public class MemorialService implements IMemorialService {
         return memorials.stream().map(this::buildResponse).toList();
     }
 
+    // List memorials where user is a collaborator
+    @Override
+    public java.util.List<MemorialResponse> getCollaborativeMemorials(User user) {
+        java.util.List<Memorial> memorials = memorialRepository.findMemorialsByCollaborator(user);
+        return memorials.stream().map(this::buildResponse).toList();
+    }
+
     private MemorialResponse buildResponse(Memorial memorial) {
         MemorialResponse response = new MemorialResponse();
         response.setIdMemorial(memorial.getIdMemorial());
@@ -126,15 +126,6 @@ public class MemorialService implements IMemorialService {
         response.setMimeType(file.getMimeType());
         response.setFileSize(file.getFileSize());
         response.setUploadedDate(file.getUploadedDate());
-
-        try {
-            Path path = Paths.get(file.getStoragePath());
-            byte[] fileBytes = Files.readAllBytes(path);
-            String base64 = Base64.getEncoder().encodeToString(fileBytes);
-            response.setFileContentBase64(base64);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         return response;
     }

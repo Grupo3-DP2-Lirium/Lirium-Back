@@ -8,6 +8,7 @@ import org.example.springboot_backend.exception.InsufficientStorageException;
 import org.example.springboot_backend.repository.FileRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,13 +24,16 @@ public class StorageService {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Value("${app.storage.provider:local}")
+    private String storageProvider;
+
     /**
      * Validates if the user has enough storage space for a new file
      * @param user The user who wants to upload the file
      * @param additionalSpace The size of the new file in bytes
      * @throws InsufficientStorageException if the user does not have enough space
      */
-    
+
     public void validateUserStorageCapacity(User user, double additionalSpace) {
         double currentUsedSpace = user.getUsedSpace() != null ? user.getUsedSpace() : 0.0;
         double totalCapacity = user.getTotalCapacity() != null ? user.getTotalCapacity() : 0.0;
@@ -41,11 +45,11 @@ public class StorageService {
             double availableSpaceMB = availableSpace / (1024 * 1024); // convert bytes to MB
 
             throw new InsufficientStorageException(
-                String.format(
-                    "Insufficient storage space. Required: %.2f MB, Available: %.2f MB. " +
-                    "Please free up space or upgrade your storage plan.",
-                    requiredSpaceMB, availableSpaceMB
-                )
+                    String.format(
+                            "Insufficient storage space. Required: %.2f MB, Available: %.2f MB. " +
+                                    "Please free up space or upgrade your storage plan.",
+                            requiredSpaceMB, availableSpaceMB
+                    )
             );
         }
     }
@@ -89,16 +93,22 @@ public class StorageService {
     // Upload multiple files and save them to the database for a Memory
     public List<File> processFiles(MultipartFile[] files, Memory memory) {
         List<File> savedFiles = new ArrayList<>();
-        
+
         for (MultipartFile file : files) {
             // Build folder path: user-{userId}/memorials/{memorialId}/memories/{memoryId}
-            String folder = String.format("user-%s/memorials/%s/memories/%s", 
-                memory.getAuthor().getIdUser(),
-                memory.getMemorial().getIdMemorial(),
-                memory.getIdMemory());
-            
+            String folder = String.format("user-%s/memorials/%s/memories/%s",
+                    memory.getAuthor().getIdUser(),
+                    memory.getMemorial().getIdMemorial(),
+                    memory.getIdMemory());
+
+            System.out.println("DEBUG - Processing file: " + file.getOriginalFilename());
+            System.out.println("DEBUG - Folder path: " + folder);
+            System.out.println("DEBUG - Memory ID: " + memory.getIdMemory());
+            System.out.println("DEBUG - Memorial ID: " + memory.getMemorial().getIdMemorial());
+            System.out.println("DEBUG - User ID: " + memory.getAuthor().getIdUser());
+
             StorageResult result = fileStorageService.uploadFile(file, folder);
-            
+
             if (result.isSuccess()) {
                 File fileEntity = new File();
                 fileEntity.setFileName(result.getFileName());
@@ -110,11 +120,11 @@ public class StorageService {
                 fileEntity.setStorageProvider("azure");
                 fileEntity.setStoragePath(result.getStoragePath());
                 fileEntity.setMemory(memory);
-                
+
                 savedFiles.add(fileRepository.save(fileEntity));
             }
         }
-        
+
         return savedFiles;
     }
 
@@ -154,12 +164,12 @@ public class StorageService {
     // Determine file type based on MIME type.
     public String determineFileType(String mimeType) {
         if (mimeType == null) return "unknown";
-        
+
         if (mimeType.startsWith("image/")) return "image";
         if (mimeType.startsWith("video/")) return "video";
         if (mimeType.startsWith("audio/")) return "audio";
         if (mimeType.startsWith("text/") || mimeType.contains("document")) return "document";
-        
+
         return "unknown";
     }
 }
