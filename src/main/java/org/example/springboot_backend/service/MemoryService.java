@@ -4,7 +4,6 @@ import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryResponse;
 import org.example.springboot_backend.entity.*;
-import org.example.springboot_backend.enums.MemoryOriginType;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +19,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Base64;
-import java.nio.file.Files;
 
 @Service
 @Transactional
@@ -232,14 +227,6 @@ public class MemoryService implements IMemoryService {
         response.setUploadedDate(file.getUploadedDate());
         response.setFileUrl(file.getFileUrl());
 
-        try {
-            Path path = Paths.get(file.getStoragePath());
-            byte[] fileBytes = Files.readAllBytes(path);
-            String base64 = Base64.getEncoder().encodeToString(fileBytes);
-            response.setFileContentBase64(base64);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
         return response;
     }

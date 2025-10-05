@@ -103,20 +103,6 @@ public class MemorialService implements IMemorialService {
         return response;
     }
 
-    // Original method
-    /*private FileResponse buildFileResponse(File file) {
-        FileResponse response = new FileResponse();
-        response.setIdFile(file.getIdFile());
-        response.setFileName(file.getFileName());
-        response.setOriginalFileName(file.getOriginalFileName());
-        response.setFileType(file.getFileType());
-        response.setMimeType(file.getMimeType());
-        response.setFileUrl(file.getFileUrl());
-        response.setFileSize(file.getFileSize());
-        response.setUploadedDate(file.getUploadedDate());
-        return response;
-    }*/
-
     private FileResponse buildFileResponse(File file) {
         FileResponse response = new FileResponse();
         response.setIdFile(file.getIdFile());
@@ -124,11 +110,9 @@ public class MemorialService implements IMemorialService {
         response.setOriginalFileName(file.getOriginalFileName());
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
-        response.setFileSize(file.getFileSize());
+        response.setFileUrl(file.getFileUrl());
+        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
-
         return response;
     }
-
-
 }

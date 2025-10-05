@@ -1,6 +1,4 @@
 package org.example.springboot_backend.repository;
-
-import org.apache.catalina.User;
 import org.example.springboot_backend.entity.Memory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
