@@ -7,7 +7,10 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobHttpHeaders;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -104,6 +107,34 @@ public class AzureBlobStorageService implements FileStorageService {
 
     @Override
     public ResponseEntity<Resource> downloadFile(String folder, String fileName) {
-        throw new UnsupportedOperationException("Unimplemented method 'downloadFile'");
+        try {
+            // Construir la ruta del blob
+            String blobPath = folder + "/" + fileName;
+            
+            BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+            
+            if (!blobClient.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Descargar el contenido del blob
+            byte[] data = blobClient.downloadContent().toBytes();
+            ByteArrayResource resource = new ByteArrayResource(data);
+            
+            // Obtener propiedades del blob para el tipo MIME
+            String mimeType = blobClient.getProperties().getContentType();
+            if (mimeType == null) {
+                mimeType = "application/octet-stream";
+            }
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(mimeType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                    .body(resource);
+                    
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

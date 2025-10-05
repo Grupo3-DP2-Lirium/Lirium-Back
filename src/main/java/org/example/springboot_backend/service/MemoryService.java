@@ -39,11 +39,7 @@ public class MemoryService implements IMemoryService {
 
     @Autowired
     private StorageService storageService;
-
-    // AGREGAR: Inyectar la ruta base desde las properties
-    @Value("${app.storage.base-path:D:\\DP2\\}")
-    private String basePath;
-
+    
     @Override
     public MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author) {
         validateRequest(request, author);
@@ -94,26 +90,10 @@ public class MemoryService implements IMemoryService {
             r.setCreatedDate(memory.getCreatedDate());
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
-                r.setFiles(memory.getFiles().stream().map(f -> {
-                    FileResponse fr = new FileResponse();
-                    fr.setIdFile(f.getIdFile());
-                    fr.setFileName(f.getFileName());
-                    fr.setOriginalFileName(f.getOriginalFileName());
-                    fr.setFileType(f.getFileType());
-                    fr.setMimeType(f.getMimeType());
-
-                    String fileUrl = f.getFileUrl();
-                    if (!fileUrl.startsWith("D:") && !fileUrl.startsWith("D\\")) {
-                        fileUrl = basePath + "\\" + fileUrl;
-                    }
-                    // Normalizar TODAS las barras a backslash
-                    fileUrl = fileUrl.replace("/", "\\");
-                    fr.setFileUrl(fileUrl);
-
-                    fr.setFileSize(f.getFileSize() != null ? f.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
-                    fr.setUploadedDate(f.getUploadedDate());
-                    return fr;
-                }).toList());
+                // ✅ USAR EL MÉTODO buildFileResponse EXISTENTE QUE MANTIENE LAS URLs DE AZURE
+                r.setFiles(memory.getFiles().stream()
+                    .map(this::buildFileResponse)
+                    .toList());
             } else {
                 r.setFiles(List.of());
             }
@@ -185,17 +165,8 @@ public class MemoryService implements IMemoryService {
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
 
-        String fileUrl = file.getFileUrl();
-
-        // Agregar base path si no existe
-        if (!fileUrl.startsWith("D:") && !fileUrl.startsWith("D\\")) {
-            fileUrl = basePath + "\\" + fileUrl;
-        }
-
-        // ✅ Normalizar TODAS las barras a backslash
-        fileUrl = fileUrl.replace("/", "\\");
-
-        response.setFileUrl(fileUrl);
+        // ✅ USAR DIRECTAMENTE LA URL DE AZURE (ya es pública)
+        response.setFileUrl(file.getFileUrl());
 
         response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
