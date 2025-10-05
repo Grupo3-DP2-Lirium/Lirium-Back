@@ -172,4 +172,32 @@ public class StorageService {
 
         return "unknown";
     }
+
+    /**
+     * Elimina un archivo del storage y de la BD
+     * @param fileEntity La entidad File a eliminar
+     */
+    public void deleteFile(File fileEntity) {
+        if (fileEntity == null) return;
+
+        try {
+            // Borrar del storage (Azure)
+            if (fileEntity.getStoragePath() != null && !fileEntity.getStoragePath().isEmpty()) {
+                fileStorageService.deleteFile(fileEntity.getStoragePath());
+            }
+
+            // Borrar de la DB
+            fileRepository.delete(fileEntity);
+
+            // Reducir espacio usado del usuario
+            if (fileEntity.getMemory() != null && fileEntity.getMemory().getAuthor() != null) {
+                decreaseUserUsedSpace(fileEntity.getMemory().getAuthor(), 
+                                    fileEntity.getFileSize() != null ? fileEntity.getFileSize() : 0);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error deleting file: " + e.getMessage());
+        }
+    }
+
 }

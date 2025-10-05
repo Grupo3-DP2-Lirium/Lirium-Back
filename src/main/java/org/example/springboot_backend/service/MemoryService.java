@@ -1,5 +1,6 @@
 package org.example.springboot_backend.service;
 
+import org.example.springboot_backend.dto.FileDeleteRequest;
 import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryResponse;
@@ -204,7 +205,7 @@ public class MemoryService implements IMemoryService {
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
                 List<FileResponse> fileResponses = memory.getFiles().stream()
-                    .map(this::buildFileResponseBase64)
+                    .map(this::buildFileResponse)
                     .toList();
                 r.setFiles(fileResponses);
             } else {
@@ -215,27 +216,15 @@ public class MemoryService implements IMemoryService {
         }).toList();
     }
 
-    // Método para convertir archivos a FileResponse con contenido Base64
-    private FileResponse buildFileResponseBase64(File file) {
-        FileResponse response = new FileResponse();
-        response.setIdFile(file.getIdFile());
-        response.setFileName(file.getFileName());
-        response.setOriginalFileName(file.getOriginalFileName());
-        response.setFileType(file.getFileType());
-        response.setMimeType(file.getMimeType());
-        response.setFileSize(file.getFileSize());
-        response.setUploadedDate(file.getUploadedDate());
-        response.setFileUrl(file.getFileUrl());
-
-
-        return response;
-    }
-
-
-    // Update memory (file(phpt/video/audio), title, description, location) 
     @Override
     @Transactional
-    public MemoryResponse updateMemory(UUID memoryId, MemoryCreateRequest request, MultipartFile[] files, User author) {
+    public MemoryResponse updateMemory(
+            UUID memoryId,
+            MemoryCreateRequest request,
+            MultipartFile[] files,
+            List<FileDeleteRequest> filesToDelete, // <-- archivos a eliminar
+            User author
+    ) {
         // Buscar memoria existente
         Memory memory = memoryRepository.findById(memoryId)
                 .orElseThrow(() -> new RuntimeException("Memory not found"));
@@ -254,7 +243,24 @@ public class MemoryService implements IMemoryService {
         memory.setVisible(request.isVisible());
         memory.setUpdatedDate(LocalDateTime.now());
 
-        // Procesar archivos nuevos si existen
+        // Eliminar archivos indicados
+        if (filesToDelete != null && !filesToDelete.isEmpty()) {
+            for (FileDeleteRequest fDel : filesToDelete) {
+                memory.getFiles().stream()
+                    .filter(f -> f.getIdFile().equals(fDel.getId()))
+                    .findFirst()
+                    .ifPresent(fileEntity -> {
+                        try {
+                            storageService.deleteFile(fileEntity);  // <-- llama a tu método completo
+                            memory.getFiles().remove(fileEntity); // Quita de la lista local
+                        } catch (Exception e) {
+                            System.err.println("Error deleting file: " + fileEntity.getFileName() + " -> " + e.getMessage());
+                        }
+                    });
+            }
+        }
+
+        // Procesar archivos nuevos
         List<File> savedFiles = new ArrayList<>();
         if (files != null && files.length > 0) {
             // Validar espacio disponible
@@ -270,8 +276,9 @@ public class MemoryService implements IMemoryService {
         }
 
         // Guardar cambios en DB
-        memory = memoryRepository.save(memory);
+        memoryRepository.save(memory);
 
+        // Construir respuesta
         return buildResponse(memory, memory.getFiles());
     }
 

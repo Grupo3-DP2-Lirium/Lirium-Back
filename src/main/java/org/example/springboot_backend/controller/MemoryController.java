@@ -2,6 +2,8 @@ package org.example.springboot_backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
+import org.example.springboot_backend.dto.FileDeleteRequest;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryResponse;
 import org.example.springboot_backend.entity.User;
@@ -15,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -106,10 +110,17 @@ public class MemoryController {
             @PathVariable UUID memoryId,
             @RequestPart("memory") String memoryJson,
             @RequestPart(value = "files", required = false) MultipartFile[] files,
+            @RequestPart(value = "filesToDelete", required = false) String filesToDeleteJson, // <-- nuevo
             Authentication authentication) {
         try {
             // Parse JSON a MemoryCreateRequest
             MemoryCreateRequest request = objectMapper.readValue(memoryJson, MemoryCreateRequest.class);
+
+            // Parse JSON de archivos a eliminar (opcional)
+            List<FileDeleteRequest> filesToDelete = new ArrayList<>();
+            if (filesToDeleteJson != null && !filesToDeleteJson.isEmpty()) {
+                filesToDelete = Arrays.asList(objectMapper.readValue(filesToDeleteJson, FileDeleteRequest[].class));
+            }
 
             // Obtener usuario logueado
             String userEmail = authentication.getName();
@@ -117,7 +128,7 @@ public class MemoryController {
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             // Llamar al servicio de actualización
-            MemoryResponse response = memoryService.updateMemory(memoryId, request, files, user);
+            MemoryResponse response = memoryService.updateMemory(memoryId, request, files, filesToDelete, user);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

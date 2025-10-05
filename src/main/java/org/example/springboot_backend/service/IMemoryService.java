@@ -1,5 +1,6 @@
 package org.example.springboot_backend.service;
 
+import org.example.springboot_backend.dto.FileDeleteRequest;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryResponse;
 import org.example.springboot_backend.entity.User;
@@ -13,5 +14,5 @@ public interface IMemoryService {
     MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author);
     Page<MemoryResponse> listByMemorial(UUID idMemory, int page, int size);
     List<MemoryResponse> listByAuthor(User author);
-    MemoryResponse updateMemory(UUID memoryId, MemoryCreateRequest request, MultipartFile[] files, User author);
+    MemoryResponse updateMemory(UUID memoryId, MemoryCreateRequest request, MultipartFile[] files, List<FileDeleteRequest> filesToDelete, User author);
 }
