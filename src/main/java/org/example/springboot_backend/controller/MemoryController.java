@@ -84,4 +84,45 @@ public class MemoryController {
         return ResponseEntity.ok(resp);
     }
 
+    @GetMapping("/my-memories")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> listByAuthor(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            var memories = memoryService.listByAuthor(user); // retorna List<MemoryResponse> con archivos en Base64
+            return ResponseEntity.ok(memories);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    // Update memory
+    @PutMapping(value = "/{memoryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> updateMemory(
+            @PathVariable UUID memoryId,
+            @RequestPart("memory") String memoryJson,
+            @RequestPart(value = "files", required = false) MultipartFile[] files,
+            Authentication authentication) {
+        try {
+            // Parse JSON a MemoryCreateRequest
+            MemoryCreateRequest request = objectMapper.readValue(memoryJson, MemoryCreateRequest.class);
+
+            // Obtener usuario logueado
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Llamar al servicio de actualización
+            MemoryResponse response = memoryService.updateMemory(memoryId, request, files, user);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error updating memory: " + e.getMessage());
+        }
+    }
+
 }

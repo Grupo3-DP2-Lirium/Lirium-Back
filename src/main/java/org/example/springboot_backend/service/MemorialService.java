@@ -10,15 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 
 @Service
@@ -110,20 +103,6 @@ public class MemorialService implements IMemorialService {
         return response;
     }
 
-    // Original method
-    /*private FileResponse buildFileResponse(File file) {
-        FileResponse response = new FileResponse();
-        response.setIdFile(file.getIdFile());
-        response.setFileName(file.getFileName());
-        response.setOriginalFileName(file.getOriginalFileName());
-        response.setFileType(file.getFileType());
-        response.setMimeType(file.getMimeType());
-        response.setFileUrl(file.getFileUrl());
-        response.setFileSize(file.getFileSize());
-        response.setUploadedDate(file.getUploadedDate());
-        return response;
-    }*/
-
     private FileResponse buildFileResponse(File file) {
         FileResponse response = new FileResponse();
         response.setIdFile(file.getIdFile());
@@ -131,20 +110,9 @@ public class MemorialService implements IMemorialService {
         response.setOriginalFileName(file.getOriginalFileName());
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
-        response.setFileSize(file.getFileSize());
+        response.setFileUrl(file.getFileUrl());
+        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
-
-        try {
-            Path path = Paths.get(file.getStoragePath());
-            byte[] fileBytes = Files.readAllBytes(path);
-            String base64 = Base64.getEncoder().encodeToString(fileBytes);
-            response.setFileContentBase64(base64);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         return response;
     }
-
-
 }

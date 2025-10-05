@@ -4,7 +4,6 @@ import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryResponse;
 import org.example.springboot_backend.entity.*;
-import org.example.springboot_backend.enums.MemoryOriginType;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,4 +171,99 @@ public class MemoryService implements IMemoryService {
         response.setUploadedDate(file.getUploadedDate());
         return response;
     }
+
+    // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
+    @Override
+    public List<MemoryResponse> listByAuthor(User author) {
+        // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
+        List<Memory> memories = memoryRepository.findByAuthorOrderByCreatedDateDesc(author);
+
+        // Mapear a MemoryResponse incluyendo archivos en Base64
+        return memories.stream().map(memory -> {
+            MemoryResponse r = new MemoryResponse();
+            r.setIdMemory(memory.getIdMemory());
+            r.setType(memory.getType());
+            r.setTitle(memory.getTitle());
+            r.setDescription(memory.getDescription());
+            r.setPhotoDate(memory.getPhotoDate());
+            r.setLocation(memory.getLocation());
+            r.setVisible(memory.isVisible());
+            r.setTags(memory.getTags());
+            r.setAssociatedQuestion(memory.getAssociatedQuestion());
+            r.setTotalUsedSpace(memory.getTotalUsedSpace());
+            r.setCreatedDate(memory.getCreatedDate());
+
+            if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+                List<FileResponse> fileResponses = memory.getFiles().stream()
+                    .map(this::buildFileResponseBase64)
+                    .toList();
+                r.setFiles(fileResponses);
+            } else {
+                r.setFiles(List.of());
+            }
+
+            return r;
+        }).toList();
+    }
+
+    // Método para convertir archivos a FileResponse con contenido Base64
+    private FileResponse buildFileResponseBase64(File file) {
+        FileResponse response = new FileResponse();
+        response.setIdFile(file.getIdFile());
+        response.setFileName(file.getFileName());
+        response.setOriginalFileName(file.getOriginalFileName());
+        response.setFileType(file.getFileType());
+        response.setMimeType(file.getMimeType());
+        response.setFileSize(file.getFileSize());
+        response.setUploadedDate(file.getUploadedDate());
+        response.setFileUrl(file.getFileUrl());
+
+
+        return response;
+    }
+
+
+    // Update memory (file(phpt/video/audio), title, description, location) 
+    @Override
+    @Transactional
+    public MemoryResponse updateMemory(UUID memoryId, MemoryCreateRequest request, MultipartFile[] files, User author) {
+        // Buscar memoria existente
+        Memory memory = memoryRepository.findById(memoryId)
+                .orElseThrow(() -> new RuntimeException("Memory not found"));
+
+        // Verificar que el usuario sea el autor
+        if (!memory.getAuthor().getIdUser().equals(author.getIdUser())) {
+            throw new RuntimeException("User is not the author of this memory");
+        }
+
+        // Actualizar campos básicos
+        if (request.getTitle() != null) memory.setTitle(request.getTitle());
+        if (request.getDescription() != null) memory.setDescription(request.getDescription());
+        if (request.getTags() != null) memory.setTags(request.getTags());
+        if (request.getLocation() != null) memory.setLocation(request.getLocation());
+        if (request.getPhotoDate() != null) memory.setPhotoDate(request.getPhotoDate());
+        memory.setVisible(request.isVisible());
+        memory.setUpdatedDate(LocalDateTime.now());
+
+        // Procesar archivos nuevos si existen
+        List<File> savedFiles = new ArrayList<>();
+        if (files != null && files.length > 0) {
+            // Validar espacio disponible
+            double totalFilesSize = storageService.calculateTotalFilesSize(files);
+            storageService.validateUserStorageCapacity(author, totalFilesSize);
+
+            // Procesar archivos y agregarlos a la memoria
+            savedFiles = storageService.processFiles(files, memory);
+            savedFiles.forEach(memory::addFile);
+
+            // Actualizar espacio usado del usuario
+            storageService.increaseUserUsedSpace(author, storageService.calculateTotalSpace(savedFiles));
+        }
+
+        // Guardar cambios en DB
+        memory = memoryRepository.save(memory);
+
+        return buildResponse(memory, memory.getFiles());
+    }
+
 }
