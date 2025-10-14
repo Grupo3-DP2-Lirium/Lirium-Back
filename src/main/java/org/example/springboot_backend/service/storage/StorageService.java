@@ -179,17 +179,14 @@ public class StorageService {
      */
     public void deleteFile(File fileEntity) {
         if (fileEntity == null) return;
-
         try {
-            // Borrar del storage (Azure)
+            fileEntity.setStorageProvider("azure");
             if (fileEntity.getStoragePath() != null && !fileEntity.getStoragePath().isEmpty()) {
                 fileStorageService.deleteFile(fileEntity.getStoragePath());
             }
 
-            // Borrar de la DB
             fileRepository.delete(fileEntity);
 
-            // Reducir espacio usado del usuario
             if (fileEntity.getMemory() != null && fileEntity.getMemory().getAuthor() != null) {
                 decreaseUserUsedSpace(fileEntity.getMemory().getAuthor(), 
                                     fileEntity.getFileSize() != null ? fileEntity.getFileSize() : 0);

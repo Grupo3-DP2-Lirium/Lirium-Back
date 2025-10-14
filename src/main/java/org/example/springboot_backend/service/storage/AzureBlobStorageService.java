@@ -14,8 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 @Service
@@ -79,13 +80,19 @@ public class AzureBlobStorageService implements FileStorageService {
             return StorageResult.error("Unexpected error during file upload: " + e.getMessage());
         }
     }
-
+    
     @Override
     public void deleteFile(String storagePath) {
         try {
+            // Decodifica %2F → /
+            storagePath = URLDecoder.decode(storagePath, StandardCharsets.UTF_8);
+            storagePath = storagePath.startsWith("/") ? storagePath.substring(1) : storagePath;
+
             BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(storagePath);
-            blobClient.deleteIfExists();
+
+            boolean deleted = blobClient.deleteIfExists();
+            System.out.println("Intentando eliminar: " + storagePath + " -> deleted: " + deleted);
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete file from Azure Blob Storage: " + storagePath, e);
         }

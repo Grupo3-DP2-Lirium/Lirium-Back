@@ -233,20 +233,37 @@ public class MemoryService implements IMemoryService {
         memory.setVisible(request.isVisible());
         memory.setUpdatedDate(LocalDateTime.now());
 
+        System.out.println("filesToDelete es nulo? " + (filesToDelete == null));
+        System.out.println("filesToDelete tiene elementos? " + 
+                   (filesToDelete != null ? filesToDelete.size() : "null"));
+
         // Eliminar archivos indicados
         if (filesToDelete != null && !filesToDelete.isEmpty()) {
+            System.out.println("Archivos a eliminar: " + filesToDelete.size());
+
             for (FileDeleteRequest fDel : filesToDelete) {
-                memory.getFiles().stream()
-                    .filter(f -> f.getIdFile().equals(fDel.getId()))
-                    .findFirst()
-                    .ifPresent(fileEntity -> {
-                        try {
-                            storageService.deleteFile(fileEntity);  // <-- llama a tu método completo
-                            memory.getFiles().remove(fileEntity); // Quita de la lista local
-                        } catch (Exception e) {
-                            System.err.println("Error deleting file: " + fileEntity.getFileName() + " -> " + e.getMessage());
-                        }
-                    });
+                try {
+                    UUID fileId = UUID.fromString(fDel.getId());
+                    System.out.println("Buscando archivo con ID: " + fileId);
+
+                    memory.getFiles().stream()
+                        .filter(f -> f.getIdFile().equals(fileId))
+                        .findFirst()
+                        .ifPresentOrElse(fileEntity -> {
+                            try {
+                                System.out.println("Eliminando archivo: " + fileEntity.getFileName());
+                                storageService.deleteFile(fileEntity);
+                                memory.getFiles().remove(fileEntity);
+                            } catch (Exception e) {
+                                System.err.println("Error eliminando archivo " + fileEntity.getFileName() + ": " + e.getMessage());
+                            }
+                        }, () -> {
+                            System.out.println("No se encontró archivo con ID: " + fileId + " dentro de la memoria.");
+                        });
+
+                } catch (IllegalArgumentException e) {
+                    System.err.println("ID inválido (no es un UUID): " + fDel.getId());
+                }
             }
         }
 
