@@ -1,9 +1,6 @@
 package org.example.springboot_backend.service;
 
-import org.example.springboot_backend.dto.FileDeleteRequest;
-import org.example.springboot_backend.dto.FileResponse;
-import org.example.springboot_backend.dto.MemoryCreateRequest;
-import org.example.springboot_backend.dto.MemoryResponse;
+import org.example.springboot_backend.dto.*;
 import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
@@ -15,10 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional
@@ -270,6 +266,230 @@ public class MemoryService implements IMemoryService {
 
         // Construir respuesta
         return buildResponse(memory, memory.getFiles());
+    }
+
+    // Nuevos métodos para visualizar recuerdos organizados
+    
+    @Override
+    public MemoriesOrganizedResponse getMemoriesOrganized(UUID memorialId, String filterType, String sortBy, String sortOrder, int page, int size, User user) {
+        // Verificar acceso al memorial
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new RuntimeException("Memorial not found"));
+        
+        // TODO: Verificar permisos de acceso al memorial
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Memory> memoriesPage;
+        
+        // Aplicar filtros y ordenamiento
+        switch (filterType.toLowerCase()) {
+            case "images":
+                memoriesPage = memoryRepository.findByMemorialAndFileType(memorialId, "image", pageable);
+                break;
+            case "videos":
+                memoriesPage = memoryRepository.findByMemorialAndFileType(memorialId, "video", pageable);
+                break;
+            case "documents":
+                memoriesPage = memoryRepository.findByMemorialAndFileType(memorialId, "document", pageable);
+                break;
+            default:
+                memoriesPage = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId, pageable);
+        }
+        
+        List<MemoryResponse> memoryResponses = memoriesPage.getContent().stream()
+            .map(memory -> buildMemoryResponse(memory))
+            .toList();
+        
+        // Crear metadata
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("totalImages", memoryRepository.countByMemorialAndFileType(memorialId, "image"));
+        metadata.put("totalVideos", memoryRepository.countByMemorialAndFileType(memorialId, "video"));
+        metadata.put("totalDocuments", memoryRepository.countByMemorialAndFileType(memorialId, "document"));
+        
+        return new MemoriesOrganizedResponse(
+            memoryResponses,
+            metadata,
+            (int) memoriesPage.getTotalElements(),
+            memoriesPage.getTotalPages(),
+            page,
+            filterType,
+            sortBy
+        );
+    }
+    
+    @Override
+    public MemoriesByTypeResponse getMemoriesByType(UUID memorialId, User user) {
+        // Verificar acceso al memorial
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new RuntimeException("Memorial not found"));
+        
+        List<Memory> allMemories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId);
+        
+        Map<String, List<MemoryResponse>> memoriesByType = new HashMap<>();
+        Map<String, Integer> countByType = new HashMap<>();
+        
+        // Agrupar por tipo de archivo principal
+        for (Memory memory : allMemories) {
+            String type = determineMemoryType(memory);
+            
+            memoriesByType.computeIfAbsent(type, k -> new ArrayList<>())
+                .add(buildMemoryResponse(memory));
+            
+            countByType.put(type, countByType.getOrDefault(type, 0) + 1);
+        }
+        
+        return new MemoriesByTypeResponse(memoriesByType, countByType, allMemories.size());
+    }
+    
+    @Override
+    public MemoriesByTimelineResponse getMemoriesByTimeline(UUID memorialId, String year, String month, User user) {
+        // Verificar acceso al memorial
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new RuntimeException("Memorial not found"));
+        
+        List<Memory> allMemories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId);
+        
+        Map<String, Map<String, List<MemoryResponse>>> memoriesByTimeline = new HashMap<>();
+        Map<String, Integer> countByYear = new HashMap<>();
+        Map<String, Map<String, Integer>> countByMonth = new HashMap<>();
+        
+        for (Memory memory : allMemories) {
+            LocalDate date = memory.getPhotoDate() != null ? memory.getPhotoDate() : memory.getCreatedDate().toLocalDate();
+            String yearStr = String.valueOf(date.getYear());
+            String monthStr = String.format("%02d", date.getMonthValue());
+            
+            // Filtrar por año y mes si se especifican
+            if (year != null && !yearStr.equals(year)) continue;
+            if (month != null && !monthStr.equals(month)) continue;
+            
+            memoriesByTimeline.computeIfAbsent(yearStr, k -> new HashMap<>())
+                .computeIfAbsent(monthStr, k -> new ArrayList<>())
+                .add(buildMemoryResponse(memory));
+            
+            countByYear.put(yearStr, countByYear.getOrDefault(yearStr, 0) + 1);
+            countByMonth.computeIfAbsent(yearStr, k -> new HashMap<>())
+                .put(monthStr, countByMonth.get(yearStr).getOrDefault(monthStr, 0) + 1);
+        }
+        
+        return new MemoriesByTimelineResponse(memoriesByTimeline, countByYear, countByMonth, allMemories.size());
+    }
+    
+    @Override
+    public MemoriesByThemesResponse getMemoriesByThemes(UUID memorialId, User user) {
+        // Verificar acceso al memorial
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new RuntimeException("Memorial not found"));
+        
+        List<Memory> allMemories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId);
+        
+        Map<String, List<MemoryResponse>> memoriesByTheme = new HashMap<>();
+        Map<String, Integer> countByTheme = new HashMap<>();
+        Set<String> allThemes = new HashSet<>();
+        
+        for (Memory memory : allMemories) {
+            List<String> tags = memory.getTags() != null ? memory.getTags() : List.of("Sin tema");
+            
+            if (tags.isEmpty()) {
+                tags = List.of("Sin tema");
+            }
+            
+            for (String tag : tags) {
+                allThemes.add(tag);
+                memoriesByTheme.computeIfAbsent(tag, k -> new ArrayList<>())
+                    .add(buildMemoryResponse(memory));
+                countByTheme.put(tag, countByTheme.getOrDefault(tag, 0) + 1);
+            }
+        }
+        
+        return new MemoriesByThemesResponse(memoriesByTheme, countByTheme, new ArrayList<>(allThemes), allMemories.size());
+    }
+    
+    @Override
+    public MemoriesByMomentsResponse getMemoriesByMoments(UUID memorialId, User user) {
+        // Verificar acceso al memorial
+        Memorial memorial = memorialRepository.findById(memorialId)
+            .orElseThrow(() -> new RuntimeException("Memorial not found"));
+        
+        List<Memory> allMemories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId);
+        
+        Map<String, List<MemoryResponse>> memoriesByMoment = new HashMap<>();
+        Map<String, Integer> countByMoment = new HashMap<>();
+        Set<String> allMoments = new HashSet<>();
+        
+        for (Memory memory : allMemories) {
+            String moment = determineMemoryMoment(memory);
+            allMoments.add(moment);
+            
+            memoriesByMoment.computeIfAbsent(moment, k -> new ArrayList<>())
+                .add(buildMemoryResponse(memory));
+            countByMoment.put(moment, countByMoment.getOrDefault(moment, 0) + 1);
+        }
+        
+        return new MemoriesByMomentsResponse(memoriesByMoment, countByMoment, new ArrayList<>(allMoments), allMemories.size());
+    }
+    
+    // Métodos auxiliares
+    
+    private MemoryResponse buildMemoryResponse(Memory memory) {
+        MemoryResponse response = new MemoryResponse();
+        response.setIdMemory(memory.getIdMemory());
+        response.setType(memory.getType());
+        response.setTitle(memory.getTitle());
+        response.setDescription(memory.getDescription());
+        response.setPhotoDate(memory.getPhotoDate());
+        response.setLocation(memory.getLocation());
+        response.setVisible(memory.isVisible());
+        response.setTags(memory.getTags());
+        response.setAssociatedQuestion(memory.getAssociatedQuestion());
+        response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0);
+        response.setCreatedDate(memory.getCreatedDate());
+
+        if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+            response.setFiles(memory.getFiles().stream()
+                .map(this::buildFileResponse)
+                .toList());
+        } else {
+            response.setFiles(List.of());
+        }
+
+        return response;
+    }
+    
+    private String determineMemoryType(Memory memory) {
+        if (memory.getFiles() == null || memory.getFiles().isEmpty()) {
+            return "text";
+        }
+        
+        // Determinar tipo basado en el primer archivo
+        File firstFile = memory.getFiles().get(0);
+        return firstFile.getFileType();
+    }
+    
+    private String determineMemoryMoment(Memory memory) {
+        // Determinar momento basado en la pregunta asociada o tags
+        if (memory.getAssociatedQuestion() != null) {
+            String question = memory.getAssociatedQuestion().toLowerCase();
+            if (question.contains("infancia") || question.contains("niño")) return "Infancia";
+            if (question.contains("juventud") || question.contains("adolescencia")) return "Juventud";
+            if (question.contains("familia")) return "Familia";
+            if (question.contains("trabajo") || question.contains("carrera")) return "Carrera";
+            if (question.contains("viaje")) return "Viajes";
+            if (question.contains("celebración") || question.contains("fiesta")) return "Celebraciones";
+        }
+        
+        // Determinar por tags
+        if (memory.getTags() != null) {
+            for (String tag : memory.getTags()) {
+                String tagLower = tag.toLowerCase();
+                if (tagLower.contains("infancia")) return "Infancia";
+                if (tagLower.contains("familia")) return "Familia";
+                if (tagLower.contains("trabajo")) return "Carrera";
+                if (tagLower.contains("viaje")) return "Viajes";
+                if (tagLower.contains("celebración")) return "Celebraciones";
+            }
+        }
+        
+        return "Otros momentos";
     }
 
 }

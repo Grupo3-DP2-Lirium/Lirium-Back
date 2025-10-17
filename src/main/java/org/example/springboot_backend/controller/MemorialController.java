@@ -79,6 +79,22 @@ public class MemorialController {
         }
     }
 
+    // Endpoint adicional con la ruta esperada por Postman
+    @GetMapping(value = "/my-memorials", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMyMemorialsAlternative(Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            List<MemorialResponse> memorials = memorialService.getMyMemorials(user);
+            return ResponseEntity.ok(memorials);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error fetching memorials: " + e.getMessage());
+        }
+    }
+
     @GetMapping(value = "/getCollaborativeMemorials", produces = MediaType.APPLICATION_JSON_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> getCollaborativeMemorials(Authentication authentication) {

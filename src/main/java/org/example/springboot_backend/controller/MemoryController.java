@@ -136,4 +136,98 @@ public class MemoryController {
         }
     }
 
+    // Nuevos endpoints para visualizar recuerdos organizados
+    
+    @GetMapping("/memorial/{memorialId}/organized")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMemoriesOrganized(
+            @PathVariable UUID memorialId,
+            @RequestParam(defaultValue = "all") String filterType, // all, images, videos, documents
+            @RequestParam(defaultValue = "date") String sortBy, // date, type, moments, themes
+            @RequestParam(defaultValue = "desc") String sortOrder, // asc, desc
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            var memories = memoryService.getMemoriesOrganized(memorialId, filterType, sortBy, sortOrder, page, size, user);
+            return ResponseEntity.ok(memories);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/memorial/{memorialId}/by-type")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMemoriesByType(
+            @PathVariable UUID memorialId,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            var memoriesByType = memoryService.getMemoriesByType(memorialId, user);
+            return ResponseEntity.ok(memoriesByType);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/memorial/{memorialId}/by-timeline")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMemoriesByTimeline(
+            @PathVariable UUID memorialId,
+            @RequestParam(required = false) String year,
+            @RequestParam(required = false) String month,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            var memoriesByTimeline = memoryService.getMemoriesByTimeline(memorialId, year, month, user);
+            return ResponseEntity.ok(memoriesByTimeline);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/memorial/{memorialId}/by-themes")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMemoriesByThemes(
+            @PathVariable UUID memorialId,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            var memoriesByThemes = memoryService.getMemoriesByThemes(memorialId, user);
+            return ResponseEntity.ok(memoriesByThemes);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/memorial/{memorialId}/by-moments")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMemoriesByMoments(
+            @PathVariable UUID memorialId,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            var memoriesByMoments = memoryService.getMemoriesByMoments(memorialId, user);
+            return ResponseEntity.ok(memoriesByMoments);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
 }
