@@ -13,12 +13,15 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/image-enhancer")
-@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST})
 public class ImageEnhanceController {
 
     @Value("${ml.service.url:http://localhost:8000}")
     private String mlServiceUrl;
 
+    @Value("${ml.service.api.key:Ng0lWVACXQH+ruVvzQJAgEVz1oAFGs93aMFpcUyhHxo=}")
+    private String mlServiceApiKey;
+    
     private final RestTemplate restTemplate = new RestTemplate();
 
     @PostMapping(value = "/enhance", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -33,9 +36,14 @@ public class ImageEnhanceController {
                 return ResponseEntity.badRequest().body("File must be an image");
             }
 
+            if (image.getSize() > 1024 * 1024) {
+                return ResponseEntity.badRequest().body("File must be less than 1MB");
+            }
+
             // Prepara headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            headers.set("X-API-Key", mlServiceApiKey);
 
             // Construir body
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
@@ -48,9 +56,10 @@ public class ImageEnhanceController {
 
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            // Llamada al microservicio
+            String enhanceUrl = mlServiceUrl + "/api/v1/enhance";
+
             ResponseEntity<byte[]> response = restTemplate.exchange(
-                    mlServiceUrl + "/enhance",
+                    enhanceUrl,
                     HttpMethod.POST,
                     requestEntity,
                     byte[].class
@@ -76,7 +85,7 @@ public class ImageEnhanceController {
     public ResponseEntity<?> healthCheck() {
         try {
             ResponseEntity<String> response = restTemplate.getForEntity(
-                mlServiceUrl + "/health", 
+                mlServiceUrl + "/api/v1/health", 
                 String.class
             );
             return ResponseEntity.ok(response.getBody());
