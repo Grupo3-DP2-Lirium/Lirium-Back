@@ -20,6 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.example.springboot_backend.enums.CategoriaEnum;
+import org.example.springboot_backend.enums.MomentoEnum;
+
+
 @Service
 @Transactional
 public class MemoryService implements IMemoryService {
@@ -38,7 +42,10 @@ public class MemoryService implements IMemoryService {
 
     @Autowired
     private StorageService storageService;
-    
+
+    @Autowired
+    private AIClassificationService aiService;
+
     @Override
     public MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author) {
         validateRequest(request, author);
@@ -53,6 +60,28 @@ public class MemoryService implements IMemoryService {
             .orElseThrow(() -> new RuntimeException("Memorial not found"));
 
         Memory memory = buildMemoryFromRequest(request, memorial, author);
+
+        //llama a IA y setea categorías/momentos antes de guardar
+        if ((request.getTitle() != null && !request.getTitle().isBlank()) ||
+                (request.getDescription() != null && !request.getDescription().isBlank())) {
+
+            var out = aiService.clasificar(request.getTitle(), request.getDescription());
+
+            memory.setCategorias(
+                    out.getOrDefault("categorias", List.of("otros"))
+                            .stream().map(this::safeCat)
+                            .distinct().limit(3).toList()
+            );
+
+            memory.setMomentos(
+                    out.getOrDefault("momentos", List.of("cotidiano"))
+                            .stream().map(this::safeMom)
+                            .distinct().limit(3).toList()
+            );
+        }
+
+
+
         memory = memoryRepository.save(memory);
 
         List<File> savedFiles = new ArrayList<>();
@@ -97,12 +126,33 @@ public class MemoryService implements IMemoryService {
                 r.setFiles(List.of());
             }
 
+            //categorías/momentos en listado por memorial
+            r.setCategorias(
+                    memory.getCategorias() == null ? List.of()
+                            : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
+            );
+            r.setMomentos(
+                    memory.getMomentos() == null ? List.of()
+                            : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
+            );
+
+
             return r;
         });
     }
 
     private void validateRequest(MemoryCreateRequest request, User author) {
         // Validation logic can be added here in the future if needed
+    }
+
+    private CategoriaEnum safeCat(String s){
+        try { return CategoriaEnum.valueOf(s.trim().toUpperCase()); }
+        catch(Exception e){ return CategoriaEnum.OTROS; }
+    }
+
+    private MomentoEnum safeMom(String s){
+        try { return MomentoEnum.valueOf(s.trim().toUpperCase()); }
+        catch(Exception e){ return MomentoEnum.COTIDIANO; }
     }
 
     private Memory buildMemoryFromRequest(MemoryCreateRequest request, Memorial memorial, User author) {
@@ -153,6 +203,17 @@ public class MemoryService implements IMemoryService {
             .toList();
         response.setFiles(fileResponses);
 
+        //mapear enums -> strings para la respuesta
+        response.setCategorias(
+                memory.getCategorias() == null ? List.of()
+                        : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
+        );
+        response.setMomentos(
+                memory.getMomentos() == null ? List.of()
+                        : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
+        );
+
+
         return response;
     }
 
@@ -201,6 +262,17 @@ public class MemoryService implements IMemoryService {
             } else {
                 r.setFiles(List.of());
             }
+
+            //ategorías/momentos en listado por autor
+            r.setCategorias(
+                    memory.getCategorias() == null ? List.of()
+                            : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
+            );
+            r.setMomentos(
+                    memory.getMomentos() == null ? List.of()
+                            : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
+            );
+
 
             return r;
         }).toList();
@@ -281,6 +353,28 @@ public class MemoryService implements IMemoryService {
             // Actualizar espacio usado del usuario
             storageService.increaseUserUsedSpace(author, storageService.calculateTotalSpace(savedFiles));
         }
+
+        // re-clasificar si cambian título o descripción
+        boolean needsReclass = false;
+        if (request.getTitle() != null) needsReclass = true;
+        if (request.getDescription() != null) needsReclass = true;
+
+        if (needsReclass) {
+            var out = aiService.clasificar(
+                    memory.getTitle(),
+                    memory.getDescription()
+            );
+            memory.setCategorias(
+                    out.getOrDefault("categorias", List.of("otros"))
+                            .stream().map(this::safeCat).distinct().limit(3).toList()
+            );
+            memory.setMomentos(
+                    out.getOrDefault("momentos", List.of("cotidiano"))
+                            .stream().map(this::safeMom).distinct().limit(3).toList()
+            );
+        }
+
+
 
         // Guardar cambios en DB
         memoryRepository.save(memory);

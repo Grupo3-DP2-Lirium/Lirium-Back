@@ -20,6 +20,8 @@ public class MemoryResponse {
     private List<FileResponse> files;
     private Double totalUsedSpace;
     private LocalDateTime createdDate;
+    private List<String> categorias;
+    private List<String> momentos;
 
     public UUID getIdMemory() {
         return idMemory;
@@ -115,5 +117,21 @@ public class MemoryResponse {
 
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public List<String> getCategorias() {
+        return categorias;
+    }
+
+    public void setCategorias(List<String> categorias) {
+        this.categorias = categorias;
+    }
+
+    public List<String> getMomentos() {
+        return momentos;
+    }
+
+    public void setMomentos(List<String> momentos) {
+        this.momentos = momentos;
     }
 }
