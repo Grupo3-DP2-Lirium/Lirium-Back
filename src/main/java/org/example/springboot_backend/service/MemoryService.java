@@ -152,21 +152,7 @@ public class MemoryService implements IMemoryService {
         return response;
     }
 
-    private FileResponse buildFileResponse(File file) {
-        FileResponse response = new FileResponse();
-        response.setIdFile(file.getIdFile());
-        response.setFileName(file.getFileName());
-        response.setOriginalFileName(file.getOriginalFileName());
-        response.setFileType(file.getFileType());
-        response.setMimeType(file.getMimeType());
 
-        // ✅ USAR DIRECTAMENTE LA URL DE AZURE (ya es pública)
-        response.setFileUrl(file.getFileUrl());
-
-        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
-        response.setUploadedDate(file.getUploadedDate());
-        return response;
-    }
 
     // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
     @Override
@@ -490,6 +476,31 @@ public class MemoryService implements IMemoryService {
         }
         
         return "Otros momentos";
+    }
+
+    private FileResponse buildFileResponse(File file) {
+        FileResponse response = new FileResponse();
+        response.setIdFile(file.getIdFile());
+        response.setFileName(file.getFileName());
+        response.setOriginalFileName(file.getOriginalFileName());
+        response.setFileType(file.getFileType());
+        response.setMimeType(file.getMimeType());
+
+        // Para almacenamiento local, generar URL accesible desde el servidor
+        String fileUrl;
+        if ("local".equals(file.getStorageProvider()) || file.getStorageProvider() == null) {
+            // Generar URL del servidor local para archivos locales
+            // Usar 10.0.2.2 para que sea accesible desde el emulador de Android
+            fileUrl = "http://10.0.2.2:8080/storage/" + file.getFileUrl().replace("\\", "/");
+        } else {
+            // Para Azure u otros proveedores, usar la URL directa
+            fileUrl = file.getFileUrl();
+        }
+
+        response.setFileUrl(fileUrl);
+        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
+        response.setUploadedDate(file.getUploadedDate());
+        return response;
     }
 
 }

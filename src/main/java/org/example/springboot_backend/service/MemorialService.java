@@ -1,17 +1,19 @@
 package org.example.springboot_backend.service;
 
+import java.time.LocalDateTime;
+
 import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
-import org.example.springboot_backend.entity.*;
+import org.example.springboot_backend.entity.File;
+import org.example.springboot_backend.entity.Memorial;
+import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
 
 
 @Service
@@ -110,7 +112,19 @@ public class MemorialService implements IMemorialService {
         response.setOriginalFileName(file.getOriginalFileName());
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
-        response.setFileUrl(file.getFileUrl());
+
+        // Para almacenamiento local, generar URL accesible desde el servidor
+        String fileUrl;
+        if ("local".equals(file.getStorageProvider()) || file.getStorageProvider() == null) {
+            // Generar URL del servidor local para archivos locales
+            // Usar 10.0.2.2 para que sea accesible desde el emulador de Android
+            fileUrl = "http://10.0.2.2:8080/storage/" + file.getFileUrl().replace("\\", "/");
+        } else {
+            // Para Azure u otros proveedores, usar la URL directa
+            fileUrl = file.getFileUrl();
+        }
+
+        response.setFileUrl(fileUrl);
         response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setUploadedDate(file.getUploadedDate());
         return response;
