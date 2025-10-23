@@ -8,6 +8,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -221,4 +222,104 @@ public class AIClassificationService {
     private Map<String, List<String>> fallback() {
         return Map.of("categorias", List.of("otros"), "momentos", List.of("cotidiano"));
     }
+
+
+    /**
+     * Determina si un recuerdo debe aparecer en la línea de tiempo.
+     * Considera el título, descripción, y si tiene fecha (photoDate).
+     *
+     * @return true si debe ir en línea de tiempo, false si es contenido atemporal
+     */
+    public boolean debeIrEnLineaTiempo(String titulo, String descripcion, LocalDate photoDate) {
+        // Si no tiene título ni descripción, usar solo la fecha
+        if ((titulo == null || titulo.isBlank()) && (descripcion == null || descripcion.isBlank())) {
+            // Si tiene fecha específica, probablemente va en timeline
+            return photoDate != null;
+        }
+
+        // Si tiene fecha específica, es un fuerte indicador de que va en timeline
+        boolean tieneFechaEspecifica = photoDate != null;
+
+        String prompt = buildTimelinePrompt(titulo, descripcion, tieneFechaEspecifica);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("model", modelName);
+        payload.put("temperature", 0.2); // Más determinista
+        payload.put("max_tokens", 50);
+        payload.put("stream", false);
+        payload.put("messages", List.of(Map.of("role","user","content", prompt)));
+
+        try {
+            System.out.println("⏰ Evaluando si va en línea de tiempo...");
+            String text = postOpenRouter(payload);
+            System.out.println("✅ Respuesta timeline recibida: " + text);
+
+            String jsonText = extractJson(text);
+            if (jsonText == null) {
+                // Fallback: si tiene fecha, probablemente va en timeline
+                System.out.println("⚠️ No se pudo extraer JSON, usando fallback basado en fecha");
+                return tieneFechaEspecifica;
+            }
+
+            Map<String, Object> obj = MAPPER.readValue(jsonText, new TypeReference<>() {});
+            Boolean result = extractBoolean(obj.get("esLineaTiempo"));
+
+            System.out.println("✅ Decisión timeline: " + result);
+            return result != null ? result : tieneFechaEspecifica;
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Error evaluando timeline: " + e.getMessage());
+            // Fallback: si tiene fecha, va en timeline
+            return tieneFechaEspecifica;
+        }
+    }
+
+    /* ==================== Helpers ==================== */
+
+    private String buildTimelinePrompt(String titulo, String descripcion, boolean tieneFecha) {
+        String fechaInfo = tieneFecha ? " (El recuerdo TIENE una fecha específica asociada)" : " (El recuerdo NO tiene fecha específica)";
+
+        return """
+    Determina si este recuerdo debe aparecer en una LÍNEA DE TIEMPO cronológica de una persona que ya no está.
+    Devuelve SOLO un JSON minificado: {"esLineaTiempo": true/false}
+    
+    Criterios para esLineaTiempo = TRUE (eventos con momento específico):
+    - Cumpleaños, aniversarios, graduaciones
+    - Viajes, vacaciones, excursiones
+    - Bodas, bautizos, celebraciones
+    - Logros específicos (primer trabajo, ascenso, premio)
+    - Eventos familiares o sociales
+    - Momentos únicos o hitos importantes
+    - Cualquier evento que sucedió en un momento específico del tiempo
+    
+    Criterios para esLineaTiempo = FALSE (contenido atemporal):
+    - Gustos musicales, canciones favoritas
+    - Películas, libros o series favoritas
+    - Frases célebres, citas, reflexiones generales
+    - Cartas o mensajes sin contexto temporal específico
+    - Rasgos de personalidad o características generales
+    - Consejos, valores o filosofía de vida
+    - Comida favorita, hobbies generales
+    - Descripciones generales sin evento específico
+    
+    %s
+    
+    Título: "%s"
+    Descripción: "%s"
+    
+    Responde SOLO: {"esLineaTiempo": true} o {"esLineaTiempo": false}
+    """.formatted(fechaInfo, sanitize(titulo), sanitize(descripcion));
+    }
+
+    private Boolean extractBoolean(Object value) {
+        if (value == null) return true; // Por defecto true
+
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+
+        String str = value.toString().toLowerCase().trim();
+        return "true".equals(str) || "1".equals(str) || "yes".equals(str) || "sí".equals(str);
+    }
+
 }

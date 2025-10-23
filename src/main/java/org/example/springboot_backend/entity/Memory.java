@@ -72,6 +72,9 @@ public class Memory {
     @Column(name = "momento", length = 50, nullable = false)
     private List<MomentoEnum> momentos = new ArrayList<>();
 
+    @Column(name = "es_linea_tiempo")
+    private Boolean esLineaTiempo = false; //no séw kjsjs
+
 
     // getters and setters
     public UUID getIdMemory() { return idMemory; }
@@ -140,5 +143,13 @@ public class Memory {
 
     public int getFileCount() {
         return files != null ? files.size() : 0;
+    }
+
+    public Boolean getEsLineaTiempo() {
+        return esLineaTiempo;
+    }
+
+    public void setEsLineaTiempo(Boolean esLineaTiempo) {
+        this.esLineaTiempo = esLineaTiempo;
     }
 }
