@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.example.springboot_backend.enums.CategoriaEnum;
 import org.example.springboot_backend.enums.MomentoEnum;
@@ -43,54 +44,106 @@ public class MemoryService implements IMemoryService {
 
     @Override
     public MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author) {
-        validateRequest(request, author);
-        
-        // Validar espacio disponible antes de procesar archivos
-        if (files != null && files.length > 0) {
-            double totalFilesSize = storageService.calculateTotalFilesSize(files);
-            storageService.validateUserStorageCapacity(author, totalFilesSize);
-        }
-        
-        Memorial memorial = memorialRepository.findById(request.getMemorialId())
-            .orElseThrow(() -> new RuntimeException("Memorial not found"));
+        try {
+            //System.out.println("=== INICIO createMemory ===");
+            validateRequest(request, author);
 
-        Memory memory = buildMemoryFromRequest(request, memorial, author);
+            // Validar espacio disponible antes de procesar archivos
+            if (files != null && files.length > 0) {
+                double totalFilesSize = storageService.calculateTotalFilesSize(files);
+                storageService.validateUserStorageCapacity(author, totalFilesSize);
+            }
 
-        //llama a IA y setea categorías/momentos antes de guardar
-        if ((request.getTitle() != null && !request.getTitle().isBlank()) ||
-                (request.getDescription() != null && !request.getDescription().isBlank())) {
+            Memorial memorial = memorialRepository.findById(request.getMemorialId())
+                    .orElseThrow(() -> new RuntimeException("Memorial not found"));
 
-            var out = aiService.clasificar(request.getTitle(), request.getDescription());
+            Memory memory = buildMemoryFromRequest(request, memorial, author);
 
-            memory.setCategorias(
-                    out.getOrDefault("categorias", List.of("otros"))
-                            .stream().map(this::safeCat)
-                            .distinct().limit(3).toList()
-            );
-
-            memory.setMomentos(
-                    out.getOrDefault("momentos", List.of("cotidiano"))
-                            .stream().map(this::safeMom)
-                            .distinct().limit(3).toList()
-            );
-        }
-
-
-
-        memory = memoryRepository.save(memory);
-
-        List<File> savedFiles = new ArrayList<>();
-        if (files != null && files.length > 0) {
-            savedFiles = storageService.processFiles(files, memory);
-            Double totalSpace = storageService.calculateTotalSpace(savedFiles);
-            memory.setTotalUsedSpace(totalSpace);
             memory = memoryRepository.save(memory);
-            
-            // Actualizar el espacio usado del usuario
-            storageService.increaseUserUsedSpace(author, totalSpace);
-        }
 
-        return buildResponse(memory, savedFiles);
+            // Llamar a IA y setear categorías/momentos
+            if ((request.getTitle() != null && !request.getTitle().isBlank()) ||
+                    (request.getDescription() != null && !request.getDescription().isBlank())) {
+
+                //System.out.println("🤖 Iniciando clasificación con IA...");
+                //System.out.println("   Título: " + request.getTitle());
+                //System.out.println("   Descripción: " + (request.getDescription() != null ? request.getDescription().substring(0, Math.min(50, request.getDescription().length())) + "..." : "null"));
+
+                try {
+                    var out = aiService.clasificar(request.getTitle(), request.getDescription());
+
+                    if (out == null) {
+                        System.err.println("❌ aiService.clasificar() retornó null");
+                        memory.setCategorias(List.of(CategoriaEnum.OTROS));
+                        memory.setMomentos(List.of(MomentoEnum.COTIDIANO));
+                    } else {
+                        System.out.println("✅ Clasificación recibida: " + out);
+
+                        List<CategoriaEnum> categorias = out.getOrDefault("categorias", List.of("otros"))
+                                .stream()
+                                .map(this::safeCat)
+                                .filter(Objects::nonNull)
+                                .distinct()
+                                .limit(3)
+                                .collect(Collectors.toCollection(ArrayList::new)); // ✅ ArrayList mutable
+
+                        List<MomentoEnum> momentos = out.getOrDefault("momentos", List.of("cotidiano"))
+                                .stream()
+                                .map(this::safeMom)
+                                .filter(Objects::nonNull)
+                                .distinct()
+                                .limit(3)
+                                .collect(Collectors.toCollection(ArrayList::new)); // ✅ ArrayList mutable
+
+                        memory.setCategorias(categorias.isEmpty() ? new ArrayList<>(List.of(CategoriaEnum.OTROS)) : categorias); // ✅
+                        memory.setMomentos(momentos.isEmpty() ? new ArrayList<>(List.of(MomentoEnum.COTIDIANO)) : momentos); // ✅
+
+                        System.out.println("✅ Categorías asignadas: " + memory.getCategorias());
+                        System.out.println("✅ Momentos asignados: " + memory.getMomentos());
+                    }
+                } catch (Exception e) {
+                    System.err.println("❌ Excepción al clasificar con IA: " + e.getClass().getName());
+                    System.err.println("❌ Mensaje: " + e.getMessage());
+                    e.printStackTrace();
+
+                    memory.setCategorias(List.of(CategoriaEnum.OTROS));
+                    memory.setMomentos(List.of(MomentoEnum.COTIDIANO));
+                }
+            }
+
+            List<File> savedFiles = new ArrayList<>();
+            if (files != null && files.length > 0) {
+                try {
+                    savedFiles = storageService.processFiles(files, memory);
+                    Double totalSpace = storageService.calculateTotalSpace(savedFiles);
+                    memory.setTotalUsedSpace(totalSpace);
+                    memory = memoryRepository.save(memory);
+
+
+                    storageService.increaseUserUsedSpace(author, totalSpace);
+
+                } catch (Exception e) {
+                    System.err.println("❌ Error procesando archivos: " + e.getClass().getName());
+                    System.err.println("❌ Mensaje: " + e.getMessage());
+                    e.printStackTrace();
+                    throw e; // Re-lanzar para que se capture arriba
+                }
+            }
+
+            MemoryResponse response = buildResponse(memory, savedFiles);
+            //System.out.println("=== FIN createMemory (EXITOSO) ===");
+
+            return response;
+
+        } catch (Exception e) {
+            System.err.println("❌❌❌ ERROR FATAL en createMemory ❌❌❌");
+            System.err.println("Tipo: " + e.getClass().getName());
+            System.err.println("Mensaje: " + e.getMessage());
+            System.err.println("Stack trace:");
+            e.printStackTrace();
+            System.err.println("=== FIN createMemory (ERROR) ===");
+            throw e; // Re-lanzar para que el controller lo maneje
+        }
     }
 
     @Override
@@ -140,14 +193,40 @@ public class MemoryService implements IMemoryService {
         // Validation logic can be added here in the future if needed
     }
 
-    private CategoriaEnum safeCat(String s){
-        try { return CategoriaEnum.valueOf(s.trim().toUpperCase()); }
-        catch(Exception e){ return CategoriaEnum.OTROS; }
+    private CategoriaEnum safeCat(String s) {
+        if (s == null || s.isBlank()) {
+            //System.err.println("⚠️ safeCat recibió null/blank, retornando OTROS");
+            return CategoriaEnum.OTROS;
+        }
+
+        try {
+            // Convertir snake_case a SCREAMING_SNAKE_CASE
+            String normalized = s.trim().toUpperCase();
+            CategoriaEnum result = CategoriaEnum.valueOf(normalized);
+            //System.out.println("✅ safeCat: '" + s + "' -> " + result);
+            return result;
+        } catch(IllegalArgumentException e) {
+            //System.err.println("⚠️ Categoría no reconocida: '" + s + "' - usando OTROS");
+            return CategoriaEnum.OTROS;
+        }
     }
 
-    private MomentoEnum safeMom(String s){
-        try { return MomentoEnum.valueOf(s.trim().toUpperCase()); }
-        catch(Exception e){ return MomentoEnum.COTIDIANO; }
+    private MomentoEnum safeMom(String s) {
+        if (s == null || s.isBlank()) {
+            //System.err.println("⚠️ safeMom recibió null/blank, retornando COTIDIANO");
+            return MomentoEnum.COTIDIANO;
+        }
+
+        try {
+            // Convertir snake_case a SCREAMING_SNAKE_CASE
+            String normalized = s.trim().toUpperCase();
+            MomentoEnum result = MomentoEnum.valueOf(normalized);
+            //System.out.println("✅ safeMom: '" + s + "' -> " + result);
+            return result;
+        } catch(IllegalArgumentException e) {
+            //System.err.println("⚠️ Momento no reconocido: '" + s + "' - usando COTIDIANO");
+            return MomentoEnum.COTIDIANO;
+        }
     }
 
     private Memory buildMemoryFromRequest(MemoryCreateRequest request, Memorial memorial, User author) {
@@ -355,18 +434,44 @@ public class MemoryService implements IMemoryService {
         if (request.getDescription() != null) needsReclass = true;
 
         if (needsReclass) {
-            var out = aiService.clasificar(
-                    memory.getTitle(),
-                    memory.getDescription()
-            );
-            memory.setCategorias(
-                    out.getOrDefault("categorias", List.of("otros"))
-                            .stream().map(this::safeCat).distinct().limit(3).toList()
-            );
-            memory.setMomentos(
-                    out.getOrDefault("momentos", List.of("cotidiano"))
-                            .stream().map(this::safeMom).distinct().limit(3).toList()
-            );
+            try {
+                System.out.println("🤖 Re-clasificando memoria actualizada...");
+                var out = aiService.clasificar(
+                        memory.getTitle(),
+                        memory.getDescription()
+                );
+
+                if (out != null) {
+                    // Usamos ArrayList mutable en lugar de toList()
+                    memory.setCategorias(
+                            out.getOrDefault("categorias", List.of("otros"))
+                                    .stream()
+                                    .map(this::safeCat)
+                                    .filter(Objects::nonNull)
+                                    .distinct()
+                                    .limit(3)
+                                    .collect(Collectors.toCollection(ArrayList::new))
+                    );
+
+                    memory.setMomentos(
+                            out.getOrDefault("momentos", List.of("cotidiano"))
+                                    .stream()
+                                    .map(this::safeMom)
+                                    .filter(Objects::nonNull)
+                                    .distinct()
+                                    .limit(3)
+                                    .collect(Collectors.toCollection(ArrayList::new))
+                    );
+
+                    System.out.println("✅ Re-clasificación exitosa");
+                } else {
+                    System.err.println("⚠️ Re-clasificación retornó null, manteniendo categorías existentes");
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error en re-clasificación: " + e.getMessage());
+                e.printStackTrace();
+                // Mantener las categorías existentes si falla
+            }
         }
 
 

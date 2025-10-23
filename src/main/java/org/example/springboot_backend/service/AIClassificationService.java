@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -53,6 +54,7 @@ public class AIClassificationService {
     public Map<String, List<String>> clasificar(String titulo, String descripcion) {
         // Guardrail: si no hay nada, cae al fallback
         if ((titulo == null || titulo.isBlank()) && (descripcion == null || descripcion.isBlank())) {
+            System.out.println("ℹ️ Sin título ni descripción, usando fallback");
             return fallback();
         }
 
@@ -67,15 +69,23 @@ public class AIClassificationService {
         payload.put("messages", List.of(Map.of("role","user","content", prompt)));
 
         try {
+            System.out.println("🤖 Llamando a OpenRouter para clasificar...");
             String text = postOpenRouter(payload);
+            System.out.println("✅ Respuesta de OpenRouter recibida: " + text);
 
             // Extrae el primer {...} aunque venga con ```json ... ```
             String jsonText = extractJson(text);
-            if (jsonText == null) return fallback();
+            if (jsonText == null) {
+                System.err.println("⚠️ No se pudo extraer JSON de la respuesta");
+                return fallback();
+            }
 
             Map<String, Object> obj = MAPPER.readValue(jsonText, new TypeReference<>() {});
             List<String> rawCats = toStringList(obj.get("categorias"));
             List<String> rawMoms = toStringList(obj.get("momentos"));
+
+            System.out.println("📋 Categorías raw: " + rawCats);
+            System.out.println("📋 Momentos raw: " + rawMoms);
 
             // Normaliza, valida contra listas y limita a 3
             List<String> cats = normalizeAndClamp(rawCats, CATS, "otros", 3);
@@ -88,11 +98,14 @@ public class AIClassificationService {
             Map<String, List<String>> out = new HashMap<>();
             out.put("categorias", cats);
             out.put("momentos", moms);
+
+            System.out.println("✅ Clasificación exitosa - Cats: " + cats + ", Moms: " + moms);
             return out;
 
         } catch (Exception e) {
-            // Loguea y retorna fallback
-            System.err.println("⚠️ Error clasificando con IA: " + e.getMessage());
+            System.err.println("❌ Error clasificando con IA: " + e.getClass().getName());
+            System.err.println("❌ Mensaje: " + e.getMessage());
+            e.printStackTrace();
             return fallback();
         }
     }
@@ -100,26 +113,54 @@ public class AIClassificationService {
     /* ==================== Helpers ==================== */
 
     private String postOpenRouter(Map<String, Object> payload) {
-        RestTemplate rest = new RestTemplate();
+        // Configurar RestTemplate con timeouts
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000); // 10 segundos para conectar
+        factory.setReadTimeout(15000);    // 15 segundos para leer respuesta
+
+        RestTemplate rest = new RestTemplate(factory);
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
         HttpEntity<Map<String,Object>> entity = new HttpEntity<>(payload, headers);
-        ResponseEntity<Map> response = rest.exchange(openRouterUrl, HttpMethod.POST, entity, Map.class);
 
-        // Navega el JSON: choices[0].message.content
-        Map body = response.getBody();
-        if (body == null) throw new RuntimeException("Respuesta vacía de OpenRouter");
-        List choices = (List) body.get("choices");
-        if (choices == null || choices.isEmpty()) throw new RuntimeException("Sin choices en respuesta IA");
-        Map choice0 = (Map) choices.get(0);
-        Map message = (Map) choice0.get("message");
-        if (message == null) throw new RuntimeException("Sin message en respuesta IA");
-        Object content = message.get("content");
-        if (content == null) throw new RuntimeException("Sin content en respuesta IA");
+        try {
+            System.out.println("🤖 Enviando request a OpenRouter...");
+            ResponseEntity<Map> response = rest.exchange(openRouterUrl, HttpMethod.POST, entity, Map.class);
+            System.out.println("✅ Response recibido: " + response.getStatusCode());
 
-        return content.toString();
+            // Navega el JSON: choices[0].message.content
+            Map body = response.getBody();
+            if (body == null) throw new RuntimeException("Respuesta vacía de OpenRouter");
+
+            List choices = (List) body.get("choices");
+            if (choices == null || choices.isEmpty()) throw new RuntimeException("Sin choices en respuesta IA");
+
+            Map choice0 = (Map) choices.get(0);
+            Map message = (Map) choice0.get("message");
+            if (message == null) throw new RuntimeException("Sin message en respuesta IA");
+
+            Object content = message.get("content");
+            if (content == null) throw new RuntimeException("Sin content en respuesta IA");
+
+            return content.toString();
+
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            System.err.println("❌ Timeout o error de conexión con OpenRouter: " + e.getMessage());
+            throw new RuntimeException("Timeout al llamar a OpenRouter: " + e.getMessage(), e);
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            System.err.println("❌ Error HTTP del cliente (4xx): " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+            throw new RuntimeException("Error HTTP al llamar a OpenRouter: " + e.getMessage(), e);
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            System.err.println("❌ Error HTTP del servidor (5xx): " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+            throw new RuntimeException("Error del servidor OpenRouter: " + e.getMessage(), e);
+        } catch (Exception e) {
+            System.err.println("❌ Error inesperado en postOpenRouter: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error al llamar a OpenRouter: " + e.getMessage(), e);
+        }
     }
 
     private String buildPrompt(String titulo, String descripcion) {
