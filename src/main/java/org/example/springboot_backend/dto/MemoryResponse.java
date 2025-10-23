@@ -22,6 +22,8 @@ public class MemoryResponse {
     private LocalDateTime createdDate;
     private List<String> categorias;
     private List<String> momentos;
+    private boolean esLineaTiempo;
+
 
     public UUID getIdMemory() {
         return idMemory;
@@ -133,5 +135,13 @@ public class MemoryResponse {
 
     public void setMomentos(List<String> momentos) {
         this.momentos = momentos;
+    }
+
+    public boolean isEsLineaTiempo() {
+        return esLineaTiempo;
+    }
+
+    public void setEsLineaTiempo(boolean esLineaTiempo) {
+        this.esLineaTiempo = esLineaTiempo;
     }
 }

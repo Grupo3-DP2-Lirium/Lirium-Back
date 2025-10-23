@@ -173,4 +173,14 @@ public class MemoryController {
         return ResponseEntity.ok(data);
     }
 
+    @GetMapping("/timeline/{memorialId}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<List<MemoryResponse>> getTimeline(
+            @PathVariable UUID memorialId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        return ResponseEntity.ok(memoryService.findTimelineMemories(memorialId, page, size));
+    }
+
 }

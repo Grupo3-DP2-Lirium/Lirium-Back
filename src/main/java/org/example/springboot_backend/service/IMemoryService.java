@@ -19,4 +19,5 @@ public interface IMemoryService {
     listGroupedByCategoryAndType(UUID memorialId, int page, int size);
     java.util.Map<String, java.util.Map<String, java.util.List<MemoryLiteResponse>>>
     listGroupedByMomentsAndType(UUID memorialId, int page, int size);
+    List<MemoryResponse> findTimelineMemories(UUID memorialId, int page, int size);
 }

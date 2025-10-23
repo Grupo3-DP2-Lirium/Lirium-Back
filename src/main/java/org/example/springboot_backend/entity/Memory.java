@@ -73,7 +73,7 @@ public class Memory {
     private List<MomentoEnum> momentos = new ArrayList<>();
 
     @Column(name = "es_linea_tiempo")
-    private Boolean esLineaTiempo = false; //no séw kjsjs
+    private Boolean esLineaTiempo = false;
 
 
     // getters and setters

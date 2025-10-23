@@ -61,7 +61,7 @@ public class MemoryService implements IMemoryService {
 
             memory = memoryRepository.save(memory);
 
-            // Llamar a IA y setear categorías/momentos
+            // 1️⃣ Clasificar con IA y setear categorías/momentos
             if ((request.getTitle() != null && !request.getTitle().isBlank()) ||
                     (request.getDescription() != null && !request.getDescription().isBlank())) {
 
@@ -109,6 +109,22 @@ public class MemoryService implements IMemoryService {
                     memory.setCategorias(List.of(CategoriaEnum.OTROS));
                     memory.setMomentos(List.of(MomentoEnum.COTIDIANO));
                 }
+            }
+
+            // 2️⃣ Determinar si va en línea de tiempo (método nuevo)
+            try {
+                System.out.println("⏰ Determinando si va en línea de tiempo...");
+                boolean vaEnTimeline = aiService.debeIrEnLineaTiempo(
+                        request.getTitle(),
+                        request.getDescription(),
+                        request.getPhotoDate()
+                );
+                memory.setEsLineaTiempo(vaEnTimeline);
+                System.out.println("✅ Línea de tiempo: " + vaEnTimeline);
+            } catch (Exception e) {
+                System.err.println("❌ Error determinando timeline: " + e.getMessage());
+                // Fallback: si tiene fecha, va en timeline
+                memory.setEsLineaTiempo(request.getPhotoDate() != null);
             }
 
             List<File> savedFiles = new ArrayList<>();
@@ -271,6 +287,7 @@ public class MemoryService implements IMemoryService {
         response.setAssociatedQuestion(memory.getAssociatedQuestion());
         response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setCreatedDate(memory.getCreatedDate());
+        response.setEsLineaTiempo(memory.getEsLineaTiempo());
 
         List<FileResponse> fileResponses = files.stream()
             .map(this::buildFileResponse)
@@ -464,9 +481,18 @@ public class MemoryService implements IMemoryService {
                     );
 
                     System.out.println("✅ Re-clasificación exitosa");
-                } else {
-                    System.err.println("⚠️ Re-clasificación retornó null, manteniendo categorías existentes");
                 }
+
+                // 2️⃣ Re-evaluar línea de tiempo
+                System.out.println("⏰ Re-evaluando línea de tiempo...");
+                boolean vaEnTimeline = aiService.debeIrEnLineaTiempo(
+                        memory.getTitle(),
+                        memory.getDescription(),
+                        memory.getPhotoDate()
+                );
+                memory.setEsLineaTiempo(vaEnTimeline);
+                System.out.println("✅ Línea de tiempo actualizada: " + vaEnTimeline);
+
             } catch (Exception e) {
                 System.err.println("❌ Error en re-clasificación: " + e.getMessage());
                 e.printStackTrace();
@@ -523,6 +549,7 @@ public class MemoryService implements IMemoryService {
         response.setAssociatedQuestion(memory.getAssociatedQuestion());
         response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0);
         response.setCreatedDate(memory.getCreatedDate());
+        response.setEsLineaTiempo(memory.getEsLineaTiempo());
 
         if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
             response.setFiles(memory.getFiles().stream()
@@ -637,5 +664,17 @@ public class MemoryService implements IMemoryService {
         return out;
     }
 
+    @Override
+    public List<MemoryResponse> findTimelineMemories(UUID memorialId, int page, int size) {
+        //Pageable SIN el Sort (porque ya está en la query nativa)
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Memory> result = memoryRepository.findTimelineMemories(memorialId, pageable);
+
+        return result.getContent()
+                .stream()
+                .map(this::buildMemoryResponse)
+                .toList();
+    }
 
 }
