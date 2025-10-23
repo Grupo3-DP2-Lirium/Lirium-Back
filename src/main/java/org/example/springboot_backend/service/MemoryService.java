@@ -1,9 +1,6 @@
 package org.example.springboot_backend.service;
 
-import org.example.springboot_backend.dto.FileDeleteRequest;
-import org.example.springboot_backend.dto.FileResponse;
-import org.example.springboot_backend.dto.MemoryCreateRequest;
-import org.example.springboot_backend.dto.MemoryResponse;
+import org.example.springboot_backend.dto.*;
 import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.repository.*;
 import org.example.springboot_backend.service.storage.StorageService;
@@ -16,9 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import org.example.springboot_backend.enums.CategoriaEnum;
 import org.example.springboot_backend.enums.MomentoEnum;
@@ -382,5 +377,160 @@ public class MemoryService implements IMemoryService {
         // Construir respuesta
         return buildResponse(memory, memory.getFiles());
     }
+
+    @Override
+    public MemoriesByTypeResponse getMemoriesByType(UUID memorialId, User user) {
+        // Verificar acceso al memorial
+        Memorial memorial = memorialRepository.findById(memorialId)
+                .orElseThrow(() -> new RuntimeException("Memorial not found"));
+
+        List<Memory> allMemories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId);
+
+        Map<String, List<MemoryResponse>> memoriesByType = new HashMap<>();
+        Map<String, Integer> countByType = new HashMap<>();
+
+        // Agrupar por tipo de archivo principal
+        for (Memory memory : allMemories) {
+            String type = determineMemoryType(memory);
+
+            memoriesByType.computeIfAbsent(type, k -> new ArrayList<>())
+                    .add(buildMemoryResponse(memory));
+
+            countByType.put(type, countByType.getOrDefault(type, 0) + 1);
+        }
+
+        return new MemoriesByTypeResponse(memoriesByType, countByType, allMemories.size());
+    }
+
+
+    // Métodos auxiliares
+
+    private MemoryResponse buildMemoryResponse(Memory memory) {
+        MemoryResponse response = new MemoryResponse();
+        response.setIdMemory(memory.getIdMemory());
+        response.setType(memory.getType());
+        response.setTitle(memory.getTitle());
+        response.setDescription(memory.getDescription());
+        response.setPhotoDate(memory.getPhotoDate());
+        response.setLocation(memory.getLocation());
+        response.setVisible(memory.isVisible());
+        response.setTags(memory.getTags());
+        response.setAssociatedQuestion(memory.getAssociatedQuestion());
+        response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0);
+        response.setCreatedDate(memory.getCreatedDate());
+
+        if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+            response.setFiles(memory.getFiles().stream()
+                    .map(this::buildFileResponse)
+                    .toList());
+        } else {
+            response.setFiles(List.of());
+        }
+
+        return response;
+    }
+
+    private String determineMemoryType(Memory memory) {
+        if (memory.getFiles() == null || memory.getFiles().isEmpty()) {
+            return "text";
+        }
+        File firstFile = memory.getFiles().get(0); // Asegúrate de importar tu entidad
+        return firstFile.getFileType();            // ej. "image" | "video" | "audio"
+    }
+
+    private String normalizeUiType(String rawType) {
+        if (rawType == null || rawType.isBlank()) return "texto";
+        String t = rawType.toLowerCase();
+        if (t.contains("image") || t.equals("img") || t.equals("photo") || t.equals("picture")) return "foto";
+        if (t.contains("video")) return "video";
+        if (t.contains("audio") || t.equals("sound") || t.equals("voice")) return "audios";
+        if (t.equals("text")) return "texto";
+        return "texto";
+    }
+
+    // Lite DTO
+    private MemoryLiteResponse toLite(Memory memory, String rawType) {
+        MemoryLiteResponse m = new MemoryLiteResponse();
+        m.setIdMemory(memory.getIdMemory());
+        m.setTitle(memory.getTitle());
+        m.setDescription(memory.getDescription());
+        m.setPhotoDate(memory.getPhotoDate());
+        m.setCreatedDate(memory.getCreatedDate());
+        m.setFileType(normalizeUiType(rawType));
+        if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+            File f0 = memory.getFiles().get(0);
+            m.setFirstFileUrl(f0.getFileUrl());
+        }
+        return m;
+    }
+
+
+    public Map<String, Map<String, List<MemoryLiteResponse>>>
+    listGroupedByCategoryAndType(UUID memorialId, int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Memory> result = memoryRepository
+                .findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId, pageable);
+
+        Map<String, Map<String, List<MemoryLiteResponse>>> out = new LinkedHashMap<>();
+
+        for (Memory mem : result.getContent()) {
+            String rawType = determineMemoryType(mem);
+            String uiType = normalizeUiType(rawType);
+
+            List<String> catIds = (mem.getCategorias() == null || mem.getCategorias().isEmpty())
+                    ? List.of("otros")
+                    : mem.getCategorias().stream().map(e -> e.name().toLowerCase()).toList();
+
+            for (String cat : catIds) {
+                out.computeIfAbsent(cat, k -> {
+                    Map<String, List<MemoryLiteResponse>> m = new LinkedHashMap<>();
+                    m.put("video", new ArrayList<>());
+                    m.put("foto",  new ArrayList<>());
+                    m.put("texto", new ArrayList<>());
+                    m.put("audios",new ArrayList<>());
+                    return m;
+                });
+
+                out.get(cat).get(uiType).add(toLite(mem, rawType));
+            }
+        }
+
+        return out;
+    }
+
+    @Override
+    public Map<String, Map<String, List<MemoryLiteResponse>>> listGroupedByMomentsAndType(UUID memorialId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Memory> result = memoryRepository
+                .findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId, pageable);
+
+        Map<String, Map<String, List<MemoryLiteResponse>>> out = new LinkedHashMap<>();
+
+        for (Memory mem : result.getContent()) {
+            String rawType = determineMemoryType(mem);
+            String uiType = normalizeUiType(rawType);
+
+            List<String> momIds = (mem.getMomentos() == null || mem.getMomentos().isEmpty())
+                    ? List.of("otros")
+                    : mem.getMomentos().stream().map(e -> e.name().toLowerCase()).toList();
+
+            for (String mom : momIds) {
+                out.computeIfAbsent(mom, k -> {
+                    Map<String, List<MemoryLiteResponse>> m = new LinkedHashMap<>();
+                    m.put("video", new ArrayList<>());
+                    m.put("foto",  new ArrayList<>());
+                    m.put("texto", new ArrayList<>());
+                    m.put("audios",new ArrayList<>());
+                    return m;
+                });
+
+                out.get(mom).get(uiType).add(toLite(mem, rawType));
+            }
+        }
+
+        return out;
+    }
+
 
 }
