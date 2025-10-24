@@ -1,10 +1,14 @@
 package org.example.springboot_backend.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 import org.example.springboot_backend.dto.FileDeleteRequest;
+import org.example.springboot_backend.dto.MemoriesByTypeResponse;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
+import org.example.springboot_backend.dto.MemoryLiteResponse;
 import org.example.springboot_backend.dto.MemoryResponse;
 import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.repository.UserRepository;
@@ -14,16 +18,20 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.example.springboot_backend.dto.MemoryLiteResponse;
-import org.example.springboot_backend.dto.MemoriesByTypeResponse;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @RequestMapping("/api/memories")
@@ -181,6 +189,19 @@ public class MemoryController {
             @RequestParam(defaultValue = "50") int size) {
 
         return ResponseEntity.ok(memoryService.findTimelineMemories(memorialId, page, size));
+    }
+
+    @GetMapping("/by-type/{memorialId}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<MemoriesByTypeResponse> getMemoriesByType(
+            @PathVariable UUID memorialId,
+            Authentication authentication) {
+        
+        String userEmail = authentication.getName();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(memoryService.getMemoriesByType(memorialId, user));
     }
 
 }

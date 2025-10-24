@@ -1,8 +1,33 @@
 package org.example.springboot_backend.service;
 
-import org.example.springboot_backend.dto.*;
-import org.example.springboot_backend.entity.*;
-import org.example.springboot_backend.repository.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.example.springboot_backend.dto.FileDeleteRequest;
+import org.example.springboot_backend.dto.FileResponse;
+import org.example.springboot_backend.dto.MemoriesByTypeResponse;
+import org.example.springboot_backend.dto.MemoryCreateRequest;
+import org.example.springboot_backend.dto.MemoryLiteResponse;
+import org.example.springboot_backend.dto.MemoryResponse;
+import org.example.springboot_backend.entity.Answer;
+import org.example.springboot_backend.entity.File;
+import org.example.springboot_backend.entity.Memorial;
+import org.example.springboot_backend.entity.Memory;
+import org.example.springboot_backend.entity.Question;
+import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.enums.CategoriaEnum;
+import org.example.springboot_backend.enums.MomentoEnum;
+import org.example.springboot_backend.repository.AnswerRepository;
+import org.example.springboot_backend.repository.MemorialRepository;
+import org.example.springboot_backend.repository.MemoryRepository;
+import org.example.springboot_backend.repository.QuestionRepository;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -11,13 +36,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import org.example.springboot_backend.enums.CategoriaEnum;
-import org.example.springboot_backend.enums.MomentoEnum;
 
 
 @Service
@@ -287,7 +305,7 @@ public class MemoryService implements IMemoryService {
         response.setAssociatedQuestion(memory.getAssociatedQuestion());
         response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setCreatedDate(memory.getCreatedDate());
-        response.setEsLineaTiempo(memory.getEsLineaTiempo());
+        response.setEsLineaTiempo(memory.getEsLineaTiempo() != null ? memory.getEsLineaTiempo() : false);
 
         List<FileResponse> fileResponses = files.stream()
             .map(this::buildFileResponse)
@@ -549,7 +567,7 @@ public class MemoryService implements IMemoryService {
         response.setAssociatedQuestion(memory.getAssociatedQuestion());
         response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0);
         response.setCreatedDate(memory.getCreatedDate());
-        response.setEsLineaTiempo(memory.getEsLineaTiempo());
+        response.setEsLineaTiempo(memory.getEsLineaTiempo() != null ? memory.getEsLineaTiempo() : false);
 
         if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
             response.setFiles(memory.getFiles().stream()
