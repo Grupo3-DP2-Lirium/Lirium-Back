@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
+import org.example.springboot_backend.enums.CategoriaEnum;
+import org.example.springboot_backend.enums.MomentoEnum;
 
 @Entity
 @Table(name = "memories")
@@ -52,6 +54,28 @@ public class Memory {
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 
+    @ElementCollection(targetClass = CategoriaEnum.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(
+            name = "memory_categorias",
+            joinColumns = @JoinColumn(name = "memory_id")
+    )
+    @Column(name = "categoria", length = 50, nullable = false)
+    private List<CategoriaEnum> categorias = new ArrayList<>();
+
+    @ElementCollection(targetClass = MomentoEnum.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(
+            name = "memory_momentos",
+            joinColumns = @JoinColumn(name = "memory_id")
+    )
+    @Column(name = "momento", length = 50, nullable = false)
+    private List<MomentoEnum> momentos = new ArrayList<>();
+
+    @Column(name = "es_linea_tiempo")
+    private Boolean esLineaTiempo = false;
+
+
     // getters and setters
     public UUID getIdMemory() { return idMemory; }
     public void setIdMemory(UUID idMemory) { this.idMemory = idMemory; }
@@ -88,6 +112,12 @@ public class Memory {
     public List<String> getTags() { return tags; }
     public void setTags(List<String> tags) { this.tags = tags; }
 
+    public List<CategoriaEnum> getCategorias() { return categorias; }
+    public void setCategorias(List<CategoriaEnum> categorias) { this.categorias = categorias; }
+
+    public List<MomentoEnum> getMomentos() { return momentos; }
+    public void setMomentos(List<MomentoEnum> momentos) { this.momentos = momentos; }
+
     // Métodos de utilidad para manejar archivos
     public void addFile(File file) {
         files.add(file);
@@ -113,5 +143,13 @@ public class Memory {
 
     public int getFileCount() {
         return files != null ? files.size() : 0;
+    }
+
+    public Boolean getEsLineaTiempo() {
+        return esLineaTiempo;
+    }
+
+    public void setEsLineaTiempo(Boolean esLineaTiempo) {
+        this.esLineaTiempo = esLineaTiempo;
     }
 }

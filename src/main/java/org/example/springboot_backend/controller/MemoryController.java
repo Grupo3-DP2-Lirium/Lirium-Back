@@ -16,6 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.example.springboot_backend.dto.MemoryLiteResponse;
+import org.example.springboot_backend.dto.MemoriesByTypeResponse;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -134,6 +137,50 @@ public class MemoryController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error updating memory: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/grouped-by-category")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<java.util.Map<String, java.util.Map<String, java.util.List<MemoryLiteResponse>>>> getGroupedByCategory(
+            @RequestParam UUID memorialId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            Authentication authentication
+    ) {
+        // (opcional) validar acceso con usuario
+        String userEmail = authentication.getName();
+        userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        var data = memoryService.listGroupedByCategoryAndType(memorialId, page, size);
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/grouped-by-moment")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<java.util.Map<String, java.util.Map<String, java.util.List<MemoryLiteResponse>>>> getGroupedByMoment(
+            @RequestParam UUID memorialId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            Authentication authentication
+    ) {
+        // (opcional) validar acceso con usuario
+        String userEmail = authentication.getName();
+        userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        var data = memoryService.listGroupedByMomentsAndType(memorialId, page, size);
+        return ResponseEntity.ok(data);
+    }
+
+    @GetMapping("/timeline/{memorialId}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<List<MemoryResponse>> getTimeline(
+            @PathVariable UUID memorialId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        return ResponseEntity.ok(memoryService.findTimelineMemories(memorialId, page, size));
     }
 
 }

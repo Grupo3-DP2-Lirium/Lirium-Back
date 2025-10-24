@@ -111,8 +111,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(
             Exception ex, WebRequest request) {
+        ex.printStackTrace();
         ErrorResponse errorResponse = new ErrorResponse(
-            "An unexpected error occurred. Please try again later.",
+            ex.getMessage(),
             "Internal Server Error",
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             request.getDescription(false).replace("uri=", "")
