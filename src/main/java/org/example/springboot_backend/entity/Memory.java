@@ -75,6 +75,12 @@ public class Memory {
     @Column(name = "es_linea_tiempo")
     private Boolean esLineaTiempo = false;
 
+    // Coordenadas del lugar
+    @Column(nullable = true)
+    private Double latitude;
+
+    @Column(nullable = true)
+    private Double longitude;
 
     // getters and setters
     public UUID getIdMemory() { return idMemory; }
@@ -152,4 +158,9 @@ public class Memory {
     public void setEsLineaTiempo(Boolean esLineaTiempo) {
         this.esLineaTiempo = esLineaTiempo;
     }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 }

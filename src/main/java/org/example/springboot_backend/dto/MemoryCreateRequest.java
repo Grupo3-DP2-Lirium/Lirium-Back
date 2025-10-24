@@ -18,6 +18,8 @@ public class MemoryCreateRequest {
     private String associatedQuestion;
     private Long questionId;
     private Long answerId;
+    private Double latitude;
+    private Double longitude;
 
     public UUID getMemorialId() {
         return memorialId;
@@ -106,4 +108,10 @@ public class MemoryCreateRequest {
     public void setAnswerId(Long answerId) {
         this.answerId = answerId;
     }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 }

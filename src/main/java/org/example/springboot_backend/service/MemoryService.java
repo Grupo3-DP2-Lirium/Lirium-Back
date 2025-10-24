@@ -276,6 +276,8 @@ public class MemoryService implements IMemoryService {
         memory.setAssociatedQuestion(request.getAssociatedQuestion());
         memory.setTags(request.getTags());
         memory.setCreatedDate(LocalDateTime.now());
+        memory.setLatitude(request.getLatitude());
+        memory.setLongitude(request.getLongitude());
 
         if (request.getQuestionId() != null) {
             Question question = questionRepository.findById(request.getQuestionId())
@@ -306,6 +308,8 @@ public class MemoryService implements IMemoryService {
         response.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
         response.setCreatedDate(memory.getCreatedDate());
         response.setEsLineaTiempo(memory.getEsLineaTiempo() != null ? memory.getEsLineaTiempo() : false);
+        response.setLatitude(memory.getLatitude());
+        response.setLongitude(memory.getLongitude());
 
         List<FileResponse> fileResponses = files.stream()
             .map(this::buildFileResponse)
@@ -517,8 +521,6 @@ public class MemoryService implements IMemoryService {
                 // Mantener las categorías existentes si falla
             }
         }
-
-
 
         // Guardar cambios en DB
         memoryRepository.save(memory);
