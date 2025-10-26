@@ -276,6 +276,7 @@ public class MemoryService implements IMemoryService {
         memory.setAssociatedQuestion(request.getAssociatedQuestion());
         memory.setTags(request.getTags());
         memory.setCreatedDate(LocalDateTime.now());
+        memory.setUpdatedDate(LocalDateTime.now());
         memory.setLatitude(request.getLatitude());
         memory.setLongitude(request.getLongitude());
 
@@ -338,7 +339,7 @@ public class MemoryService implements IMemoryService {
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
 
-        // ✅ USAR DIRECTAMENTE LA URL DE AZURE (ya es pública)
+        // USAR DIRECTAMENTE LA URL DE AZURE (ya es pública)
         response.setFileUrl(file.getFileUrl());
 
         response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
@@ -352,7 +353,7 @@ public class MemoryService implements IMemoryService {
         // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
         List<Memory> memories = memoryRepository.findByAuthorOrderByCreatedDateDesc(author);
 
-        // Mapear a MemoryResponse incluyendo archivos en Base64
+        // Mapear a MemoryResponse
         return memories.stream().map(memory -> {
             MemoryResponse r = new MemoryResponse();
             r.setIdMemory(memory.getIdMemory());
@@ -361,6 +362,8 @@ public class MemoryService implements IMemoryService {
             r.setDescription(memory.getDescription());
             r.setPhotoDate(memory.getPhotoDate());
             r.setLocation(memory.getLocation());
+            r.setLatitude(memory.getLatitude());
+            r.setLongitude(memory.getLongitude());
             r.setVisible(memory.isVisible());
             r.setTags(memory.getTags());
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
@@ -376,7 +379,7 @@ public class MemoryService implements IMemoryService {
                 r.setFiles(List.of());
             }
 
-            //ategorías/momentos en listado por autor
+            // Categorías/momentos en listado por autor
             r.setCategorias(
                     memory.getCategorias() == null ? List.of()
                             : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
@@ -414,6 +417,8 @@ public class MemoryService implements IMemoryService {
         if (request.getDescription() != null) memory.setDescription(request.getDescription());
         if (request.getTags() != null) memory.setTags(request.getTags());
         if (request.getLocation() != null) memory.setLocation(request.getLocation());
+        if (request.getLatitude() != null) memory.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) memory.setLongitude(request.getLongitude());
         if (request.getPhotoDate() != null) memory.setPhotoDate(request.getPhotoDate());
         memory.setVisible(request.isVisible());
         memory.setUpdatedDate(LocalDateTime.now());
@@ -695,6 +700,374 @@ public class MemoryService implements IMemoryService {
                 .stream()
                 .map(this::buildMemoryResponse)
                 .toList();
+    }
+
+    // === MÉTODOS PARA REFLEXIONES ===
+
+    @Override
+    public MemoryResponse createReflection(MemoryCreateRequest request, MultipartFile[] files, User author) {
+        try {
+            System.out.println("🌱 Creando reflexión para usuario: " + author.getEmail());
+            
+            // Obtener o crear el espacio personal de reflexiones
+            Memorial personalSpace = getOrCreatePersonalReflectionSpace(author);
+            
+            // Establecer el memorial y el tipo como reflexión
+            request.setMemorialId(personalSpace.getIdMemorial());
+            request.setType(org.example.springboot_backend.enums.MemoryOriginType.REFLECTION);
+            
+            // Usar el método existente para crear la memoria
+            MemoryResponse response = createMemory(request, files, author);
+            
+            System.out.println("✅ Reflexión creada exitosamente: " + response.getIdMemory());
+            return response;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error creando reflexión: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error creating reflection: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public Page<MemoryResponse> listUserReflections(User user, int page, int size) {
+        try {
+            System.out.println("📋 Listando reflexiones para usuario: " + user.getEmail());
+            
+            Memorial personalSpace = getPersonalReflectionSpace(user);
+            if (personalSpace == null) {
+                System.out.println("ℹ️ Usuario no tiene espacio de reflexiones, retornando página vacía");
+                return Page.empty();
+            }
+            
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Memory> result = memoryRepository.findByMemorial_IdMemorialAndTypeOrderByCreatedDateDesc(
+                personalSpace.getIdMemorial(), 
+                org.example.springboot_backend.enums.MemoryOriginType.REFLECTION, 
+                pageable
+            );
+            
+            Page<MemoryResponse> reflections = result.map(memory -> {
+                MemoryResponse r = new MemoryResponse();
+                r.setIdMemory(memory.getIdMemory());
+                r.setType(memory.getType());
+                r.setTitle(memory.getTitle());
+                r.setDescription(memory.getDescription());
+                r.setPhotoDate(memory.getPhotoDate());
+                r.setLocation(memory.getLocation());
+                r.setVisible(memory.isVisible());
+                r.setTags(memory.getTags());
+                r.setAssociatedQuestion(memory.getAssociatedQuestion());
+                r.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0);
+                r.setCreatedDate(memory.getCreatedDate());
+                r.setEsLineaTiempo(memory.getEsLineaTiempo() != null ? memory.getEsLineaTiempo() : false);
+                r.setLatitude(memory.getLatitude());
+                r.setLongitude(memory.getLongitude());
+
+                if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+                    r.setFiles(memory.getFiles().stream()
+                        .map(this::buildFileResponse)
+                        .toList());
+                } else {
+                    r.setFiles(List.of());
+                }
+
+                r.setCategorias(
+                    memory.getCategorias() == null ? List.of()
+                        : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
+                );
+                r.setMomentos(
+                    memory.getMomentos() == null ? List.of()
+                        : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
+                );
+
+                return r;
+            });
+            
+            System.out.println("✅ Encontradas " + reflections.getTotalElements() + " reflexiones");
+            return reflections;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error listando reflexiones: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error listing reflections: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Obtiene el espacio personal de reflexiones del usuario, lo crea si no existe
+     */
+    private Memorial getOrCreatePersonalReflectionSpace(User user) {
+        Memorial existing = memorialRepository.findByUserAndIsJournalTrue(user);
+        
+        if (existing != null) {
+            System.out.println("✅ Espacio de reflexiones existente encontrado: " + existing.getIdMemorial());
+            return existing;
+        }
+        
+        System.out.println("🆕 Creando nuevo espacio de reflexiones para: " + user.getEmail());
+        
+        Memorial personalSpace = new Memorial();
+        personalSpace.setUser(user);
+        personalSpace.setName("Mis Reflexiones Personales");
+        personalSpace.setNickname("Reflexiones de " + user.getFirstName());
+        personalSpace.setDescription("Espacio personal para reflexiones, pensamientos y momentos íntimos. Solo tú puedes ver y agregar contenido aquí.");
+        personalSpace.setRelationType("Personal");
+        personalSpace.setCollaborative(false); // Solo el usuario puede agregar contenido
+        personalSpace.setJournal(true); // Marcarlo como diario personal
+        personalSpace.setUsedSpace(0.0);
+        personalSpace.setCreatedDate(LocalDateTime.now());
+        personalSpace.setUpdatedDate(LocalDateTime.now());
+        
+        Memorial saved = memorialRepository.save(personalSpace);
+        System.out.println("✅ Espacio de reflexiones creado: " + saved.getIdMemorial());
+        
+        return saved;
+    }
+
+    /**
+     * Obtiene el espacio personal de reflexiones del usuario si existe
+     */
+    private Memorial getPersonalReflectionSpace(User user) {
+        return memorialRepository.findByUserAndIsJournalTrue(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteReflection(UUID reflectionId, User user) {
+        try {
+            System.out.println("🗑️ Eliminando reflexión: " + reflectionId + " para usuario: " + user.getEmail());
+            
+            // Buscar la reflexión
+            Memory reflection = memoryRepository.findById(reflectionId)
+                .orElseThrow(() -> new RuntimeException("Reflection not found"));
+            
+            // Verificar que sea una reflexión
+            if (reflection.getType() != org.example.springboot_backend.enums.MemoryOriginType.REFLECTION) {
+                throw new RuntimeException("Memory is not a reflection");
+            }
+            
+            // Verificar que el usuario sea el autor
+            if (!reflection.getAuthor().getIdUser().equals(user.getIdUser())) {
+                throw new RuntimeException("User is not authorized to delete this reflection");
+            }
+            
+            // Verificar que pertenezca al espacio personal del usuario
+            Memorial personalSpace = getPersonalReflectionSpace(user);
+            if (personalSpace == null || !reflection.getMemorial().getIdMemorial().equals(personalSpace.getIdMemorial())) {
+                throw new RuntimeException("Reflection does not belong to user's personal space");
+            }
+            
+            // Calcular espacio total de archivos antes de eliminar
+            double totalSpaceToFree = 0.0;
+            if (reflection.getFiles() != null && !reflection.getFiles().isEmpty()) {
+                totalSpaceToFree = storageService.calculateTotalSpace(reflection.getFiles());
+                
+                // Eliminar archivos del almacenamiento
+                for (File file : reflection.getFiles()) {
+                    try {
+                        storageService.deleteFile(file);
+                        System.out.println("✅ Archivo eliminado: " + file.getFileName());
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Error eliminando archivo " + file.getFileName() + ": " + e.getMessage());
+                        // Continúa con la eliminación aunque falle algún archivo
+                    }
+                }
+            }
+            
+            // Eliminar la reflexión de la base de datos
+            memoryRepository.delete(reflection);
+            
+            // Liberar espacio del usuario
+            if (totalSpaceToFree > 0) {
+                storageService.decreaseUserUsedSpace(user, totalSpaceToFree);
+                System.out.println("✅ Liberado espacio del usuario: " + (totalSpaceToFree / (1024 * 1024)) + " MB");
+            }
+            
+            System.out.println("✅ Reflexión eliminada exitosamente: " + reflectionId);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error eliminando reflexión: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error deleting reflection: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public MemoryResponse updateReflection(UUID reflectionId, MemoryCreateRequest request, MultipartFile[] files, List<FileDeleteRequest> filesToDelete, User user) {
+        try {
+            System.out.println("✏️ Editando reflexión: " + reflectionId + " para usuario: " + user.getEmail());
+            
+            // Buscar la reflexión
+            Memory reflection = memoryRepository.findById(reflectionId)
+                .orElseThrow(() -> new RuntimeException("Reflection not found"));
+            
+            // Verificar que sea una reflexión
+            if (reflection.getType() != org.example.springboot_backend.enums.MemoryOriginType.REFLECTION) {
+                throw new RuntimeException("Memory is not a reflection");
+            }
+            
+            // Verificar que el usuario sea el autor
+            if (!reflection.getAuthor().getIdUser().equals(user.getIdUser())) {
+                throw new RuntimeException("User is not authorized to edit this reflection");
+            }
+            
+            // Verificar que pertenezca al espacio personal del usuario
+            Memorial personalSpace = getPersonalReflectionSpace(user);
+            if (personalSpace == null || !reflection.getMemorial().getIdMemorial().equals(personalSpace.getIdMemorial())) {
+                throw new RuntimeException("Reflection does not belong to user's personal space");
+            }
+            
+            // Actualizar campos básicos si se proporcionan
+            boolean contentChanged = false;
+            if (request.getTitle() != null && !request.getTitle().equals(reflection.getTitle())) {
+                reflection.setTitle(request.getTitle());
+                contentChanged = true;
+            }
+            if (request.getDescription() != null && !request.getDescription().equals(reflection.getDescription())) {
+                reflection.setDescription(request.getDescription());
+                contentChanged = true;
+            }
+            if (request.getTags() != null) {
+                reflection.setTags(request.getTags());
+            }
+            if (request.getLocation() != null) {
+                reflection.setLocation(request.getLocation());
+            }
+            if (request.getPhotoDate() != null) {
+                reflection.setPhotoDate(request.getPhotoDate());
+            }
+            if (request.getLatitude() != null) {
+                reflection.setLatitude(request.getLatitude());
+            }
+            if (request.getLongitude() != null) {
+                reflection.setLongitude(request.getLongitude());
+            }
+            
+            reflection.setVisible(request.isVisible());
+            reflection.setUpdatedDate(LocalDateTime.now());
+            
+            // Eliminar archivos indicados
+            final double[] spaceFreed = {0.0}; // Array para hacer la variable mutable en lambda
+            if (filesToDelete != null && !filesToDelete.isEmpty()) {
+                System.out.println("🗑️ Eliminando " + filesToDelete.size() + " archivos");
+                
+                for (FileDeleteRequest fDel : filesToDelete) {
+                    try {
+                        UUID fileId = UUID.fromString(fDel.getId());
+                        
+                        reflection.getFiles().stream()
+                            .filter(f -> f.getIdFile().equals(fileId))
+                            .findFirst()
+                            .ifPresentOrElse(fileEntity -> {
+                                try {
+                                    spaceFreed[0] += fileEntity.getFileSize() != null ? fileEntity.getFileSize() : 0.0;
+                                    storageService.deleteFile(fileEntity);
+                                    reflection.getFiles().remove(fileEntity);
+                                    System.out.println("✅ Archivo eliminado: " + fileEntity.getFileName());
+                                } catch (Exception e) {
+                                    System.err.println("⚠️ Error eliminando archivo " + fileEntity.getFileName() + ": " + e.getMessage());
+                                }
+                            }, () -> {
+                                System.out.println("⚠️ No se encontró archivo con ID: " + fileId);
+                            });
+                            
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("❌ ID inválido (no es un UUID): " + fDel.getId());
+                    }
+                }
+            }
+            
+            // Procesar archivos nuevos
+            List<File> newFiles = new ArrayList<>();
+            double spaceUsed = 0.0;
+            if (files != null && files.length > 0) {
+                System.out.println("📎 Agregando " + files.length + " archivos nuevos");
+                
+                // Validar espacio disponible
+                double totalFilesSize = storageService.calculateTotalFilesSize(files);
+                storageService.validateUserStorageCapacity(user, totalFilesSize);
+                
+                // Procesar archivos y agregarlos a la reflexión
+                newFiles = storageService.processFiles(files, reflection);
+                spaceUsed = storageService.calculateTotalSpace(newFiles);
+                
+                newFiles.forEach(reflection::addFile);
+            }
+            
+            // Reclasificar si cambió el contenido
+            if (contentChanged) {
+                try {
+                    System.out.println("🤖 Re-clasificando reflexión actualizada...");
+                    var classificationResult = aiService.clasificar(reflection.getTitle(), reflection.getDescription());
+                    
+                    if (classificationResult != null) {
+                        reflection.setCategorias(
+                            classificationResult.getOrDefault("categorias", List.of("otros"))
+                                .stream()
+                                .map(this::safeCat)
+                                .filter(Objects::nonNull)
+                                .distinct()
+                                .limit(3)
+                                .collect(Collectors.toCollection(ArrayList::new))
+                        );
+                        
+                        reflection.setMomentos(
+                            classificationResult.getOrDefault("momentos", List.of("cotidiano"))
+                                .stream()
+                                .map(this::safeMom)
+                                .filter(Objects::nonNull)
+                                .distinct()
+                                .limit(3)
+                                .collect(Collectors.toCollection(ArrayList::new))
+                        );
+                        
+                        System.out.println("✅ Re-clasificación exitosa");
+                    }
+                    
+                    // Re-evaluar línea de tiempo
+                    boolean vaEnTimeline = aiService.debeIrEnLineaTiempo(
+                        reflection.getTitle(),
+                        reflection.getDescription(),
+                        reflection.getPhotoDate()
+                    );
+                    reflection.setEsLineaTiempo(vaEnTimeline);
+                    
+                } catch (Exception e) {
+                    System.err.println("⚠️ Error en re-clasificación: " + e.getMessage());
+                    // Mantener las categorías existentes si falla
+                }
+            }
+            
+            // Actualizar espacio total usado de la reflexión
+            if (reflection.getFiles() != null) {
+                Double totalSpace = storageService.calculateTotalSpace(reflection.getFiles());
+                reflection.setTotalUsedSpace(totalSpace);
+            }
+            
+            // Actualizar espacio del usuario
+            double netSpaceChange = spaceUsed - spaceFreed[0];
+            if (netSpaceChange > 0) {
+                storageService.increaseUserUsedSpace(user, netSpaceChange);
+            } else if (netSpaceChange < 0) {
+                storageService.decreaseUserUsedSpace(user, Math.abs(netSpaceChange));
+            }
+            
+            // Guardar cambios
+            Memory savedReflection = memoryRepository.save(reflection);
+            
+            // Construir respuesta
+            MemoryResponse response = buildResponse(savedReflection, savedReflection.getFiles());
+            
+            System.out.println("✅ Reflexión actualizada exitosamente: " + reflectionId);
+            return response;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error editando reflexión: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error updating reflection: " + e.getMessage(), e);
+        }
     }
 
 }

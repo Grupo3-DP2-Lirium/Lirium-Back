@@ -3,6 +3,7 @@ package org.example.springboot_backend.dto;
 import org.example.springboot_backend.enums.MemoryOriginType;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ public class MemoryCreateRequest {
     private String title;
     private String description;
     private LocalDate photoDate;
+    private LocalDateTime createdDate;
     private String location;
     private boolean visible;
     private List<String> tags;
@@ -59,6 +61,14 @@ public class MemoryCreateRequest {
 
     public void setPhotoDate(LocalDate photoDate) {
         this.photoDate = photoDate;
+    }
+
+    public LocalDateTime getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(LocalDateTime createdDate) {
+        this.createdDate = createdDate;
     }
 
     public String getLocation() {
