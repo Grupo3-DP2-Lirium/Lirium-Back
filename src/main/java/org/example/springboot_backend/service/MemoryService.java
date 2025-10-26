@@ -276,6 +276,7 @@ public class MemoryService implements IMemoryService {
         memory.setAssociatedQuestion(request.getAssociatedQuestion());
         memory.setTags(request.getTags());
         memory.setCreatedDate(LocalDateTime.now());
+        memory.setUpdatedDate(LocalDateTime.now());
         memory.setLatitude(request.getLatitude());
         memory.setLongitude(request.getLongitude());
 
@@ -352,7 +353,7 @@ public class MemoryService implements IMemoryService {
         // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
         List<Memory> memories = memoryRepository.findByAuthorOrderByCreatedDateDesc(author);
 
-        // Mapear a MemoryResponse incluyendo archivos en Base64
+        // Mapear a MemoryResponse
         return memories.stream().map(memory -> {
             MemoryResponse r = new MemoryResponse();
             r.setIdMemory(memory.getIdMemory());
@@ -376,7 +377,7 @@ public class MemoryService implements IMemoryService {
                 r.setFiles(List.of());
             }
 
-            //ategorías/momentos en listado por autor
+            // Categorías/momentos en listado por autor
             r.setCategorias(
                     memory.getCategorias() == null ? List.of()
                             : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
