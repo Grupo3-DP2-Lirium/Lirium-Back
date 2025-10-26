@@ -20,4 +20,10 @@ public interface IMemoryService {
     java.util.Map<String, java.util.Map<String, java.util.List<MemoryLiteResponse>>>
     listGroupedByMomentsAndType(UUID memorialId, int page, int size);
     List<MemoryResponse> findTimelineMemories(UUID memorialId, int page, int size);
+    
+    // Métodos para reflexiones
+    MemoryResponse createReflection(MemoryCreateRequest request, MultipartFile[] files, User author);
+    Page<MemoryResponse> listUserReflections(User user, int page, int size);
+    void deleteReflection(UUID reflectionId, User user);
+    MemoryResponse updateReflection(UUID reflectionId, MemoryCreateRequest request, MultipartFile[] files, List<FileDeleteRequest> filesToDelete, User user);
 }

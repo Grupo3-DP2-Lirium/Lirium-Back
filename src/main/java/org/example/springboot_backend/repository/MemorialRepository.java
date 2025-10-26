@@ -18,4 +18,7 @@ public interface MemorialRepository extends JpaRepository<Memorial, UUID> {
            "(SELECT c.memorial.idMemorial FROM Collaborator c WHERE c.user = :user AND c.isActive = true) " +
            "AND m.user != :user")
     List<Memorial> findMemorialsByCollaborator(@Param("user") User user);
+    
+    // Find user's personal reflection space (journal)
+    Memorial findByUserAndIsJournalTrue(User user);
 }
