@@ -339,7 +339,7 @@ public class MemoryService implements IMemoryService {
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
 
-        // ✅ USAR DIRECTAMENTE LA URL DE AZURE (ya es pública)
+        // USAR DIRECTAMENTE LA URL DE AZURE (ya es pública)
         response.setFileUrl(file.getFileUrl());
 
         response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
@@ -362,6 +362,8 @@ public class MemoryService implements IMemoryService {
             r.setDescription(memory.getDescription());
             r.setPhotoDate(memory.getPhotoDate());
             r.setLocation(memory.getLocation());
+            r.setLatitude(memory.getLatitude());
+            r.setLongitude(memory.getLongitude());
             r.setVisible(memory.isVisible());
             r.setTags(memory.getTags());
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
@@ -415,6 +417,8 @@ public class MemoryService implements IMemoryService {
         if (request.getDescription() != null) memory.setDescription(request.getDescription());
         if (request.getTags() != null) memory.setTags(request.getTags());
         if (request.getLocation() != null) memory.setLocation(request.getLocation());
+        if (request.getLatitude() != null) memory.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) memory.setLongitude(request.getLongitude());
         if (request.getPhotoDate() != null) memory.setPhotoDate(request.getPhotoDate());
         memory.setVisible(request.isVisible());
         memory.setUpdatedDate(LocalDateTime.now());
