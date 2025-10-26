@@ -42,3 +42,4 @@ out/
 # Exclude production configuration files with sensitive credentials
 src/main/resources/application-prod.properties
 src/main/resources/application-dev.properties
+src/main/resources/application-dev.properties
