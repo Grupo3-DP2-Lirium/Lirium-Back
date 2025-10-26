@@ -128,6 +128,10 @@ public class DataSeederService {
         }
 
         userRepository.saveAll(users);
+        
+        // Crear espacios de reflexiones para cada usuario
+        createReflectionSpacesForUsers(users);
+        
         System.out.println("🎉 Seeded " + users.size() + " users successfully!");
     }
 
@@ -366,5 +370,30 @@ public class DataSeederService {
         }
         
         return new ArrayList<>(selectedTags);
+    }
+
+    private void createReflectionSpacesForUsers(List<User> users) {
+        System.out.println("🌱 Creating reflection spaces for users...");
+        
+        List<Memorial> reflectionSpaces = new ArrayList<>();
+        
+        for (User user : users) {
+            Memorial reflectionSpace = new Memorial();
+            reflectionSpace.setUser(user);
+            reflectionSpace.setName("Mis Reflexiones Personales");
+            reflectionSpace.setNickname("Reflexiones de " + user.getFirstName());
+            reflectionSpace.setDescription("Espacio personal para reflexiones, pensamientos y momentos íntimos. Solo tú puedes ver y agregar contenido aquí.");
+            reflectionSpace.setRelationType("Personal");
+            reflectionSpace.setCollaborative(false); // Solo el usuario puede agregar contenido
+            reflectionSpace.setJournal(true); // Marcarlo como diario personal
+            reflectionSpace.setUsedSpace(0.0);
+            reflectionSpace.setCreatedDate(LocalDateTime.now().minusDays(random.nextInt(5))); // Fecha aleatoria últimos 5 días
+            reflectionSpace.setUpdatedDate(LocalDateTime.now());
+            
+            reflectionSpaces.add(reflectionSpace);
+        }
+        
+        memorialRepository.saveAll(reflectionSpaces);
+        System.out.println("✅ Created " + reflectionSpaces.size() + " reflection spaces!");
     }
 }

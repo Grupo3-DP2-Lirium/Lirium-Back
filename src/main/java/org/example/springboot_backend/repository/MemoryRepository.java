@@ -33,5 +33,12 @@ public interface MemoryRepository extends JpaRepository<Memory, UUID> {
         """,
             nativeQuery = true)
     Page<Memory> findTimelineMemories(@Param("memorialId") UUID memorialId, Pageable pageable);
+    
+    // For reflections - find memories by memorial and type
+    Page<Memory> findByMemorial_IdMemorialAndTypeOrderByCreatedDateDesc(
+        UUID memorialId, 
+        org.example.springboot_backend.enums.MemoryOriginType type, 
+        Pageable pageable
+    );
 
 }
