@@ -12,4 +12,6 @@ public interface IMemorialService {
     MemorialResponse createMemorial(MemorialRequest memorial, MultipartFile file, User user);
     List<MemorialResponse> getMyMemorials(User user);
     List<MemorialResponse> getCollaborativeMemorials(User user);
+    MemorialResponse getMemorialById(String memorialId, User user);
+    MemorialResponse updateMemorial(String memorialId, MemorialRequest request, MultipartFile file, User user);
 }

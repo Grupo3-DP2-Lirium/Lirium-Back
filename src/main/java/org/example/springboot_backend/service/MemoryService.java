@@ -535,6 +535,61 @@ public class MemoryService implements IMemoryService {
     }
 
     @Override
+    @Transactional
+    public void deleteMemory(UUID memoryId, User user) {
+        try {
+            System.out.println("🗑️ Eliminando memoria: " + memoryId + " para usuario: " + user.getEmail());
+            
+            // Buscar la memoria
+            Memory memory = memoryRepository.findById(memoryId)
+                .orElseThrow(() -> new RuntimeException("Memory not found"));
+            
+            // Verificar que sea una memoria normal (no reflexión)
+            if (memory.getType() == org.example.springboot_backend.enums.MemoryOriginType.REFLECTION) {
+                throw new RuntimeException("Cannot delete a reflection using this endpoint");
+            }
+            
+            // Verificar que el usuario sea el autor
+            if (!memory.getAuthor().getIdUser().equals(user.getIdUser())) {
+                throw new RuntimeException("User does not have permission to delete this memory");
+            }
+            
+            // Calcular espacio total de archivos antes de eliminar
+            double totalSpaceToFree = 0.0;
+            if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+                totalSpaceToFree = storageService.calculateTotalSpace(memory.getFiles());
+                
+                // Eliminar archivos del almacenamiento
+                for (File file : memory.getFiles()) {
+                    try {
+                        storageService.deleteFile(file);
+                        System.out.println("✅ Archivo eliminado: " + file.getFileName());
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Error eliminando archivo " + file.getFileName() + ": " + e.getMessage());
+                        // Continúa con la eliminación aunque falle algún archivo
+                    }
+                }
+            }
+            
+            // Eliminar la memoria de la base de datos
+            memoryRepository.delete(memory);
+            
+            // Liberar espacio del usuario
+            if (totalSpaceToFree > 0) {
+                storageService.decreaseUserUsedSpace(user, totalSpaceToFree);
+                System.out.println("✅ Liberado espacio del usuario: " + (totalSpaceToFree / (1024 * 1024)) + " MB");
+            }
+            
+            System.out.println("✅ Memoria eliminada exitosamente: " + memoryId);
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error eliminando memoria: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error deleting memory: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public MemoriesByTypeResponse getMemoriesByType(UUID memorialId, User user) {
         // Verificar acceso al memorial
         Memorial memorial = memorialRepository.findById(memorialId)
