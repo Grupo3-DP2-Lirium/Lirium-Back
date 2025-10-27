@@ -142,8 +142,6 @@ public class MemorialController {
             return ResponseEntity.badRequest().body("Error fetching collaborative memorials: " + e.getMessage());
         }
     }
-
-
     
     // HU02 - Obtener memoriales colaborativos
     @GetMapping("/collaborative")
@@ -169,4 +167,30 @@ public class MemorialController {
             return ResponseEntity.badRequest().body("Error fetching predefined questions: " + e.getMessage());
         }
     }
+
+    // Eliminar un memorial
+    @DeleteMapping("/{id}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> deleteMemorial(
+            @PathVariable("id") String memorialId,
+            Authentication authentication) {
+        try {
+            // Obtener usuario autenticado
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Llamar al servicio para eliminar el memorial
+            memorialService.deleteMemorial(memorialId, user);
+
+            // Retornar éxito
+            return ResponseEntity.ok("Memorial eliminado exitosamente");
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error eliminando memorial: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+        }
+    }
+
 }

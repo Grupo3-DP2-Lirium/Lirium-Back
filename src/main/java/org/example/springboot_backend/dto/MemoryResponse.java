@@ -20,6 +20,7 @@ public class MemoryResponse {
     private List<FileResponse> files;
     private Double totalUsedSpace;
     private LocalDateTime createdDate;
+    private LocalDateTime updateDate;
     private List<String> categorias;
     private List<String> momentos;
     private boolean esLineaTiempo;
@@ -120,6 +121,14 @@ public class MemoryResponse {
 
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getUpdateDate() {
+        return updateDate;
+    }
+
+    public void setUpdateDate(LocalDateTime updateDate) {
+        this.updateDate = updateDate;
     }
 
     public List<String> getCategorias() {
