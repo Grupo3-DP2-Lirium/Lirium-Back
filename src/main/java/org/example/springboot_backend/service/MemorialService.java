@@ -5,6 +5,7 @@ import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
 import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.repository.MemorialRepository;
+import org.example.springboot_backend.repository.MemoryRepository;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-
+import java.util.List;
 
 @Service
 @Transactional
@@ -23,6 +24,12 @@ public class MemorialService implements IMemorialService {
 
     @Autowired
     private StorageService storageService;
+
+    @Autowired
+    private MemoryRepository memoryRepository;
+
+    @Autowired
+    private MemoryService memoryService;
 
     // Create a new Memorial with optional profile photo
     @Override
@@ -165,6 +172,59 @@ public class MemorialService implements IMemorialService {
             
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid memorial ID format: " + memorialId);
+        }
+    }
+
+    @Override
+    public void deleteMemorial(String memorialId, User user) {
+        try {
+            System.out.println("Eliminando memorial: " + memorialId + " para usuario: " + user.getEmail());
+
+            // Buscar el memorial
+            java.util.UUID uuid = java.util.UUID.fromString(memorialId);
+            Memorial memorial = memorialRepository.findById(uuid)
+                    .orElseThrow(() -> new RuntimeException("Memorial not found with ID: " + memorialId));
+
+            // Verificar que el usuario sea el dueño
+            if (!memorial.getUser().getIdUser().equals(user.getIdUser())) {
+                throw new RuntimeException("User does not have permission to delete this memorial");
+            }
+
+            // Liberar espacio usado por el memorial
+            if (memorial.getUsedSpace() != null && memorial.getUsedSpace() > 0) {
+                storageService.decreaseUserUsedSpace(user, memorial.getUsedSpace());
+                System.out.println("Liberado espacio del usuario: " + (memorial.getUsedSpace() / (1024 * 1024)) + " MB");
+            }
+
+            // Eliminar el memorial (profilePhoto se borrará automáticamente por orphanRemoval)
+            memorialRepository.delete(memorial);
+
+            // Eliminar foto de perfil si existe
+            if (memorial.getProfilePhoto() != null) {
+                File profilePhoto = memorial.getProfilePhoto();
+                storageService.deleteFile(profilePhoto);
+                System.out.println("Foto de perfil eliminada: " + profilePhoto.getFileName());
+            }
+
+            // Eliminar memorias asociadas
+            List<Memory> associatedMemories = memoryRepository.findByMemorialIdMemorial(memorial.getIdMemorial());
+            if (associatedMemories != null && !associatedMemories.isEmpty()) {
+                for (Memory memory : associatedMemories) {
+                    try {
+                        memoryService.deleteMemory(memory.getIdMemory(), user);
+                        System.out.println("✅ Memoria asociada eliminada: " + memory.getIdMemory());
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Error eliminando memoria asociada " + memory.getIdMemory() + ": " + e.getMessage());
+                    }
+                }
+            }
+
+            System.out.println("Memorial eliminado exitosamente: " + memorialId);
+
+        } catch (Exception e) {
+            System.err.println("Error eliminando memorial: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error deleting memorial: " + e.getMessage(), e);
         }
     }
 

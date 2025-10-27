@@ -14,4 +14,5 @@ public interface IMemorialService {
     List<MemorialResponse> getCollaborativeMemorials(User user);
     MemorialResponse getMemorialById(String memorialId, User user);
     MemorialResponse updateMemorial(String memorialId, MemorialRequest request, MultipartFile file, User user);
+    void deleteMemorial(String memorialId, User user);
 }
