@@ -81,6 +81,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/memories").permitAll()  // ✅ TEMPORAL: Permitir listar memorias
                 .requestMatchers(HttpMethod.OPTIONS, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir OPTIONS
                 .requestMatchers("/api/seed/**").permitAll() // Permitir endpoints de seeding
+                .requestMatchers("/api/public/**").permitAll() // ✅ Permitir acceso público a enlaces compartidos
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .anyRequest().authenticated()
             )
