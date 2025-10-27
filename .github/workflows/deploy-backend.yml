@@ -93,6 +93,11 @@ jobs:
         spring.servlet.multipart.max-file-size=150MB
         spring.servlet.multipart.max-request-size=200MB
         spring.servlet.multipart.enabled=true
+
+        # OpenRouter AI Configuration (production)
+        openrouter.api.key=${OPENROUTER_API_KEY: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}
+        openrouter.url=${OPENROUTER_URL:https://openrouter.ai/api/v1/chat/completions}
+        openrouter.model=${OPENROUTER_MODEL:mistralai/mistral-7b-instruct}
         EOF
 
     # 7. Login a Azure
