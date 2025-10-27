@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -144,6 +145,35 @@ public class MemoryController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error updating memory: " + e.getMessage());
+        }
+    }
+
+    // Delete memory
+    @DeleteMapping("/{memoryId}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> deleteMemory(
+            @PathVariable UUID memoryId,
+            Authentication authentication) {
+        try {
+            // Obtener usuario logueado
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Llamar al servicio de eliminación
+            memoryService.deleteMemory(memoryId, user);
+
+            return ResponseEntity.noContent().build(); // 204 No Content
+        } catch (RuntimeException e) {
+            // Manejar errores específicos
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(404).body("Memory not found: " + e.getMessage());
+            } else if (e.getMessage().contains("not have permission")) {
+                return ResponseEntity.status(403).body("Forbidden: " + e.getMessage());
+            }
+            return ResponseEntity.badRequest().body("Error deleting memory: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
         }
     }
 

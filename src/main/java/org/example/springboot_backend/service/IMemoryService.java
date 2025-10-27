@@ -13,6 +13,7 @@ public interface IMemoryService {
     Page<MemoryResponse> listByMemorial(UUID idMemory, int page, int size);
     List<MemoryResponse> listByAuthor(User author);
     MemoryResponse updateMemory(UUID memoryId, MemoryCreateRequest request, MultipartFile[] files, List<FileDeleteRequest> filesToDelete, User author);
+    void deleteMemory(UUID memoryId, User user);
 
     MemoriesByTypeResponse getMemoriesByType(UUID memorialId, User user);
     java.util.Map<String, java.util.Map<String, java.util.List<MemoryLiteResponse>>>
