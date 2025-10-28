@@ -83,6 +83,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir OPTIONS
                 .requestMatchers("/api/seed/**").permitAll() // Permitir endpoints de seeding
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                .requestMatchers("/api/documentaries/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
