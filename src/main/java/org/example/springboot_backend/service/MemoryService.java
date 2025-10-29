@@ -37,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Comparator;
 
 @Service
 @Transactional
@@ -350,11 +351,24 @@ public class MemoryService implements IMemoryService {
     // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
     @Override
     public List<MemoryResponse> listByAuthor(User author) {
-        // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
-        List<Memory> memories = memoryRepository.findByAuthorOrderByCreatedDateDesc(author);
+        // Obtener todas las memorias del autor
+        List<Memory> memories = memoryRepository.findByAuthor(author);
+
+        // Filtrar las memorias que NO sean de tipo REFLECTION
+        List<Memory> filteredMemories = memories.stream()
+                .filter(memory -> memory.getType() != org.example.springboot_backend.enums.MemoryOriginType.REFLECTION)
+                .sorted((memory1, memory2) -> {
+                    // Obtener la fecha a comparar (usamos updateDate o createdDate si updateDate es null)
+                    LocalDateTime date1 = memory1.getUpdatedDate() != null ? memory1.getUpdatedDate() : memory1.getCreatedDate();
+                    LocalDateTime date2 = memory2.getUpdatedDate() != null ? memory2.getUpdatedDate() : memory2.getCreatedDate();
+                    
+                    // Comparar las fechas de manera descendente
+                    return date2.compareTo(date1); // Invertimos el orden para obtener las más recientes primero
+                })
+                .collect(Collectors.toList());
 
         // Mapear a MemoryResponse
-        return memories.stream().map(memory -> {
+        return filteredMemories.stream().map(memory -> {
             MemoryResponse r = new MemoryResponse();
             r.setIdMemory(memory.getIdMemory());
             r.setType(memory.getType());
@@ -369,6 +383,7 @@ public class MemoryService implements IMemoryService {
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
             r.setTotalUsedSpace(memory.getTotalUsedSpace());
             r.setCreatedDate(memory.getCreatedDate());
+            r.setUpdateDate(memory.getUpdatedDate());
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
                 List<FileResponse> fileResponses = memory.getFiles().stream()
@@ -379,7 +394,7 @@ public class MemoryService implements IMemoryService {
                 r.setFiles(List.of());
             }
 
-            // Categorías/momentos en listado por autor
+            // Categorías/momentos
             r.setCategorias(
                     memory.getCategorias() == null ? List.of()
                             : memory.getCategorias().stream().map(Enum::name).map(String::toLowerCase).toList()
@@ -388,7 +403,6 @@ public class MemoryService implements IMemoryService {
                     memory.getMomentos() == null ? List.of()
                             : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
             );
-
 
             return r;
         }).toList();

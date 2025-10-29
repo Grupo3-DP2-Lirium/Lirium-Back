@@ -13,7 +13,11 @@ public class Plan {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PlanType planType;
+    private PlanType planType; // FREE, CREA_Y_COMPARTE, LEGADO_ETERNO
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BillingPeriod frequency; // MONTHLY o YEARLY
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -40,4 +44,6 @@ public class Plan {
     public void setCurrency(String currency) { this.currency = currency; }
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
+    public BillingPeriod getFrequency() { return frequency; }
+    public void setFrequency(BillingPeriod frequency) { this.frequency = frequency; }
 }

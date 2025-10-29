@@ -73,6 +73,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/paypal/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/view/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
