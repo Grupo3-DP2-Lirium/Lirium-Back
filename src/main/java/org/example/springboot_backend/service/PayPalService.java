@@ -19,7 +19,6 @@ public class PayPalService {
 
     private final WebClient webClient;
     private final SubscriptionService subscriptionService;
-    private final UserRepository userRepository;
 
     @Value("${paypal.client.id}")
     private String clientId;
@@ -40,7 +39,6 @@ public class PayPalService {
                 .baseUrl(baseUrl)
                 .build();
         this.subscriptionService = subscriptionService;
-        this.userRepository = userRepository;
     }
 
     // Obtener access token de PayPal

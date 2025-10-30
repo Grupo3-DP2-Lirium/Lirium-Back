@@ -14,4 +14,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
     List<Subscription> findByUserIdUser(UUID idUser); //     List<Memory> findByMemorialIdMemorial(UUID idMemorial);
     Optional<Subscription> findByUserIdUserAndPlanIdPlan(UUID idUser, UUID idPlan);
     boolean existsByUserIdUserAndStatus(UUID userId, SubscriptionStatus status);
+    Optional<Subscription> findByUserAndPlan(User user, Plan plan);
+    Optional<Subscription> findByUserAndStatus(User user, SubscriptionStatus status);
 }

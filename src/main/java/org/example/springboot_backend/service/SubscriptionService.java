@@ -29,7 +29,7 @@ public class SubscriptionService {
     }
 
     // Crear una nueva suscripción para un usuario
-    public Subscription createSubscription(User user, UUID planId, PaymentMethod method, BillingPeriod frequency) {
+    /*public Subscription createSubscription(User user, UUID planId, PaymentMethod method, BillingPeriod frequency) {
         Plan plan = planRepository.findByIdPlan(planId)
                 .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
 
@@ -50,4 +50,86 @@ public class SubscriptionService {
 
         return subscriptionRepository.save(subscription);
     }
+*/
+    /*public Subscription createSubscription(User user, UUID planId, PaymentMethod method, BillingPeriod frequency) {
+        Plan plan = planRepository.findByIdPlan(planId)
+                .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
+
+        // Buscar suscripción existente para este plan
+        Subscription subscription = subscriptionRepository.findByUserAndPlan(user, plan)
+                .orElse(null);
+
+        if (subscription == null) {
+            // No existe → crear nueva
+            subscription = new Subscription();
+            subscription.setUser(user);
+            subscription.setPlan(plan);
+            subscription.setCreatedDate(LocalDateTime.now());
+        }
+
+        // Actualizar o activar la suscripción
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setCurrentPaymentMethod(method);
+        subscription.setFrequency(frequency.name());
+        subscription.setStartDate(LocalDateTime.now());
+
+        // Calcular endDate según frecuencia
+        switch (frequency) {
+            case MONTHLY -> subscription.setEndDate(LocalDateTime.now().plusMonths(1));
+            case YEARLY -> subscription.setEndDate(LocalDateTime.now().plusYears(1));
+            default -> subscription.setEndDate(LocalDateTime.now().plusMonths(1));
+        }
+
+        subscription.setUpdatedDate(LocalDateTime.now());
+
+        return subscriptionRepository.save(subscription);
+    }
+*/
+
+    public Subscription createSubscription(User user, UUID planId, PaymentMethod method, BillingPeriod frequency) {
+        Plan plan = planRepository.findByIdPlan(planId)
+                .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
+
+        // Buscar la suscripción activa actual del usuario
+        Subscription activeSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+                .orElse(null);
+
+        if (activeSubscription != null) {
+            // Si el usuario ya tiene este mismo plan activo → error
+            if (activeSubscription.getPlan().getIdPlan().equals(planId)) {
+                throw new RuntimeException("Ya tienes una suscripción activa con este plan.");
+            }
+
+            // Si es otro plan → desactivar la suscripción actual
+            activeSubscription.setStatus(SubscriptionStatus.CANCELLED);
+            activeSubscription.setUpdatedDate(LocalDateTime.now());
+            subscriptionRepository.save(activeSubscription);
+        }
+
+        // Crear nueva suscripción para el nuevo plan
+        Subscription newSubscription = new Subscription();
+        newSubscription.setUser(user);
+        newSubscription.setPlan(plan);
+        newSubscription.setStatus(SubscriptionStatus.ACTIVE);
+        newSubscription.setCurrentPaymentMethod(method);
+        newSubscription.setFrequency(frequency.name());
+        newSubscription.setStartDate(LocalDateTime.now());
+        switch (frequency) {
+            case MONTHLY -> newSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
+            case YEARLY -> newSubscription.setEndDate(LocalDateTime.now().plusYears(1));
+            default -> newSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
+        }
+        newSubscription.setCreatedDate(LocalDateTime.now());
+        newSubscription.setUpdatedDate(LocalDateTime.now());
+
+        return subscriptionRepository.save(newSubscription);
+    }
+
+    public Subscription getActiveSubscription(User user) {
+        // Buscar suscripción activa para el usuario (solo un plan activo por tipo)
+        return subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+                .orElse(null); // null → significa que es Free
+    }
+
+
 }
