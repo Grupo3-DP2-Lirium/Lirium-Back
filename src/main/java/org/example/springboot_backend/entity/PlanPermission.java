@@ -1,65 +1,33 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
 
 @Entity
 @Table(name = "plan_permission")
+@IdClass(PlanPermissionId.class)
 public class PlanPermission {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    private UUID id;
-
-    @ManyToOne(optional = false)
+    @ManyToOne
     @JoinColumn(name = "plan_id", nullable = false)
     private Plan plan;
 
-    @Column(name = "permission_name", nullable = false, length = 100)
-    private String permissionName;
-
-    @Column(name = "enabled", nullable = false)
-    private boolean enabled;
+    @Id
+    @ManyToOne
+    @JoinColumn(name = "permission_id", nullable = false)
+    private Permission permission;
 
     public PlanPermission() {}
 
-    public PlanPermission(Plan plan, String permissionName) {
-        this(plan, permissionName, true); // por defecto habilitado
-    }
-
-    public PlanPermission(Plan plan, String permissionName, boolean enabled) {
+    public PlanPermission(Plan plan, Permission permission) {
         this.plan = plan;
-        this.permissionName = permissionName;
-        this.enabled = enabled;
+        this.permission = permission;
     }
 
-    // Getters y Setters
-    public UUID getId() {
-        return id;
-    }
+    // Getters y setters
+    public Plan getPlan() { return plan; }
+    public void setPlan(Plan plan) { this.plan = plan; }
 
-    public Plan getPlan() {
-        return plan;
-    }
-
-    public void setPlan(Plan plan) {
-        this.plan = plan;
-    }
-
-    public String getPermissionName() {
-        return permissionName;
-    }
-
-    public void setPermissionName(String permissionName) {
-        this.permissionName = permissionName;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+    public Permission getPermission() { return permission; }
+    public void setPermission(Permission permission) { this.permission = permission; }
 }

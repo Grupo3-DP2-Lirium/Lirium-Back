@@ -1,17 +1,24 @@
 package org.example.springboot_backend.service;
 
+import org.example.springboot_backend.entity.BillingPeriod;
+import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.enums.PaymentMethod;
+import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.core.ParameterizedTypeReference;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class PayPalService {
 
     private final WebClient webClient;
+    private final SubscriptionService subscriptionService;
 
     @Value("${paypal.client.id}")
     private String clientId;
@@ -22,13 +29,19 @@ public class PayPalService {
     @Value("${paypal.base.url}")
     private String baseUrl;
 
-    public PayPalService(@Value("${paypal.base.url}") String baseUrl) {
+
+     public PayPalService(
+            @Value("${paypal.base.url}") String baseUrl,
+            SubscriptionService subscriptionService,
+            UserRepository userRepository // 🔹 Inyección
+    ) {
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .build();
+        this.subscriptionService = subscriptionService;
     }
 
-    // 🔹 Obtener access token de PayPal
+    // Obtener access token de PayPal
     private String getAccessToken() {
         Map<String, Object> response = webClient.post()
                 .uri("/v1/oauth2/token")
@@ -42,7 +55,21 @@ public class PayPalService {
         return response != null ? response.get("access_token").toString() : null;
     }
 
-    // 🔹 Crear una orden PayPal
+        public Map<String, Object> getBalance() {
+        String token = getAccessToken();
+
+        Map<String, Object> response = webClient.get()
+                .uri("/v1/reporting/balances")
+                .header("Authorization", "Bearer " + token)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block(Duration.ofSeconds(10));
+
+        return response;
+        }
+
+    // Crear una orden PayPal
     public Map<String, Object> createOrder(String amount, boolean simulateFail) {
         String token = getAccessToken();
 
@@ -69,7 +96,7 @@ public class PayPalService {
                 .bodyToMono(Map.class)
                 .block(Duration.ofSeconds(10));
 
-        // 🔸 Extraer approval link
+        // Extraer approval link
         String approvalLink = null;
         var links = (Iterable<Map<String, Object>>) response.get("links");
         for (Map<String, Object> link : links) {
@@ -86,10 +113,17 @@ public class PayPalService {
         );
     }
 
-    // 🔹 Capturar la orden PayPal
-    public Map<String, Object> captureOrder(String orderId, boolean simulateFail, Long userId) {
+    // Capturar la orden PayPal
+    public Map<String, Object> captureOrder(
+        String orderId,
+        boolean simulateFail,
+        User user,
+        UUID planId,
+        String frequency
+    ) {
         String token = getAccessToken();
 
+        // Llamada a la API de PayPal
         Map<String, Object> response = webClient.post()
                 .uri("/v2/checkout/orders/" + orderId + "/capture")
                 .header("Authorization", "Bearer " + token)
@@ -100,10 +134,30 @@ public class PayPalService {
 
         System.out.println("✅ Pago capturado: " + response);
 
+        // 🔹 Si el pago fue completado, registrar la suscripción
+        if (response != null && "COMPLETED".equals(response.get("status"))) {
+            // Convertir frecuencia a BillingPeriod
+            BillingPeriod billingPeriod;
+            try {
+                billingPeriod = BillingPeriod.valueOf(frequency.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Frecuencia inválida: " + frequency);
+            }
+
+           subscriptionService.createSubscription(
+                user,
+                planId,
+                PaymentMethod.PAYPAL,
+                billingPeriod
+           );
+        }
+
         return Map.of(
                 "status", "success",
                 "paypalResponse", response,
-                "userId", userId
+                "userId", user.getIdUser(),
+                "planId", planId,
+                "frequency", frequency
         );
-    }
+  }
 }

@@ -1,28 +1,29 @@
 package org.example.springboot_backend.config;
 
 import jakarta.annotation.PostConstruct;
-import org.example.springboot_backend.entity.*;
-import org.example.springboot_backend.enums.PlanType;
-import org.example.springboot_backend.repository.*;
+import org.example.springboot_backend.entity.Plan;
+import org.example.springboot_backend.entity.CurrencyType;
+import org.example.springboot_backend.entity.Permission;
+import org.example.springboot_backend.repository.PlanRepository;
+import org.example.springboot_backend.repository.PermissionRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class DataInitializer {
 
     private final PlanRepository planRepository;
     private final PermissionRepository permissionRepository;
-    private final PlanPermissionRepository planPermissionRepository;
 
     public DataInitializer(
             PlanRepository planRepository,
-            PermissionRepository permissionRepository,
-            PlanPermissionRepository planPermissionRepository
+            PermissionRepository permissionRepository
     ) {
         this.planRepository = planRepository;
         this.permissionRepository = permissionRepository;
-        this.planPermissionRepository = planPermissionRepository;
     }
 
     @PostConstruct
@@ -53,35 +54,30 @@ public class DataInitializer {
 
     // ------------------- PLANES -------------------
     private void initPlans() {
-        System.out.println("Verificando planes de suscripción...");
-
         if (planRepository.count() == 0) {
+
             Plan free = new Plan();
-            free.setPlanType(PlanType.FREE);
-            free.setFrequency(BillingPeriod.MONTHLY);
+            free.setName("FREE");
             free.setDescription("Acceso a tu memoria personal, 1 colaboración, y creación de 1 memorial.");
             free.setPrice(0.0);
-            free.setCurrency("USD");
+            free.setCurrency(CurrencyType.USD.name());
             free.setActive(true);
 
             Plan creaMensual = new Plan();
-            creaMensual.setPlanType(PlanType.CREA_Y_COMPARTE);
-            creaMensual.setFrequency(BillingPeriod.MONTHLY);
+            creaMensual.setName("CREA_COMPARTE");
             creaMensual.setDescription("Crea memoriales ilimitados, 200 GB, IA, 1 documental al mes.");
             creaMensual.setPrice(8.99);
-            creaMensual.setCurrency("USD");
+            creaMensual.setCurrency(CurrencyType.USD.name());
             creaMensual.setActive(true);
 
             Plan legadoAnual = new Plan();
-            legadoAnual.setPlanType(PlanType.LEGADO_ETERNO);
-            legadoAnual.setFrequency(BillingPeriod.YEARLY);
+            legadoAnual.setName("LEGADO_ETERNO");
             legadoAnual.setDescription("Todo lo del plan mensual, descuento 17%, 2 documentales extras y soporte prioritario.");
             legadoAnual.setPrice(89.99);
-            legadoAnual.setCurrency("USD");
+            legadoAnual.setCurrency(CurrencyType.USD.name());
             legadoAnual.setActive(true);
 
             planRepository.saveAll(List.of(free, creaMensual, legadoAnual));
-
             System.out.println("Planes creados correctamente.");
         } else {
             System.out.println("Los planes ya existen, no se crearán duplicados.");
@@ -90,33 +86,27 @@ public class DataInitializer {
 
     // ------------------- PLAN - PERMISSION -------------------
     private void initPlanPermissions() {
-        if (planPermissionRepository.count() == 0) {
-            Plan free = planRepository.findByPlanType(PlanType.FREE).orElseThrow();
-            Plan creaYComparte = planRepository.findByPlanType(PlanType.CREA_Y_COMPARTE).orElseThrow();
-            Plan legadoEterno = planRepository.findByPlanType(PlanType.LEGADO_ETERNO).orElseThrow();
+        // Obtener planes por nombre
+        Plan free = planRepository.findByName("FREE").orElseThrow();
+        Plan creaYComparte = planRepository.findByName("CREA_COMPARTE").orElseThrow();
+        Plan legadoEterno = planRepository.findByName("LEGADO_ETERNO").orElseThrow();
 
-            planPermissionRepository.saveAll(List.of(
-                    // FREE
-                    new PlanPermission(free, "CREATE_ONE_MEMORIAL"),
-                    new PlanPermission(free, "COLLABORATE_ONE_MEMORIAL"),
-                    new PlanPermission(free, "USE_MY_PERSONAL_SPACE"),
+        // Obtener permisos por nombre
+        Permission pCreateOne = permissionRepository.findByName("CREATE_ONE_MEMORIAL").orElseThrow();
+        Permission pCollaborateOne = permissionRepository.findByName("COLLABORATE_ONE_MEMORIAL").orElseThrow();
+        Permission pUseSpace = permissionRepository.findByName("USE_MY_PERSONAL_SPACE").orElseThrow();
+        Permission pCreateMemorials = permissionRepository.findByName("CREATE_MEMORIALS").orElseThrow();
+        Permission pIAFunctions = permissionRepository.findByName("IA_FUNCTIONS").orElseThrow();
+        Permission pCreateOneDoc = permissionRepository.findByName("CREATE_ONE_DOCUMENTAL").orElseThrow();
+        Permission pCreateTwoDocs = permissionRepository.findByName("CREATE_TWO_DOCUMENTALS").orElseThrow();
+        Permission pPrioritySupport = permissionRepository.findByName("PRIORITY_SUPPORT").orElseThrow();
 
-                    // CREA_Y_COMPARTE
-                    new PlanPermission(creaYComparte, "CREATE_MEMORIALS"),
-                    new PlanPermission(creaYComparte, "IA_FUNCTIONS"),
-                    new PlanPermission(creaYComparte, "CREATE_ONE_DOCUMENTAL"),
+        // Asignar permisos a planes usando ManyToMany
+        free.setPermissions(new HashSet<>(Set.of(pCreateOne, pCollaborateOne, pUseSpace)));
+        creaYComparte.setPermissions(new HashSet<>(Set.of(pCreateMemorials, pIAFunctions, pCreateOneDoc)));
+        legadoEterno.setPermissions(new HashSet<>(Set.of(pCreateMemorials, pIAFunctions, pCreateTwoDocs, pPrioritySupport)));
 
-                    // LEGADO_ETERNO
-                    new PlanPermission(legadoEterno, "CREATE_MEMORIALS"),
-                    new PlanPermission(legadoEterno, "IA_FUNCTIONS"),
-                    new PlanPermission(legadoEterno, "CREATE_TWO_DOCUMENTALS"),
-                    new PlanPermission(legadoEterno, "PRIORITY_SUPPORT")
-            ));
-
-            System.out.println("Permisos por plan asignados correctamente.");
-        } else {
-            System.out.println("Ya existen permisos asignados a los planes, no se crearán duplicados.");
-        }
+        planRepository.saveAll(List.of(free, creaYComparte, legadoEterno));
+        System.out.println("Permisos por plan asignados correctamente.");
     }
-
 }
