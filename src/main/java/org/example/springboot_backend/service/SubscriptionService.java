@@ -95,18 +95,42 @@ public class SubscriptionService {
                 .orElse(null);
 
         if (activeSubscription != null) {
-            // Si el usuario ya tiene este mismo plan activo → error
+            // Misma suscripción, mismo plan → solo ACTUALIZAR (no crear nueva)
             if (activeSubscription.getPlan().getIdPlan().equals(planId)) {
-                throw new RuntimeException("Ya tienes una suscripción activa con este plan.");
+
+                // Solo actualizamos si algo cambia
+                boolean needsUpdate = false;
+
+                if (!activeSubscription.getFrequency().equals(frequency.name())) {
+                    activeSubscription.setFrequency(frequency.name());
+                    needsUpdate = true;
+
+                    switch (frequency) {
+                        case MONTHLY -> activeSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
+                        case YEARLY -> activeSubscription.setEndDate(LocalDateTime.now().plusYears(1));
+                    }
+                }
+
+                if (activeSubscription.getCurrentPaymentMethod() != method) {
+                    activeSubscription.setCurrentPaymentMethod(method);
+                    needsUpdate = true;
+                }
+
+                if (needsUpdate) {
+                    activeSubscription.setUpdatedDate(LocalDateTime.now());
+                    return subscriptionRepository.save(activeSubscription);
+                }
+
+                throw new RuntimeException("Ya tienes este plan activo sin cambios.");
             }
 
-            // Si es otro plan → desactivar la suscripción actual
+            // Si es otro plan → cancelar la suscripción actual
             activeSubscription.setStatus(SubscriptionStatus.CANCELLED);
             activeSubscription.setUpdatedDate(LocalDateTime.now());
             subscriptionRepository.save(activeSubscription);
         }
 
-        // Crear nueva suscripción para el nuevo plan
+        // Crear nueva si es un plan diferente
         Subscription newSubscription = new Subscription();
         newSubscription.setUser(user);
         newSubscription.setPlan(plan);
@@ -114,11 +138,12 @@ public class SubscriptionService {
         newSubscription.setCurrentPaymentMethod(method);
         newSubscription.setFrequency(frequency.name());
         newSubscription.setStartDate(LocalDateTime.now());
+
         switch (frequency) {
             case MONTHLY -> newSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
             case YEARLY -> newSubscription.setEndDate(LocalDateTime.now().plusYears(1));
-            default -> newSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
         }
+
         newSubscription.setCreatedDate(LocalDateTime.now());
         newSubscription.setUpdatedDate(LocalDateTime.now());
 
