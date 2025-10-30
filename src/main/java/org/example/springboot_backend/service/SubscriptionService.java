@@ -80,7 +80,7 @@ public class SubscriptionService {
             default -> subscription.setEndDate(LocalDateTime.now().plusMonths(1));
         }
 
-        subscription.setUpdatedDate(LocalDateTime.now());
+        subscription.setUpdatedDate(LocalDateTime.now()); 
 
         return subscriptionRepository.save(subscription);
     }
