@@ -408,7 +408,7 @@ public class DocumentaryProcessingService {
         // Texto centrado en la parte inferior con buena legibilidad
         filters.append(",drawtext=fontfile='").append(fontPath).append("':")
                 .append("text='").append(textoNarracion).append("':")
-                .append("fontsize=36:")
+                .append("fontsize=30:")
                 .append("fontcolor=white:")
                 .append("x=(w-text_w)/2:")
                 .append("y=h-100:")  // Más arriba para mejor legibilidad
