@@ -1,43 +1,63 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
-import org.example.springboot_backend.enums.PlanType;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "subscription_plans")
+@Table(name = "plans")
 public class Plan {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id_plan", columnDefinition = "UNIQUEIDENTIFIER")
     private UUID idPlan;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PlanType planType;
+    @Column(name = "name", nullable = false, unique = true)
+    private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "description")
     private String description;
 
-    @Column(nullable = false)
+    @Column(name = "price", nullable = false)
     private Double price;
 
-    @Column(length = 3)
+    @Column(name = "currency", nullable = false)
     private String currency;
 
-    @Column(nullable = false)
-    private Boolean active = true;
+    @Column(name = "active", nullable = false)
+    private Boolean active;
 
-    // getters and setters
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+        name = "plan_permission",
+        joinColumns = @JoinColumn(name = "plan_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    private Set<Permission> permissions;
+
+    public Plan() {
+        this.idPlan = UUID.randomUUID();
+    }
+
+    // Getters y setters
     public UUID getIdPlan() { return idPlan; }
     public void setIdPlan(UUID idPlan) { this.idPlan = idPlan; }
-    public PlanType getPlanType() { return planType; }
-    public void setPlanType(PlanType planType) { this.planType = planType; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
     public Double getPrice() { return price; }
     public void setPrice(Double price) { this.price = price; }
+
     public String getCurrency() { return currency; }
     public void setCurrency(String currency) { this.currency = currency; }
+
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
+
+    public Set<Permission> getPermissions() { return permissions; }
+    public void setPermissions(Set<Permission> permissions) { this.permissions = permissions; }
 }

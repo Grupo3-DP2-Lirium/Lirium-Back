@@ -41,6 +41,17 @@ public class User {
     private LocalDate updatedDate;
     private LocalDateTime lastSessionDate;
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<Subscription> subscriptions = new HashSet<>();
+
+    public Set<Subscription> getSubscriptions() {
+        return subscriptions;
+    }
+
+    public void setSubscriptions(Set<Subscription> subscriptions) {
+        this.subscriptions = subscriptions;
+    }
+
     // getters and setters
     public UUID getIdUser() { return idUser; }
     public void setIdUser(UUID idUser) { this.idUser = idUser; }
