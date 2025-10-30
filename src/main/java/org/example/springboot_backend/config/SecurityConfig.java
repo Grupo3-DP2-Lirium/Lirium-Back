@@ -75,6 +75,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/paypal/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/plans/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/view/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()

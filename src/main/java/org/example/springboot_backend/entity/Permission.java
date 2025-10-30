@@ -18,9 +18,6 @@ public class Permission {
     @Column(name = "description")
     private String description;
 
-    @ManyToMany(mappedBy = "permissions")
-    private Set<Plan> plans;
-
     public Permission() {
         this.idPermission = UUID.randomUUID();
     }
@@ -41,6 +38,4 @@ public class Permission {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public Set<Plan> getPlans() { return plans; }
-    public void setPlans(Set<Plan> plans) { this.plans = plans; }
 }
