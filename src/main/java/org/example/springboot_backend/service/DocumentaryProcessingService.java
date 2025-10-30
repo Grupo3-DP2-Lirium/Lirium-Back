@@ -299,13 +299,17 @@ public class DocumentaryProcessingService {
 
         List<String> fileListContent = new ArrayList<>();
 
+        // ✨ Generar narraciones para cada recuerdo
+        List<String> narraciones = generarNarraciones(memories, documentary);
+
         for (int i = 0; i < mediaFiles.size(); i++) {
             Path inputFile = mediaFiles.get(i);
             Memory memory = memories.get(i);
+            String narracion = narraciones.get(i);
             Path processedFile = processedDir.resolve("processed_" + i + ".mp4");
 
-            // Procesar cada archivo individualmente con texto overlay
-            processIndividualFile(inputFile, processedFile, memory, documentary);
+            // Procesar cada archivo con narración generada
+            processIndividualFileWithNarration(inputFile, processedFile, memory, narracion, documentary);
 
             fileListContent.add("file '" + processedFile.toAbsolutePath().toString().replace("\\", "/") + "'");
         }
@@ -315,32 +319,82 @@ public class DocumentaryProcessingService {
         return fileListPath;
     }
 
+    @Autowired
+    private AIClassificationService aiService; // ✅ Agregar esta inyección al inicio de la clase
+
     /**
-     * Procesa un archivo individual con overlay de texto
+     * Genera narraciones para todos los recuerdos usando IA
      */
+    private List<String> generarNarraciones(List<Memory> memories, Documentary documentary) {
+        List<String> narraciones = new ArrayList<>();
+
+        String nombrePersona = documentary.getMemorial().getName();
+        int total = memories.size();
+
+        System.out.println("📝 Generando " + total + " narraciones con IA...");
+
+        for (int i = 0; i < memories.size(); i++) {
+            Memory memory = memories.get(i);
+
+            // Determinar posición en la historia
+            String posicion;
+            if (i == 0) {
+                posicion = "primer recuerdo del documental";
+            } else if (i == total - 1) {
+                posicion = "último recuerdo del documental";
+            } else {
+                posicion = String.format("recuerdo %d de %d", i + 1, total);
+            }
+
+            try {
+                String narracion = aiService.generarNarracionRecuerdo(
+                        nombrePersona,
+                        memory.getTitle(),
+                        memory.getDescription(),
+                        memory.getPhotoDate(),
+                        posicion
+                );
+                narraciones.add(narracion);
+
+                // Pequeña pausa para no saturar la API
+                Thread.sleep(500);
+
+            } catch (Exception e) {
+                System.err.println("⚠️ Error generando narración para recuerdo " + (i+1) + ": " + e.getMessage());
+                // Fallback: usar título o descripción
+                String fallback = memory.getTitle() != null ? memory.getTitle() :
+                        (memory.getDescription() != null ? memory.getDescription() : "Un momento especial");
+                narraciones.add(fallback);
+            }
+        }
+
+        System.out.println("✅ Narraciones generadas exitosamente");
+        return narraciones;
+    }
+
+
     /**
-     * Procesa un archivo individual con overlay de texto
+     * Procesa un archivo individual con narración generada por IA
      */
-    private void processIndividualFile(Path inputFile, Path outputFile, Memory memory,
-                                       Documentary documentary) throws IOException, InterruptedException {
+    private void processIndividualFileWithNarration(Path inputFile, Path outputFile,
+                                                    Memory memory, String narracion,
+                                                    Documentary documentary) throws IOException, InterruptedException {
 
         String resolution = getResolutionDimensions(documentary.getResolution());
         String styleFilter = getStyleFilter(documentary.getStyleFilter());
         int duration = documentary.getDurationPerMemory();
 
-        // Escapar texto para FFmpeg
-        String title = escapeFFmpegText(memory.getTitle() != null ? memory.getTitle() : "Sin título");
+        // ✨ USAR NARRACIÓN EN VEZ DE TÍTULO
+        String textoNarracion = escapeFFmpegText(narracion);
+
+        // Fecha (opcional, puedes mantenerla o quitarla)
         String date = memory.getPhotoDate() != null ?
                 memory.getPhotoDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "";
 
         // Construir filtros
         StringBuilder filters = new StringBuilder();
 
-        // Si es imagen, agregar loop y duración
         String fileType = getFileType(inputFile);
-        if (fileType.equals("image")) {
-            //filters.append("loop=1:size=1:d=").append(duration).append(",");
-        }
 
         filters.append("scale=").append(resolution).append(",setsar=1");
 
@@ -350,22 +404,30 @@ public class DocumentaryProcessingService {
 
         String fontPath = escapeFontPathForFFmpeg(fontsPath);
 
-        // Agregar texto
+        // ✨ AGREGAR NARRACIÓN COMO SUBTÍTULO PRINCIPAL
+        // Texto centrado en la parte inferior con buena legibilidad
         filters.append(",drawtext=fontfile='").append(fontPath).append("':")
-                .append("text='").append(title).append("':")
-                .append("fontsize=40:fontcolor=white:")
-                .append("x=(w-text_w)/2:y=h-120:")
-                .append("borderw=2:bordercolor=black");
+                .append("text='").append(textoNarracion).append("':")
+                .append("fontsize=36:")
+                .append("fontcolor=white:")
+                .append("x=(w-text_w)/2:")
+                .append("y=h-100:")  // Más arriba para mejor legibilidad
+                .append("box=1:")     // Fondo semi-transparente
+                .append("boxcolor=black@0.5:")
+                .append("boxborderw=15");
 
+        // Fecha pequeña (opcional)
         if (!date.isEmpty()) {
             filters.append(",drawtext=fontfile='").append(fontPath).append("':")
                     .append("text='").append(date).append("':")
-                    .append("fontsize=28:fontcolor=white:")
-                    .append("x=(w-text_w)/2:y=h-70:")
-                    .append("borderw=2:bordercolor=black");
+                    .append("fontsize=20:")
+                    .append("fontcolor=white@0.8:")
+                    .append("x=(w-text_w)/2:")
+                    .append("y=h-50:")
+                    .append("borderw=1:bordercolor=black@0.3");
         }
 
-        // Comando FFmpeg para procesar archivo individual
+        // Comando FFmpeg
         List<String> command = new ArrayList<>();
         command.add(ffmpegPath);
 
@@ -391,28 +453,24 @@ public class DocumentaryProcessingService {
         command.add("-y");
         command.add(outputFile.toString());
 
-        // ✅ MEJORAR LOGGING
         System.out.println("🎬 Processing: " + inputFile.getFileName());
-        System.out.println("   Command: " + String.join(" ", command));
+        System.out.println("   📝 Narración: " + narracion);
 
         // Ejecutar
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
-        // ✅ CAPTURAR TODO EL OUTPUT
         StringBuilder output = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
-                System.out.println("   FFmpeg: " + line);  // ✅ Imprimir cada línea
             }
         }
 
         int exitCode = process.waitFor();
 
-        // ✅ MEJOR MANEJO DE ERRORES
         if (exitCode != 0) {
             System.err.println("❌ FFmpeg failed with exit code: " + exitCode);
             System.err.println("❌ FFmpeg output:\n" + output.toString());
