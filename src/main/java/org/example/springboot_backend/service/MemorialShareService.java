@@ -1,5 +1,6 @@
 package org.example.springboot_backend.service;
 
+import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.PublicMemorialDto;
 import org.example.springboot_backend.dto.PublicMemoryDto;
 import org.example.springboot_backend.dto.ShareLinkResponse;
@@ -23,16 +24,19 @@ public class MemorialShareService {
     private final MemorialShareRepository memorialShareRepository;
     private final MemorialRepository memorialRepository;
     private final MemoryRepository memoryRepository;
+    private final DefaultBackgroundService defaultBackgroundService;
     
     @Value("${app.share.base-url}")
     private String baseUrl;
     
     public MemorialShareService(MemorialShareRepository memorialShareRepository, 
                                MemorialRepository memorialRepository,
-                               MemoryRepository memoryRepository) {
+                               MemoryRepository memoryRepository,
+                               DefaultBackgroundService defaultBackgroundService) {
         this.memorialShareRepository = memorialShareRepository;
         this.memorialRepository = memorialRepository;
         this.memoryRepository = memoryRepository;
+        this.defaultBackgroundService = defaultBackgroundService;
     }
     
     /**
@@ -75,9 +79,21 @@ public class MemorialShareService {
         dto.setName(memorial.getName());
         dto.setNickname(memorial.getNickname());
         dto.setDescription(memorial.getDescription());
-        dto.setCoverURL(memorial.getCoverURL());
         dto.setBirthDate(memorial.getBirthDate() != null ? memorial.getBirthDate().toString() : null);
         dto.setGender(memorial.getGender());
+        dto.setRelationType(memorial.getRelationType());
+        
+        // Configurar profilePhoto URL si existe
+        if (memorial.getProfilePhoto() != null) {
+            dto.setProfilePhotoUrl(memorial.getProfilePhoto().getFileUrl());
+        }
+        
+        // Configurar background URL: usar coverURL si existe, sino usar fondo por defecto
+        String backgroundUrl = memorial.getCoverURL();
+        if (backgroundUrl == null || backgroundUrl.trim().isEmpty()) {
+            backgroundUrl = defaultBackgroundService.getBackgroundForMemorial(memorial.getIdMemorial());
+        }
+        dto.setBackgroundUrl(backgroundUrl);
         
         // Obtener y mapear las memorias asociadas al memorial (solo visibles)
         List<Memory> memories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorial.getIdMemorial());
@@ -101,6 +117,31 @@ public class MemorialShareService {
         dto.setPhotoDate(memory.getPhotoDate() != null ? memory.getPhotoDate().toString() : null);
         dto.setLocation(memory.getLocation());
         dto.setCreatedDate(memory.getCreatedDate() != null ? memory.getCreatedDate().toString() : null);
+        dto.setType(memory.getType() != null ? memory.getType().toString() : null);
+        
+        // Mapear archivos asociados si existen
+        if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
+            List<FileResponse> fileResponses = memory.getFiles().stream()
+                .map(this::buildFileResponse)
+                .collect(Collectors.toList());
+            dto.setFiles(fileResponses);
+        }
+        
         return dto;
+    }
+    
+    /**
+     * Construye un FileResponse a partir de un File
+     */
+    private FileResponse buildFileResponse(org.example.springboot_backend.entity.File file) {
+        FileResponse response = new FileResponse();
+        response.setIdFile(file.getIdFile());
+        response.setFileName(file.getFileName());
+        response.setOriginalFileName(file.getOriginalFileName());
+        response.setFileUrl(file.getFileUrl());
+        response.setFileSize(file.getFileSize());
+        response.setMimeType(file.getMimeType());
+        response.setFileType(file.getFileType() != null ? file.getFileType().toString() : null);
+        return response;
     }
 }

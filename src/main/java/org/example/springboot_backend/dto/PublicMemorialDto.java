@@ -9,21 +9,25 @@ public class PublicMemorialDto {
     private String name;
     private String nickname;
     private String description;
-    private String coverURL;
+    private String profilePhotoUrl;
+    private String backgroundUrl; // Para fondos por defecto
     private String birthDate;
+    private String deathDate; // Fecha de fallecimiento (opcional)
     private String gender;
+    private String relationType;
     private List<PublicMemoryDto> memories;
     
     // Constructors
     public PublicMemorialDto() {
     }
     
-    public PublicMemorialDto(UUID idMemorial, String name, String nickname, String description, String coverURL) {
+    public PublicMemorialDto(UUID idMemorial, String name, String nickname, String description, String profilePhotoUrl, String backgroundUrl) {
         this.idMemorial = idMemorial;
         this.name = name;
         this.nickname = nickname;
         this.description = description;
-        this.coverURL = coverURL;
+        this.profilePhotoUrl = profilePhotoUrl;
+        this.backgroundUrl = backgroundUrl;
     }
     
     // Getters and Setters
@@ -59,12 +63,20 @@ public class PublicMemorialDto {
         this.description = description;
     }
     
-    public String getCoverURL() {
-        return coverURL;
+    public String getProfilePhotoUrl() {
+        return profilePhotoUrl;
     }
     
-    public void setCoverURL(String coverURL) {
-        this.coverURL = coverURL;
+    public void setProfilePhotoUrl(String profilePhotoUrl) {
+        this.profilePhotoUrl = profilePhotoUrl;
+    }
+    
+    public String getBackgroundUrl() {
+        return backgroundUrl;
+    }
+    
+    public void setBackgroundUrl(String backgroundUrl) {
+        this.backgroundUrl = backgroundUrl;
     }
     
     public String getBirthDate() {
@@ -75,12 +87,28 @@ public class PublicMemorialDto {
         this.birthDate = birthDate;
     }
     
+    public String getDeathDate() {
+        return deathDate;
+    }
+    
+    public void setDeathDate(String deathDate) {
+        this.deathDate = deathDate;
+    }
+    
     public String getGender() {
         return gender;
     }
     
     public void setGender(String gender) {
         this.gender = gender;
+    }
+    
+    public String getRelationType() {
+        return relationType;
+    }
+    
+    public void setRelationType(String relationType) {
+        this.relationType = relationType;
     }
     
     public List<PublicMemoryDto> getMemories() {

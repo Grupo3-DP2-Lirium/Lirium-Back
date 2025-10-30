@@ -1,5 +1,6 @@
 package org.example.springboot_backend.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 public class PublicMemoryDto {
@@ -10,6 +11,8 @@ public class PublicMemoryDto {
     private String photoDate;
     private String location;
     private String createdDate;
+    private String type; // tipo de memoria (PHOTO, VIDEO, AUDIO, etc)
+    private List<FileResponse> files; // archivos asociados a la memoria
     
     // Constructors
     public PublicMemoryDto() {
@@ -62,5 +65,21 @@ public class PublicMemoryDto {
     
     public void setCreatedDate(String createdDate) {
         this.createdDate = createdDate;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
+    }
+    
+    public List<FileResponse> getFiles() {
+        return files;
+    }
+    
+    public void setFiles(List<FileResponse> files) {
+        this.files = files;
     }
 }
