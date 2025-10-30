@@ -322,4 +322,104 @@ public class AIClassificationService {
         return "true".equals(str) || "1".equals(str) || "yes".equals(str) || "sí".equals(str);
     }
 
+    /* ==================== PARA DOCUMENTALES ==================== */
+
+    /**
+     * Genera una narración emotiva para un recuerdo específico
+     * basado en su título, descripción y contexto en la vida de la persona
+     *
+     * @param nombrePersona Nombre de la persona fallecida
+     * @param titulo Título del recuerdo
+     * @param descripcion Descripción del recuerdo
+     * @param fecha Fecha del recuerdo (opcional)
+     * @param posicion Posición en la línea de tiempo (ej: "primer recuerdo", "último recuerdo", "recuerdo 3 de 10")
+     * @return Texto narrativo de 1-2 oraciones para usar como subtítulo
+     */
+    public String generarNarracionRecuerdo(String nombrePersona, String titulo,
+                                           String descripcion, LocalDate fecha,
+                                           String posicion) {
+
+        if (titulo == null || titulo.isBlank()) {
+            return "Un momento especial en la vida de " + nombrePersona;
+        }
+
+        String fechaTexto = fecha != null ? fecha.format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", new java.util.Locale("es", "ES"))) : "en algún momento de su vida";
+
+        String prompt = buildNarrationPrompt(nombrePersona, titulo, descripcion, fechaTexto, posicion);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("model", modelName);
+        payload.put("temperature", 0.7); // Más creativo
+        payload.put("max_tokens", 80);
+        payload.put("stream", false);
+        payload.put("messages", List.of(Map.of("role", "user", "content", prompt)));
+
+        try {
+            System.out.println("📝 Generando narración para: " + titulo);
+            String text = postOpenRouter(payload);
+
+            String jsonText = extractJson(text);
+            if (jsonText == null) {
+                // Fallback: usar el título
+                return titulo;
+            }
+
+            Map<String, Object> obj = MAPPER.readValue(jsonText, new TypeReference<>() {});
+            String narracion = obj.get("narracion") != null ? obj.get("narracion").toString() : titulo;
+
+            // Limpiar y limitar longitud
+            narracion = narracion.trim()
+                    .replace("\"", "")
+                    .replace("\n", " ");
+
+            // Limitar a máximo 150 caracteres para que sea legible
+            if (narracion.length() > 150) {
+                narracion = narracion.substring(0, 147) + "...";
+            }
+
+            System.out.println("✅ Narración generada: " + narracion);
+            return narracion;
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Error generando narración: " + e.getMessage());
+            return titulo; // Fallback al título
+        }
+    }
+
+    private String buildNarrationPrompt(String nombrePersona, String titulo,
+                                        String descripcion, String fechaTexto,
+                                        String posicion) {
+        return """
+    Crea una narración emotiva y concisa (1-2 oraciones máximo, ~100 caracteres) para un documental 
+    conmemorativo de %s. Esta narración aparecerá como subtítulo en el video.
+    
+    La narración debe:
+    - Ser emotiva pero no melodramática
+    - Estar en tercera persona
+    - Capturar la esencia del momento
+    - Ser breve y directa (máximo 2 oraciones cortas)
+    - No usar comillas ni caracteres especiales
+    - Conectar emocionalmente con quien la lee
+    
+    Contexto del momento:
+    - Título: "%s"
+    - Descripción: "%s"
+    - Fecha: %s
+    - Posición en la historia: %s
+    
+    Ejemplos de buen estilo:
+    - "En 1985, Jorge descubrió su pasión por la música que marcaría toda su vida"
+    - "María se graduó con honores, cumpliendo el sueño de su familia"
+    - "Un día de verano que cambiaría todo para siempre"
+    
+    Responde SOLO con JSON: {"narracion": "tu texto aquí"}
+    """.formatted(
+                sanitize(nombrePersona),
+                sanitize(titulo),
+                sanitize(descripcion != null ? descripcion : ""),
+                fechaTexto,
+                posicion
+        );
+    }
+
 }

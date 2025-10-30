@@ -166,4 +166,71 @@ public class DocumentaryController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getIdUser();
     }
+
+    /**
+     * Obtener catálogo de música disponible
+     */
+    @GetMapping("/music-catalog")
+    @Operation(summary = "Get available music tracks",
+            description = "Get list of available background music for documentaries")
+    public ResponseEntity<?> getMusicCatalog() {
+        try {
+            List<Map<String, Object>> musicTracks = List.of(
+                    Map.of(
+                            "id", "music/emotional-piano.mp3",
+                            "name", "Emotional Piano",
+                            "description", "Piano melódico y emotivo",
+                            "duration", "3:20",
+                            "mood", "emotional"
+                    ),
+                    Map.of(
+                            "id", "music/uplifting-strings.mp3",
+                            "name", "Uplifting Strings",
+                            "description", "Cuerdas inspiradoras",
+                            "duration", "2:45",
+                            "mood", "uplifting"
+                    ),
+                    Map.of(
+                            "id", "music/peaceful-guitar.mp3",
+                            "name", "Peaceful Guitar",
+                            "description", "Guitarra tranquila y relajante",
+                            "duration", "4:10",
+                            "mood", "peaceful"
+                    ),
+                    Map.of(
+                            "id", "music/peaceful-piano.mp3",
+                            "name", "Peaceful Piano",
+                            "description", "Piano melódico y tranquilo",
+                            "duration", "4:10",
+                            "mood", "peaceful"
+                    ),
+                    Map.of(
+                            "id", "music/nostalgic-melody.mp3",
+                            "name", "Nostalgic Melody",
+                            "description", "Melodía nostálgica y reflexiva",
+                            "duration", "3:50",
+                            "mood", "nostalgic"
+                    ),
+                    Map.of(
+                            "id", "music/joyful-celebration.mp3",
+                            "name", "Joyful Celebration",
+                            "description", "Alegre y celebratorio",
+                            "duration", "3:15",
+                            "mood", "joyful"
+                    )
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "data", musicTracks
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
 }

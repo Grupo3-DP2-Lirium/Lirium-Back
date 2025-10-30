@@ -185,8 +185,14 @@ public class DocumentaryProcessingService {
         // Crear archivo de lista para concatenación
         Path fileListPath = createFileListForConcat(mediaFiles, memories, tempDir, documentary);
 
-        // Construir comando FFmpeg
-        List<String> command = buildFFmpegCommand(fileListPath, outputVideo, documentary);
+        //Descargar música si existe
+        Path musicPath = null;
+        if (documentary.getMusicTrack() != null && !documentary.getMusicTrack().isEmpty()) {
+            musicPath = downloadMusicFromAzure(documentary.getMusicTrack(), tempDir);
+        }
+
+        // Construir comando FFmpeg con música
+        List<String> command = buildFFmpegCommandWithMusic(fileListPath, musicPath, outputVideo, documentary);
 
         System.out.println("🎬 FFmpeg command: " + String.join(" ", command));
 
@@ -201,7 +207,6 @@ public class DocumentaryProcessingService {
             while ((line = reader.readLine()) != null) {
                 System.out.println("FFmpeg: " + line);
 
-                // Actualizar progreso basado en frames procesados
                 if (line.contains("frame=")) {
                     int currentProgress = documentary.getProgress();
                     if (currentProgress < 75) {
@@ -221,7 +226,66 @@ public class DocumentaryProcessingService {
         }
 
         System.out.println("✅ Video generated: " + outputVideo + " (" + (Files.size(outputVideo) / 1024 / 1024) + " MB)");
+
+        // Limpiar música temporal
+        if (musicPath != null) {
+            Files.deleteIfExists(musicPath);
+        }
+
         return outputVideo;
+    }
+
+    /**
+     * Construye el comando de FFmpeg con música de fondo
+     */
+    private List<String> buildFFmpegCommandWithMusic(Path fileListPath, Path musicPath,
+                                                     Path outputVideo, Documentary documentary) {
+        List<String> command = new ArrayList<>();
+        command.add(ffmpegPath);
+        command.add("-f");
+        command.add("concat");
+        command.add("-safe");
+        command.add("0");
+        command.add("-i");
+        command.add(fileListPath.toString());
+
+        // ✨ AGREGAR MÚSICA COMO SEGUNDO INPUT
+        if (musicPath != null && Files.exists(musicPath)) {
+            command.add("-stream_loop");
+            command.add("-1"); // Loop infinito de la música
+            command.add("-i");
+            command.add(musicPath.toString());
+
+            // Mapear video del primer input
+            command.add("-map");
+            command.add("0:v");
+
+            // Mapear audio del segundo input (música)
+            command.add("-map");
+            command.add("1:a");
+
+            // Ajustar volumen de la música (30% = -10dB)
+            command.add("-filter:a");
+            command.add("volume=0.3");
+
+            // Usar duración del video (shorter)
+            command.add("-shortest");
+
+            // Codec de audio
+            command.add("-c:a");
+            command.add("aac");
+            command.add("-b:a");
+            command.add("192k");
+        }
+
+        // Copiar video sin re-encodear
+        command.add("-c:v");
+        command.add("copy");
+
+        command.add("-y");
+        command.add(outputVideo.toString());
+
+        return command;
     }
 
     /**
@@ -506,6 +570,25 @@ public class DocumentaryProcessingService {
         // Normaliza separadores y escapa SOLO el "C:" -> "C\:"
         String p = path.replace("\\", "/");
         return p.replaceFirst("^(?i)([a-z]):", "$1\\\\:");
+    }
+
+    /**
+     * Descarga el archivo de música desde Azure
+     */
+    private Path downloadMusicFromAzure(String musicBlobPath, Path tempDir) throws IOException {
+        try {
+            Path musicPath = tempDir.resolve("background_music.mp3");
+
+            System.out.println("🎵 Downloading music: " + musicBlobPath);
+            azureStorageService.downloadBlobToFile(musicBlobPath, musicPath);
+
+            System.out.println("✅ Music downloaded: " + musicPath);
+            return musicPath;
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to download music, continuing without it: " + e.getMessage());
+            return null; // Continuar sin música si falla
+        }
     }
 
 }
