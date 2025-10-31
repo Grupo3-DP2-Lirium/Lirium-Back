@@ -1,8 +1,8 @@
 # ============================================================================
-# DOCKERFILE PARA LIRIUM BACKEND - SPRING BOOT
+# DOCKERFILE PARA LIRIUM BACKEND - SPRING BOOT CON FFMPEG
 # ============================================================================
 # Dockerfile optimizado para Azure Container Apps con multi-stage build
-# para minimizar el tamaño de la imagen final
+# para minimizar el tamaño de la imagen final + FFmpeg para documentales
 # ============================================================================
 
 # Etapa 1: Build - imagen completa para compilar
@@ -35,6 +35,12 @@ RUN ./gradlew build -x test --no-daemon
 # Etapa 2: Runtime - imagen mínima para ejecutar la aplicación
 FROM eclipse-temurin:21-jre-alpine AS final
 
+# INSTALAR FFMPEG Y FUENTES
+RUN apk add --no-cache \
+    ffmpeg \
+    ttf-dejavu \
+    curl
+
 # Configuración para producción
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV SERVER_PORT=8080
@@ -45,6 +51,9 @@ WORKDIR /app
 
 # Instalar curl para health checks
 RUN apk add --no-cache curl
+
+# Crear directorio para archivos temporales de documentales
+RUN mkdir -p /tmp/documentaries && chmod 777 /tmp/documentaries
 
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S appgroup && \

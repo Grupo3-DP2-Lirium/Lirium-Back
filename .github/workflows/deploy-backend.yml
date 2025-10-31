@@ -95,10 +95,10 @@ jobs:
         spring.servlet.multipart.enabled=true
 
         # OpenRouter AI Configuration (production)
-        openrouter.api.key=${OPENROUTER_API_KEY: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}
-        openrouter.url=${OPENROUTER_URL:https://openrouter.ai/api/v1/chat/completions}
-        openrouter.model=${OPENROUTER_MODEL:mistralai/mistral-7b-instruct}
-
+        openrouter.api.key=${{ secrets.OPENROUTER_API_KEY }}
+        openrouter.url=https://openrouter.ai/api/v1/chat/completions
+        openrouter.model=mistralai/mistral-7b-instruct
+        
         # PayPal Configuration for production
         paypal.client.id=AYhko78F1KkWLhQreC9ht18i-Jn6CxjrRpbyr3c_x2OgzEo82mhxNLIg-7pWB4G2bpkZYvTUD9LrbgVL
         paypal.client.secret=EOjQJJcf0jfJY22qcc4TN80__nPhajHl7IqZla5b-2SBlyjac2Kp3GSmN0Z4WZMPnh9Kp3_mIQqVH3H6
@@ -106,6 +106,16 @@ jobs:
 
         # Web
         app.share.base-url=https://lirium-front-web.vercel.app
+        
+        # FFmpeg Configuration for Production (Alpine Linux)
+        ffmpeg.path=/usr/bin/ffmpeg
+        documentary.temp.path=/tmp/documentaries
+        documentary.fonts.path=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+        
+        # Async Configuration for Documentary Generation
+        spring.task.execution.pool.core-size=2
+        spring.task.execution.pool.max-size=5
+        spring.task.execution.pool.queue-capacity=100
         
         EOF
 
