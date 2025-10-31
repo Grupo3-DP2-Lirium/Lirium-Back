@@ -1,7 +1,9 @@
 package org.example.springboot_backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.springboot_backend.enums.NotificationType;
+
 import java.time.LocalDateTime;
 
 public class NotificationResponse {
@@ -10,16 +12,17 @@ public class NotificationResponse {
     private String message;
     private NotificationType type;
     private Long relatedEntityId;
-    private boolean isRead;
     
-    // ✅ CRÍTICO: Formatear fechas en ISO-8601 para Flutter
+    // ✅ SOLUCIÓN: Forzar el nombre "isRead" en JSON
+    @JsonProperty("isRead")
+    private boolean read;
+    
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime createdDate;
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime readDate;
 
-    // Constructors
     public NotificationResponse() {}
     
     public NotificationResponse(Long idNotification, String title, String message, 
@@ -30,12 +33,11 @@ public class NotificationResponse {
         this.message = message;
         this.type = type;
         this.relatedEntityId = relatedEntityId;
-        this.isRead = isRead;
+        this.read = isRead;
         this.createdDate = createdDate;
         this.readDate = readDate;
     }
 
-    // Getters and Setters
     public Long getIdNotification() { return idNotification; }
     public void setIdNotification(Long idNotification) { this.idNotification = idNotification; }
     
@@ -51,8 +53,12 @@ public class NotificationResponse {
     public Long getRelatedEntityId() { return relatedEntityId; }
     public void setRelatedEntityId(Long relatedEntityId) { this.relatedEntityId = relatedEntityId; }
     
-    public boolean isRead() { return isRead; }
-    public void setRead(boolean read) { isRead = read; }
+    // ✅ SOLUCIÓN: Getter que devuelve el campo "read" pero se serializa como "isRead"
+    @JsonProperty("isRead")
+    public boolean isRead() { return read; }
+    
+    @JsonProperty("isRead")
+    public void setRead(boolean read) { this.read = read; }
     
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }

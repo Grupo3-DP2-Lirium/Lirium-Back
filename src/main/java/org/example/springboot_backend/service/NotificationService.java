@@ -1,6 +1,7 @@
 package org.example.springboot_backend.service;
 
 import org.example.springboot_backend.dto.NotificationResponse;
+import org.example.springboot_backend.entity.Memorial;
 import org.example.springboot_backend.entity.Notification;
 import org.example.springboot_backend.enums.NotificationType;
 import org.example.springboot_backend.entity.User;
@@ -105,12 +106,101 @@ public class NotificationService {
         notificationRepository.delete(notification);
     }
     
+    // ========== MÉTODOS PARA AUTO-CREAR NOTIFICACIONES ==========
+    
+    /**
+     * ✅ NUEVO: Notificación al crear un memorial
+     */
+    @Transactional
+    public void notifyMemorialCreated(User creator, Memorial memorial) {
+        String title = "Memorial creado";
+        String message = String.format("Has creado el memorial '%s'", memorial.getName());
+        
+        createNotification(
+            creator, 
+            title, 
+            message, 
+            NotificationType.SYSTEM, 
+            memorial.getIdMemorial().getMostSignificantBits()
+        );
+    }
+    
+    /**
+     * ✅ NUEVO: Notificación al crear una memoria (simple)
+     */
+    @Transactional
+    public void notifyMemoryCreated(User creator, String memoryTitle, Long memoryId) {
+        String title = "Memoria agregada";
+        String message = String.format("Has agregado una nueva memoria: '%s'", memoryTitle);
+        
+        createNotification(
+            creator, 
+            title, 
+            message, 
+            NotificationType.SYSTEM, 
+            memoryId
+        );
+    }
+    
+    /**
+     * ✅ NUEVO: Notificación detallada al crear una memoria (con info de archivos)
+     */
+    @Transactional
+    public void notifyMemoryCreatedDetailed(User creator, String detailedMessage, Long memoryId) {
+        String title = "Memoria agregada";
+        
+        createNotification(
+            creator, 
+            title, 
+            detailedMessage, 
+            NotificationType.SYSTEM, 
+            memoryId
+        );
+    }
+    
+    /**
+     * ✅ NUEVO: Notificación al actualizar un memorial
+     */
+    @Transactional
+    public void notifyMemorialUpdated(User updater, Memorial memorial) {
+        String title = "Memorial actualizado";
+        String message = String.format("El memorial '%s' ha sido actualizado", memorial.getName());
+        
+        createNotification(
+            updater, 
+            title, 
+            message, 
+            NotificationType.SYSTEM, 
+            memorial.getIdMemorial().getMostSignificantBits()
+        );
+    }
+    
+    /**
+     * ✅ NUEVO: Notificación a colaboradores cuando se agrega contenido
+     */
+    @Transactional
+    public void notifyCollaborators(Memorial memorial, User excludeUser, String actionMessage) {
+        // Aquí deberías obtener la lista de colaboradores del memorial
+        // Por ahora, solo notificamos al dueño si no es el que hizo la acción
+        if (!memorial.getUser().getIdUser().equals(excludeUser.getIdUser())) {
+            String title = "Actividad en memorial";
+            String message = String.format("%s en el memorial '%s'", actionMessage, memorial.getName());
+            
+            createNotification(
+                memorial.getUser(), 
+                title, 
+                message, 
+                NotificationType.MEMORIAL_SHARED, 
+                memorial.getIdMemorial().getMostSignificantBits()
+            );
+        }
+    }
+    
     /**
      * Crea y envía una notificación de recordatorio
      */
     @Transactional
     public void createReminderNotification(User user, String title, Long reminderId) {
-        // Crear notificación en BD
         Notification notification = new Notification();
         notification.setUserId(user.getIdUser());
         notification.setTitle("Recordatorio");
@@ -122,7 +212,6 @@ public class NotificationService {
         
         notificationRepository.save(notification);
         
-        // Enviar push notification
         fcmService.sendReminderNotification(user, title, reminderId);
     }
     
@@ -132,7 +221,6 @@ public class NotificationService {
     @Transactional
     public void createCommentNotification(User targetUser, String commenterName, 
                                          String comment, Long memorialId) {
-        // Crear notificación en BD
         Notification notification = new Notification();
         notification.setUserId(targetUser.getIdUser());
         notification.setTitle("Nuevo comentario");
@@ -144,12 +232,11 @@ public class NotificationService {
         
         notificationRepository.save(notification);
         
-        // Enviar push notification
         fcmService.sendCommentNotification(targetUser, commenterName, comment, memorialId);
     }
     
     /**
-     * Crea notificación genérica
+     * ✅ MEJORADO: Crea notificación genérica con push notification
      */
     @Transactional
     public void createNotification(User user, String title, String message, 

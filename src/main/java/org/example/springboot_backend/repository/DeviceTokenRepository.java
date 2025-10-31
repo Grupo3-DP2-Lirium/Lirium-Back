@@ -15,4 +15,8 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken, Long> 
     Optional<DeviceToken> findByFcmToken(String fcmToken);
     
     void deleteByFcmToken(String fcmToken);
+    /**
+     * Elimina todos los tokens de un usuario (útil al eliminar cuenta)
+     */
+    void deleteByUserId(UUID userId);
 }
