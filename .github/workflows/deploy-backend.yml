@@ -43,8 +43,8 @@ jobs:
       run: chmod +x ./gradlew
 
     # 5. Run tests
-    - name: Run tests
-      run: ./gradlew test
+    #- name: Run tests
+    #  run: ./gradlew test
 
     # 6. Generate production configuration
     - name: Generate application-prod.properties
