@@ -384,10 +384,11 @@ public class DocumentaryProcessingService {
         String styleFilter = getStyleFilter(documentary.getStyleFilter());
         int duration = documentary.getDurationPerMemory();
 
-        // ✨ USAR NARRACIÓN EN VEZ DE TÍTULO
-        String textoNarracion = escapeFFmpegText(narracion);
+        // La narración se divide en líneas para mejor legibilidad
+        String textoNarracion = wrapText(narracion, 80); // Máximo 50 caracteres por línea
+        textoNarracion = escapeFFmpegText(textoNarracion);
 
-        // Fecha (opcional, puedes mantenerla o quitarla)
+        // Fecha (opcional)
         String date = memory.getPhotoDate() != null ?
                 memory.getPhotoDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "";
 
@@ -404,27 +405,29 @@ public class DocumentaryProcessingService {
 
         String fontPath = escapeFontPathForFFmpeg(fontsPath);
 
-        // ✨ AGREGAR NARRACIÓN COMO SUBTÍTULO PRINCIPAL
-        // Texto centrado en la parte inferior con buena legibilidad
+        // Subtítulo - Más legible con fondo y mejor posicionado
         filters.append(",drawtext=fontfile='").append(fontPath).append("':")
                 .append("text='").append(textoNarracion).append("':")
-                .append("fontsize=30:")
+                .append("fontsize=30:")  // Tamaño más pequeño para que quepa mejor
                 .append("fontcolor=white:")
-                .append("x=(w-text_w)/2:")
-                .append("y=h-100:")  // Más arriba para mejor legibilidad
-                .append("box=1:")     // Fondo semi-transparente
-                .append("boxcolor=black@0.5:")
-                .append("boxborderw=15");
+                .append("x=(w-text_w)/2:")  // Centrado horizontal
+                .append("y=h-h/5:")  // Posicionado en el quinto inferior de la pantalla
+                .append("box=1:")  // Caja de fondo
+                .append("boxcolor=black@0.6:")  // Fondo negro semi-transparente
+                .append("boxborderw=20:")  // Padding interno
+                .append("line_spacing=5");  // Espaciado entre líneas
 
-        // Fecha pequeña (opcional)
+        // Fecha pequeña (opcional, más arriba para no interferir)
         if (!date.isEmpty()) {
             filters.append(",drawtext=fontfile='").append(fontPath).append("':")
-                    .append("text='").append(date).append("':")
+                    .append("text='").append(escapeFFmpegText(date)).append("':")
                     .append("fontsize=20:")
-                    .append("fontcolor=white@0.8:")
+                    .append("fontcolor=white@0.9:")
                     .append("x=(w-text_w)/2:")
-                    .append("y=h-50:")
-                    .append("borderw=1:bordercolor=black@0.3");
+                    .append("y=20:")
+                    .append("box=1:")
+                    .append("boxcolor=black@0.4:")
+                    .append("boxborderw=10");
         }
 
         // Comando FFmpeg
@@ -479,6 +482,41 @@ public class DocumentaryProcessingService {
         }
 
         System.out.println("✅ Processed: " + outputFile.getFileName());
+    }
+
+    /**
+     * Divide texto largo en múltiples líneas para que quepa en pantalla
+     * @param text Texto original
+     * @param maxCharsPerLine Máximo de caracteres por línea
+     * @return Texto con saltos de línea
+     */
+    private String wrapText(String text, int maxCharsPerLine) {
+        if (text == null || text.length() <= maxCharsPerLine) {
+            return text;
+        }
+
+        StringBuilder wrapped = new StringBuilder();
+        String[] words = text.split(" ");
+        int lineLength = 0;
+
+        for (String word : words) {
+            // Si agregar esta palabra excede el límite, hacer salto de línea
+            if (lineLength + word.length() + 1 > maxCharsPerLine && lineLength > 0) {
+                // formato %{line_h} en lugar de \n
+                wrapped.append("\n");  // Salto de línea real, no escapado
+                lineLength = 0;
+            }
+
+            // Agregar palabra
+            if (lineLength > 0) {
+                wrapped.append(" ");
+                lineLength++;
+            }
+            wrapped.append(word);
+            lineLength += word.length();
+        }
+
+        return wrapped.toString();
     }
 
     /**
@@ -618,9 +656,12 @@ public class DocumentaryProcessingService {
 
     private String escapeFFmpegText(String text) {
         if (text == null) return "";
+
+        // NO escapar\n, solo escapar caracteres especiales de FFmpeg
         return text.replace("'", "'\\''")
                 .replace(":", "\\:")
-                .replace("%", "\\%");
+                .replace("%", "\\%")
+                .replace(",", "\\,");  // También escapar comas
     }
 
     private String escapeFontPathForFFmpeg(String path) {
