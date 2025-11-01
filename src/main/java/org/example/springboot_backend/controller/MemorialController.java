@@ -88,6 +88,55 @@ public class MemorialController {
         }
     }
 
+    // Get a memorial by ID
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> getMemorialById(
+            @PathVariable("id") String memorialId,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            MemorialResponse memorial = memorialService.getMemorialById(memorialId, user);
+            return ResponseEntity.ok(memorial);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error fetching memorial: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+        }
+    }
+
+    // Update a memorial by ID with optional image
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> updateMemorial(
+            @PathVariable("id") String memorialId,
+            @RequestPart("memorial") String memorialJson,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            Authentication authentication) {
+        try {
+            // Parse JSON to MemorialRequest
+            MemorialRequest request = objectMapper.readValue(memorialJson, MemorialRequest.class);
+
+            // Get authenticated user
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Call service to update memorial
+            MemorialResponse response = memorialService.updateMemorial(memorialId, request, file, user);
+
+            // Return success response
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error updating memorial: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+        }
+    }
+
     @GetMapping(value = "/getCollaborativeMemorials", produces = MediaType.APPLICATION_JSON_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> getCollaborativeMemorials(Authentication authentication) {
@@ -102,7 +151,8 @@ public class MemorialController {
             return ResponseEntity.badRequest().body("Error fetching collaborative memorials: " + e.getMessage());
         }
     }
-
+    
+    // HU02 - Obtener memoriales colaborativos
     @GetMapping("/collaborative")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> getCollaborativeMemorials() {
@@ -123,4 +173,30 @@ public class MemorialController {
             return ResponseEntity.badRequest().body("Error fetching predefined questions: " + e.getMessage());
         }
     }
+
+    // Eliminar un memorial
+    @DeleteMapping("/{id}")
+    @SecurityRequirement(name = "Bearer Authentication")
+    public ResponseEntity<?> deleteMemorial(
+            @PathVariable("id") String memorialId,
+            Authentication authentication) {
+        try {
+            // Obtener usuario autenticado
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Llamar al servicio para eliminar el memorial
+            memorialService.deleteMemorial(memorialId, user);
+
+            // Retornar éxito
+            return ResponseEntity.ok("Memorial eliminado exitosamente");
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Error eliminando memorial: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+        }
+    }
+
 }

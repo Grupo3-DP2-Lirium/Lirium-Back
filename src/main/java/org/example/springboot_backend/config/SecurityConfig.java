@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/files/view/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/memories").authenticated()
@@ -71,10 +73,20 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/paypal/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/plans/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/files/view/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
                 .requestMatchers("/api/image-enhancer/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir crear memorias
+                .requestMatchers(HttpMethod.GET, "/api/memories").permitAll()  // ✅ TEMPORAL: Permitir listar memorias
+                .requestMatchers(HttpMethod.OPTIONS, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir OPTIONS
+                .requestMatchers("/api/seed/**").permitAll() // Permitir endpoints de seeding
+                .requestMatchers("/api/public/**").permitAll() // ✅ Permitir acceso público a enlaces compartidos
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                .requestMatchers("/api/documentaries/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

@@ -7,12 +7,21 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobHttpHeaders;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 @Service
@@ -76,13 +85,19 @@ public class AzureBlobStorageService implements FileStorageService {
             return StorageResult.error("Unexpected error during file upload: " + e.getMessage());
         }
     }
-
+    
     @Override
     public void deleteFile(String storagePath) {
         try {
+            // Decodifica %2F → /
+            storagePath = URLDecoder.decode(storagePath, StandardCharsets.UTF_8);
+            storagePath = storagePath.startsWith("/") ? storagePath.substring(1) : storagePath;
+
             BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(storagePath);
-            blobClient.deleteIfExists();
+
+            boolean deleted = blobClient.deleteIfExists();
+            System.out.println("Intentando eliminar: " + storagePath + " -> deleted: " + deleted);
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete file from Azure Blob Storage: " + storagePath, e);
         }
@@ -104,6 +119,122 @@ public class AzureBlobStorageService implements FileStorageService {
 
     @Override
     public ResponseEntity<Resource> downloadFile(String folder, String fileName) {
-        throw new UnsupportedOperationException("Unimplemented method 'downloadFile'");
+        try {
+            // Construir la ruta del blob
+            String blobPath = folder + "/" + fileName;
+            
+            BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+            
+            if (!blobClient.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Descargar el contenido del blob
+            byte[] data = blobClient.downloadContent().toBytes();
+            ByteArrayResource resource = new ByteArrayResource(data);
+            
+            // Obtener propiedades del blob para el tipo MIME
+            String mimeType = blobClient.getProperties().getContentType();
+            if (mimeType == null) {
+                mimeType = "application/octet-stream";
+            }
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(mimeType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                    .body(resource);
+                    
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
+
+
+    //PARA DOCUMENTALES
+    /**
+     * Descarga un archivo de Azure Blob Storage a una ruta local en disco
+     * @param blobPath Ruta del blob en Azure (ej: "user-xxx/memorials/xxx/memories/xxx/file.jpg")
+     * @param localPath Ruta local donde guardar el archivo
+     */
+    public void downloadBlobToFile(String blobPath, Path localPath) throws IOException {
+        try {
+            // Limpiar el path
+            blobPath = blobPath.replace("\\", "/");
+            blobPath = blobPath.startsWith("/") ? blobPath.substring(1) : blobPath;
+
+            BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+
+            // Verificar si existe
+            if (!blobClient.exists()) {
+                throw new RuntimeException("Blob not found in Azure: " + blobPath);
+            }
+
+            // Crear directorios padre si no existen
+            Files.createDirectories(localPath.getParent());
+
+            // Descargar el archivo
+            try (InputStream inputStream = blobClient.openInputStream();
+                 FileOutputStream outputStream = new FileOutputStream(localPath.toFile())) {
+
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+
+            System.out.println("✅ Downloaded from Azure: " + blobPath + " -> " + localPath);
+
+        } catch (Exception e) {
+            System.err.println("❌ Error downloading blob: " + blobPath + " - " + e.getMessage());
+            throw new IOException("Failed to download blob from Azure: " + e.getMessage(), e);
+        }
+    }
+
+    // SUBIR ARCHIVO LOCAL A AZURE ✨
+    /**
+     * Sube un archivo local a Azure Blob Storage
+     * @param localFilePath Ruta del archivo local
+     * @param blobPath Ruta destino en Azure (ej: "documentaries/memorial-id/documentary-id.mp4")
+     * @return URL pública del archivo subido
+     */
+    public String uploadFileToBlob(Path localFilePath, String blobPath) throws IOException {
+        try {
+            if (!Files.exists(localFilePath)) {
+                throw new IOException("Local file does not exist: " + localFilePath);
+            }
+
+            BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(blobPath);
+
+            // Detectar MIME type
+            String mimeType = Files.probeContentType(localFilePath);
+            if (mimeType == null) {
+                mimeType = "video/mp4"; // Default para videos
+            }
+
+            // Configurar headers
+            BlobHttpHeaders headers = new BlobHttpHeaders()
+                    .setContentType(mimeType)
+                    .setContentDisposition("inline; filename=\"" + localFilePath.getFileName().toString() + "\"");
+
+            // Subir el archivo (sobrescribir si existe)
+            blobClient.uploadFromFile(localFilePath.toString(), true);
+            blobClient.setHttpHeaders(headers);
+
+            String fileUrl = blobClient.getBlobUrl();
+
+            System.out.println("✅ Uploaded to Azure: " + localFilePath + " -> " + fileUrl);
+
+            return fileUrl;
+
+        } catch (Exception e) {
+            System.err.println("❌ Error uploading file to Azure: " + localFilePath + " - " + e.getMessage());
+            throw new IOException("Failed to upload file to Azure: " + e.getMessage(), e);
+        }
+    }
+
+
 }

@@ -20,6 +20,12 @@ public class MemoryResponse {
     private List<FileResponse> files;
     private Double totalUsedSpace;
     private LocalDateTime createdDate;
+    private LocalDateTime updateDate;
+    private List<String> categorias;
+    private List<String> momentos;
+    private boolean esLineaTiempo;
+    private Double latitude;
+    private Double longitude;
 
     public UUID getIdMemory() {
         return idMemory;
@@ -116,4 +122,42 @@ public class MemoryResponse {
     public void setCreatedDate(LocalDateTime createdDate) {
         this.createdDate = createdDate;
     }
+
+    public LocalDateTime getUpdateDate() {
+        return updateDate;
+    }
+
+    public void setUpdateDate(LocalDateTime updateDate) {
+        this.updateDate = updateDate;
+    }
+
+    public List<String> getCategorias() {
+        return categorias;
+    }
+
+    public void setCategorias(List<String> categorias) {
+        this.categorias = categorias;
+    }
+
+    public List<String> getMomentos() {
+        return momentos;
+    }
+
+    public void setMomentos(List<String> momentos) {
+        this.momentos = momentos;
+    }
+
+    public boolean isEsLineaTiempo() {
+        return esLineaTiempo;
+    }
+
+    public void setEsLineaTiempo(boolean esLineaTiempo) {
+        this.esLineaTiempo = esLineaTiempo;
+    }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 }

@@ -36,6 +36,7 @@ dependencies {
     implementation 'com.azure:azure-storage-blob:12.25.1'
     
     runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
