@@ -1,10 +1,8 @@
 package org.example.springboot_backend.service;
 
 import org.example.springboot_backend.dto.NotificationResponse;
-import org.example.springboot_backend.entity.Memorial;
-import org.example.springboot_backend.entity.Notification;
+import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.enums.NotificationType;
-import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,9 +23,8 @@ public class NotificationService {
     @Autowired
     private FCMService fcmService;
     
-    /**
-     * Obtiene todas las notificaciones de un usuario (no leídas primero)
-     */
+    // ==================== MÉTODOS DE LECTURA ====================
+    
     public List<NotificationResponse> getUserNotifications(User user) {
         List<Notification> notifications = notificationRepository
                 .findByUserIdOrderByUnreadFirstThenDate(user.getIdUser());
@@ -37,9 +34,6 @@ public class NotificationService {
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Obtiene solo notificaciones no leídas
-     */
     public List<NotificationResponse> getUnreadNotifications(User user) {
         List<Notification> notifications = notificationRepository
                 .findByUserIdAndIsReadFalseOrderByCreatedDateDesc(user.getIdUser());
@@ -49,16 +43,10 @@ public class NotificationService {
                 .collect(Collectors.toList());
     }
     
-    /**
-     * Cuenta las notificaciones no leídas
-     */
     public long getUnreadCount(User user) {
         return notificationRepository.countByUserIdAndIsReadFalse(user.getIdUser());
     }
     
-    /**
-     * Marca una notificación como leída
-     */
     @Transactional
     public NotificationResponse markAsRead(Long notificationId, User user) {
         Notification notification = notificationRepository.findById(notificationId)
@@ -75,9 +63,6 @@ public class NotificationService {
         return toResponse(updated);
     }
     
-    /**
-     * Marca todas las notificaciones como leídas
-     */
     @Transactional
     public void markAllAsRead(User user) {
         List<Notification> unreadNotifications = notificationRepository
@@ -91,9 +76,6 @@ public class NotificationService {
         notificationRepository.saveAll(unreadNotifications);
     }
     
-    /**
-     * Elimina una notificación
-     */
     @Transactional
     public void deleteNotification(Long notificationId, User user) {
         Notification notification = notificationRepository.findById(notificationId)
@@ -106,141 +88,28 @@ public class NotificationService {
         notificationRepository.delete(notification);
     }
     
-    // ========== MÉTODOS PARA AUTO-CREAR NOTIFICACIONES ==========
+    // ==================== MÉTODO GENÉRICO PRINCIPAL ====================
     
     /**
-     * ✅ NUEVO: Notificación al crear un memorial
+     * ✅ MÉTODO GENÉRICO: Crea y envía cualquier tipo de notificación
+     * 
+     * @param user Usuario destinatario
+     * @param type Tipo de notificación (SYSTEM, MEMORIAL_SHARED, COMMENT, etc.)
+     * @param title Título de la notificación
+     * @param message Mensaje descriptivo
+     * @param relatedEntityId ID de la entidad relacionada (opcional)
+     * @param sendPush Si debe enviar push notification
      */
     @Transactional
-    public void notifyMemorialCreated(User creator, Memorial memorial) {
-        String title = "Memorial creado";
-        String message = String.format("Has creado el memorial '%s'", memorial.getName());
+    public void createNotification(
+            User user, 
+            NotificationType type,
+            String title, 
+            String message, 
+            Long relatedEntityId,
+            boolean sendPush) {
         
-        createNotification(
-            creator, 
-            title, 
-            message, 
-            NotificationType.SYSTEM, 
-            memorial.getIdMemorial().getMostSignificantBits()
-        );
-    }
-    
-    /**
-     * ✅ NUEVO: Notificación al crear una memoria (simple)
-     */
-    @Transactional
-    public void notifyMemoryCreated(User creator, String memoryTitle, Long memoryId) {
-        String title = "Memoria agregada";
-        String message = String.format("Has agregado una nueva memoria: '%s'", memoryTitle);
-        
-        createNotification(
-            creator, 
-            title, 
-            message, 
-            NotificationType.SYSTEM, 
-            memoryId
-        );
-    }
-    
-    /**
-     * ✅ NUEVO: Notificación detallada al crear una memoria (con info de archivos)
-     */
-    @Transactional
-    public void notifyMemoryCreatedDetailed(User creator, String detailedMessage, Long memoryId) {
-        String title = "Memoria agregada";
-        
-        createNotification(
-            creator, 
-            title, 
-            detailedMessage, 
-            NotificationType.SYSTEM, 
-            memoryId
-        );
-    }
-    
-    /**
-     * ✅ NUEVO: Notificación al actualizar un memorial
-     */
-    @Transactional
-    public void notifyMemorialUpdated(User updater, Memorial memorial) {
-        String title = "Memorial actualizado";
-        String message = String.format("El memorial '%s' ha sido actualizado", memorial.getName());
-        
-        createNotification(
-            updater, 
-            title, 
-            message, 
-            NotificationType.SYSTEM, 
-            memorial.getIdMemorial().getMostSignificantBits()
-        );
-    }
-    
-    /**
-     * ✅ NUEVO: Notificación a colaboradores cuando se agrega contenido
-     */
-    @Transactional
-    public void notifyCollaborators(Memorial memorial, User excludeUser, String actionMessage) {
-        // Aquí deberías obtener la lista de colaboradores del memorial
-        // Por ahora, solo notificamos al dueño si no es el que hizo la acción
-        if (!memorial.getUser().getIdUser().equals(excludeUser.getIdUser())) {
-            String title = "Actividad en memorial";
-            String message = String.format("%s en el memorial '%s'", actionMessage, memorial.getName());
-            
-            createNotification(
-                memorial.getUser(), 
-                title, 
-                message, 
-                NotificationType.MEMORIAL_SHARED, 
-                memorial.getIdMemorial().getMostSignificantBits()
-            );
-        }
-    }
-    
-    /**
-     * Crea y envía una notificación de recordatorio
-     */
-    @Transactional
-    public void createReminderNotification(User user, String title, Long reminderId) {
-        Notification notification = new Notification();
-        notification.setUserId(user.getIdUser());
-        notification.setTitle("Recordatorio");
-        notification.setMessage(title);
-        notification.setType(NotificationType.REMINDER);
-        notification.setRelatedEntityId(reminderId);
-        notification.setRead(false);
-        notification.setCreatedDate(LocalDateTime.now());
-        
-        notificationRepository.save(notification);
-        
-        fcmService.sendReminderNotification(user, title, reminderId);
-    }
-    
-    /**
-     * Crea y envía una notificación de comentario
-     */
-    @Transactional
-    public void createCommentNotification(User targetUser, String commenterName, 
-                                         String comment, Long memorialId) {
-        Notification notification = new Notification();
-        notification.setUserId(targetUser.getIdUser());
-        notification.setTitle("Nuevo comentario");
-        notification.setMessage(commenterName + " comentó: " + comment);
-        notification.setType(NotificationType.COMMENT);
-        notification.setRelatedEntityId(memorialId);
-        notification.setRead(false);
-        notification.setCreatedDate(LocalDateTime.now());
-        
-        notificationRepository.save(notification);
-        
-        fcmService.sendCommentNotification(targetUser, commenterName, comment, memorialId);
-    }
-    
-    /**
-     * ✅ MEJORADO: Crea notificación genérica con push notification
-     */
-    @Transactional
-    public void createNotification(User user, String title, String message, 
-                                   NotificationType type, Long relatedEntityId) {
+        // Crear notificación en base de datos
         Notification notification = new Notification();
         notification.setUserId(user.getIdUser());
         notification.setTitle(title);
@@ -252,15 +121,255 @@ public class NotificationService {
         
         notificationRepository.save(notification);
         
-        // Enviar push notification
-        Map<String, String> data = new HashMap<>();
-        data.put("type", type.toString());
-        if (relatedEntityId != null) {
-            data.put("relatedEntityId", String.valueOf(relatedEntityId));
+        // Enviar push notification si se requiere
+        if (sendPush) {
+            Map<String, String> data = new HashMap<>();
+            data.put("type", type.toString());
+            if (relatedEntityId != null) {
+                data.put("relatedEntityId", String.valueOf(relatedEntityId));
+            }
+            
+            fcmService.sendNotificationToUser(user, title, message, data);
         }
         
-        fcmService.sendNotificationToUser(user, title, message, data);
+        System.out.println(String.format("✅ Notificación creada: [%s] %s - %s", 
+            type, title, message));
     }
+    
+    /**
+     * Sobrecarga simplificada (con push por defecto)
+     */
+    @Transactional
+    public void createNotification(
+            User user, 
+            NotificationType type,
+            String title, 
+            String message, 
+            Long relatedEntityId) {
+        createNotification(user, type, title, message, relatedEntityId, true);
+    }
+    
+    /**
+     * Sobrecarga aún más simple (sin relatedEntityId)
+     */
+    @Transactional
+    public void createNotification(
+            User user, 
+            NotificationType type,
+            String title, 
+            String message) {
+        createNotification(user, type, title, message, null, true);
+    }
+    
+    // ==================== MÉTODOS DE CONVENIENCIA (USAN EL GENÉRICO) ====================
+    
+    /**
+     * ✅ Notificación al crear memorial
+     */
+    @Transactional
+    public void notifyMemorialCreated(User creator, Memorial memorial) {
+        createNotification(
+            creator,
+            NotificationType.SYSTEM,
+            "Memorial creado",
+            String.format("Has creado el memorial '%s'", memorial.getName()),
+            memorial.getIdMemorial().getMostSignificantBits()
+        );
+    }
+    
+    /**
+     * ✅ Notificación al actualizar memorial
+     */
+    @Transactional
+    public void notifyMemorialUpdated(User updater, Memorial memorial) {
+        createNotification(
+            updater,
+            NotificationType.SYSTEM,
+            "Memorial actualizado",
+            String.format("El memorial '%s' ha sido actualizado", memorial.getName()),
+            memorial.getIdMemorial().getMostSignificantBits()
+        );
+    }
+    
+    /**
+     * ✅ Notificación al crear memoria (con análisis de archivos)
+     * @param creator Usuario que creó la memoria
+     * @param memoryTitle Título de la memoria
+     * @param memoryId ID de la memoria
+     * @param fileDetails Detalles de archivos (ej: "con 2 imágenes, 1 video") - puede ser null
+     */
+    @Transactional
+    public void notifyMemoryCreated(User creator, String memoryTitle, Long memoryId, String fileDetails) {
+        String message = fileDetails != null 
+            ? String.format("Agregaste '%s' %s", memoryTitle, fileDetails)
+            : String.format("Agregaste '%s'", memoryTitle);
+        
+        createNotification(
+            creator,
+            NotificationType.SYSTEM,
+            "Memoria agregada",
+            message,
+            memoryId
+        );
+    }
+    
+    /**
+     * ✅ Notificación a colaboradores
+     */
+    @Transactional
+    public void notifyCollaborators(Memorial memorial, User excludeUser, String actionMessage) {
+        if (!memorial.getUser().getIdUser().equals(excludeUser.getIdUser())) {
+            createNotification(
+                memorial.getUser(),
+                NotificationType.MEMORIAL_SHARED,
+                "Actividad en memorial",
+                String.format("%s en el memorial '%s'", actionMessage, memorial.getName()),
+                memorial.getIdMemorial().getMostSignificantBits()
+            );
+        }
+    }
+    
+    /**
+     * ✅ Notificación de recordatorio
+     */
+    @Transactional
+    public void notifyReminder(User user, String reminderTitle, Long reminderId) {
+        createNotification(
+            user,
+            NotificationType.REMINDER,
+            "Recordatorio",
+            reminderTitle,
+            reminderId
+        );
+    }
+    
+    /**
+     * ✅ Notificación de comentario
+     */
+    @Transactional
+    public void notifyComment(User targetUser, String commenterName, String comment, Long memorialId) {
+        createNotification(
+            targetUser,
+            NotificationType.COMMENT,
+            "Nuevo comentario",
+            String.format("%s comentó: %s", commenterName, comment),
+            memorialId
+        );
+    }
+    
+    /**
+     * ✅ Notificación de suscripción activada
+     */
+    @Transactional
+    public void notifySubscriptionActivated(User user, String planName, String frequency) {
+        createNotification(
+            user,
+            NotificationType.SUBSCRIPTION,
+            "Suscripción activada",
+            String.format("Tu suscripción %s (%s) está activa", planName, frequency),
+            null
+        );
+    }
+    
+    /**
+     * ✅ Notificación de suscripción próxima a vencer
+     */
+    @Transactional
+    public void notifySubscriptionExpiring(User user, String planName, int daysRemaining) {
+        createNotification(
+            user,
+            NotificationType.SUBSCRIPTION,
+            "Suscripción por vencer",
+            String.format("Tu suscripción %s vence en %d días", planName, daysRemaining),
+            null
+        );
+    }
+    
+    /**
+     * ✅ Notificación de pago exitoso
+     */
+    @Transactional
+    public void notifyPaymentSuccess(User user, double amount, String planName) {
+        createNotification(
+            user,
+            NotificationType.PAYMENT,
+            "Pago procesado",
+            String.format("Se ha procesado tu pago de $%.2f USD para %s", amount, planName),
+            null
+        );
+    }
+    
+    /**
+     * ✅ Notificación de pago fallido
+     */
+    @Transactional
+    public void notifyPaymentFailed(User user, String reason) {
+        createNotification(
+            user,
+            NotificationType.PAYMENT,
+            "Error en pago",
+            String.format("No se pudo procesar tu pago: %s", reason),
+            null
+        );
+    }
+    
+    /**
+     * ✅ Notificación de memorial compartido
+     */
+    @Transactional
+    public void notifyMemorialShared(User owner, String shareLink, String memorialName) {
+        createNotification(
+            owner,
+            NotificationType.MEMORIAL_SHARED,
+            "Memorial compartido",
+            String.format("Has creado un enlace público para '%s'", memorialName),
+            null
+        );
+    }
+    
+    /**
+     * ✅ Notificación de documental generado
+     */
+    @Transactional
+    public void notifyDocumentaryCompleted(User creator, String memorialName, Long documentaryId) {
+        createNotification(
+            creator,
+            NotificationType.SYSTEM,
+            "Documental listo",
+            String.format("Tu documental de '%s' está disponible", memorialName),
+            documentaryId
+        );
+    }
+    
+    /**
+     * ✅ Notificación de documental fallido
+     */
+    @Transactional
+    public void notifyDocumentaryFailed(User creator, String memorialName, String reason) {
+        createNotification(
+            creator,
+            NotificationType.SYSTEM,
+            "Error al generar documental",
+            String.format("No se pudo generar el documental de '%s': %s", memorialName, reason),
+            null
+        );
+    }
+    
+    /**
+     * ✅ Notificación de reflexión creada
+     */
+    @Transactional
+    public void notifyReflectionCreated(User creator, String reflectionTitle) {
+        createNotification(
+            creator,
+            NotificationType.SYSTEM,
+            "Reflexión guardada",
+            String.format("Has guardado la reflexión '%s'", reflectionTitle),
+            null
+        );
+    }
+    
+    // ==================== UTILIDADES ====================
     
     private NotificationResponse toResponse(Notification notification) {
         NotificationResponse response = new NotificationResponse();

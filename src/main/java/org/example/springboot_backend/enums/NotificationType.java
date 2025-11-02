@@ -5,5 +5,8 @@ public enum NotificationType {
     COMMENT,
     LIKE,
     MEMORIAL_SHARED,
-    SYSTEM
+    SYSTEM,
+    SUBSCRIPTION,
+    PAYMENT,
+    DOCUMENTARY
 }

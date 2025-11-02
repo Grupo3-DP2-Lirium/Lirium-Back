@@ -85,15 +85,16 @@ public class MemoryController {
             // Crear memoria
             MemoryResponse response = memoryService.createMemory(request, files, user);
             
-            // ✅ NUEVO: Analizar archivos y crear mensaje detallado
+            // ✅ CORREGIDO: Construir mensaje y usar método genérico
             String memoryTitle = request.getTitle() != null ? request.getTitle() : "Nueva memoria";
-            String notificationMessage = buildNotificationMessage(memoryTitle, files);
+            String fileDetails = buildFileDetails(files);
             
-            // Crear notificación con detalles
-            notificationService.notifyMemoryCreatedDetailed(
+            // Usar el método genérico notifyMemoryCreated
+            notificationService.notifyMemoryCreated(
                 user, 
-                notificationMessage,
-                response.getIdMemory().getMostSignificantBits()
+                memoryTitle,
+                response.getIdMemory().getMostSignificantBits(),
+                fileDetails
             );
             
             // ✅ Si el memorial es colaborativo, notificar al dueño
@@ -122,11 +123,11 @@ public class MemoryController {
     }
     
     /**
-     * ✅ Construye mensaje inteligente según tipo de archivos
+     * ✅ Construye detalles de archivos para notificación
      */
-    private String buildNotificationMessage(String title, MultipartFile[] files) {
+    private String buildFileDetails(MultipartFile[] files) {
         if (files == null || files.length == 0) {
-            return String.format("Agregaste '%s'", title);
+            return null;
         }
         
         int imageCount = 0;
@@ -149,32 +150,32 @@ public class MemoryController {
             }
         }
         
-        StringBuilder message = new StringBuilder(String.format("Agregaste '%s' con ", title));
+        StringBuilder details = new StringBuilder("con ");
         boolean needsComma = false;
         
         if (imageCount > 0) {
-            message.append(imageCount).append(imageCount == 1 ? " imagen" : " imágenes");
+            details.append(imageCount).append(imageCount == 1 ? " imagen" : " imágenes");
             needsComma = true;
         }
         
         if (videoCount > 0) {
-            if (needsComma) message.append(", ");
-            message.append(videoCount).append(videoCount == 1 ? " video" : " videos");
+            if (needsComma) details.append(", ");
+            details.append(videoCount).append(videoCount == 1 ? " video" : " videos");
             needsComma = true;
         }
         
         if (audioCount > 0) {
-            if (needsComma) message.append(", ");
-            message.append(audioCount).append(audioCount == 1 ? " audio" : " audios");
+            if (needsComma) details.append(", ");
+            details.append(audioCount).append(audioCount == 1 ? " audio" : " audios");
             needsComma = true;
         }
         
         if (documentCount > 0) {
-            if (needsComma) message.append(", ");
-            message.append(documentCount).append(documentCount == 1 ? " documento" : " documentos");
+            if (needsComma) details.append(", ");
+            details.append(documentCount).append(documentCount == 1 ? " documento" : " documentos");
         }
         
-        return message.toString();
+        return details.toString();
     }
     
     /**
@@ -187,12 +188,14 @@ public class MemoryController {
         
         boolean hasImages = false;
         boolean hasVideos = false;
+        boolean hasAudios = false;
         
         for (MultipartFile file : files) {
             String mimeType = file.getContentType();
             if (mimeType != null) {
                 if (mimeType.startsWith("image/")) hasImages = true;
                 if (mimeType.startsWith("video/")) hasVideos = true;
+                if (mimeType.startsWith("audio/")) hasAudios = true;
             }
         }
         
@@ -202,6 +205,8 @@ public class MemoryController {
             return "con imágenes";
         } else if (hasVideos) {
             return "con videos";
+        } else if (hasAudios) {
+            return "con audios";
         } else {
             return "con archivos";
         }
@@ -225,38 +230,33 @@ public class MemoryController {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            var memories = memoryService.listByAuthor(user); // retorna List<MemoryResponse> con archivos en Base64
+            var memories = memoryService.listByAuthor(user);
             return ResponseEntity.ok(memories);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 
-    // Update memory
     @PutMapping(value = "/{memoryId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> updateMemory(
             @PathVariable UUID memoryId,
             @RequestPart("memory") String memoryJson,
             @RequestPart(value = "files", required = false) MultipartFile[] files,
-            @RequestPart(value = "filesToDelete", required = false) String filesToDeleteJson, // <-- nuevo
+            @RequestPart(value = "filesToDelete", required = false) String filesToDeleteJson,
             Authentication authentication) {
         try {
-            // Parse JSON a MemoryCreateRequest
             MemoryCreateRequest request = objectMapper.readValue(memoryJson, MemoryCreateRequest.class);
 
-            // Parse JSON de archivos a eliminar (opcional)
             List<FileDeleteRequest> filesToDelete = new ArrayList<>();
             if (filesToDeleteJson != null && !filesToDeleteJson.isEmpty()) {
                 filesToDelete = Arrays.asList(objectMapper.readValue(filesToDeleteJson, FileDeleteRequest[].class));
             }
 
-            // Obtener usuario logueado
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Llamar al servicio de actualización
             MemoryResponse response = memoryService.updateMemory(memoryId, request, files, filesToDelete, user);
 
             return ResponseEntity.ok(response);
@@ -265,24 +265,20 @@ public class MemoryController {
         }
     }
 
-    // Delete memory
     @DeleteMapping("/{memoryId}")
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> deleteMemory(
             @PathVariable UUID memoryId,
             Authentication authentication) {
         try {
-            // Obtener usuario logueado
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Llamar al servicio de eliminación
             memoryService.deleteMemory(memoryId, user);
 
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            // Manejar errores específicos
             if (e.getMessage().contains("not found")) {
                 return ResponseEntity.status(404).body("Memory not found: " + e.getMessage());
             } else if (e.getMessage().contains("not have permission")) {
@@ -300,9 +296,8 @@ public class MemoryController {
             @RequestParam UUID memorialId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int size,
-            Authentication authentication
-    ) {
-        // (opcional) validar acceso con usuario
+            Authentication authentication) {
+        
         String userEmail = authentication.getName();
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -317,9 +312,8 @@ public class MemoryController {
             @RequestParam UUID memorialId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int size,
-            Authentication authentication
-    ) {
-        // (opcional) validar acceso con usuario
+            Authentication authentication) {
+        
         String userEmail = authentication.getName();
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -350,5 +344,4 @@ public class MemoryController {
 
         return ResponseEntity.ok(memoryService.getMemoriesByType(memorialId, user));
     }
-
 }

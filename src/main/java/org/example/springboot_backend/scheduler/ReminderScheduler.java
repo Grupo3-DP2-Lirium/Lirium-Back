@@ -2,6 +2,7 @@ package org.example.springboot_backend.scheduler;
 
 import org.example.springboot_backend.entity.Reminder;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.enums.NotificationType;
 import org.example.springboot_backend.repository.ReminderRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.NotificationService;
@@ -68,8 +69,8 @@ public class ReminderScheduler {
                     if (userOpt.isPresent()) {
                         User user = userOpt.get();
                         
-                        // Crear y enviar la notificación
-                        notificationService.createReminderNotification(
+                        // ✅ CORREGIDO: Usar el método genérico
+                        notificationService.notifyReminder(
                             user,
                             reminder.getTitle(),
                             reminder.getIdReminder()
