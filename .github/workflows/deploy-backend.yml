@@ -125,6 +125,12 @@ jobs:
         
         EOF
 
+    # 6.1. Generate Firebase credentials from secret
+    - name: Generate firebase.json
+      run: |
+        echo '${{ secrets.FIREBASE_CREDENTIALS }}' > src/main/resources/firebase.json
+        echo "✅ Firebase credentials file created"
+
     # 7. Login a Azure
     - name: Azure Login
       uses: azure/login@v1

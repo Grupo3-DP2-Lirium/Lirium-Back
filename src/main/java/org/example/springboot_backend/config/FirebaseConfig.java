@@ -6,8 +6,7 @@ import com.google.firebase.FirebaseOptions;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.IOException;
 
 @Configuration
@@ -18,18 +17,20 @@ public class FirebaseConfig {
         if (FirebaseApp.getApps().isEmpty()) {
             FirebaseOptions options;
 
-            // Si existe el archivo de credenciales local (modo desarrollo)
-            File credentialsFile = new File("src/main/resources/firebase.json");
+            // Intentar cargar desde classpath (funciona tanto en dev como en producción JAR)
+            InputStream serviceAccount = getClass().getResourceAsStream("/firebase.json");
 
-            if (credentialsFile.exists()) {
-                try (FileInputStream serviceAccount = new FileInputStream(credentialsFile)) {
+            if (serviceAccount != null) {
+                try {
                     options = FirebaseOptions.builder()
                             .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                             .build();
-                    System.out.println("✅ Firebase inicializado con credenciales locales");
+                    System.out.println("✅ Firebase inicializado con credenciales desde classpath");
+                } finally {
+                    serviceAccount.close();
                 }
             } else {
-                // Si no existe, intenta usar las credenciales del entorno (modo producción)
+                // Fallback: intentar usar credenciales del entorno (Google Cloud)
                 options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.getApplicationDefault())
                         .build();
