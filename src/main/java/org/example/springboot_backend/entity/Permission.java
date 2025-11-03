@@ -1,7 +1,6 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity

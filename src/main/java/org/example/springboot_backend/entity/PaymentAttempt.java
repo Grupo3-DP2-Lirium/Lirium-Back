@@ -11,8 +11,13 @@ public class PaymentAttempt {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID idPaymentAttempt;
 
-    private int userId;
-    private int planId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "plan_id")
+    private Plan plan;
 
     @Column(nullable = false)
     private double amount;
@@ -40,12 +45,14 @@ public class PaymentAttempt {
     private String failureReason;
 
     // getters and setters
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+    public Plan getPlan() { return plan; }
+    public void setPlan(Plan plan) { this.plan = plan; }
     public UUID getIdPaymentAttempt() { return idPaymentAttempt; }
     public void setIdPaymentAttempt(UUID idPaymentAttempt) { this.idPaymentAttempt = idPaymentAttempt; }
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
-    public int getPlanId() { return planId; }
-    public void setPlanId(int planId) { this.planId = planId; }
+    public String getTransactionId() { return transactionId; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
     public double getAmount() { return amount; }
     public void setAmount(double amount) { this.amount = amount; }
     public PaymentAttemptStatus getStatus() { return status; }

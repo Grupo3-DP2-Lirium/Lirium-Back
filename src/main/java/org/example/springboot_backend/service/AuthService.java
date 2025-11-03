@@ -6,6 +6,7 @@ import org.example.springboot_backend.dto.RegisterUserDTO;
 import org.example.springboot_backend.dto.UserResponseDTO;
 import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.entity.Role;
+import org.example.springboot_backend.entity.Subscription;
 import org.example.springboot_backend.enums.UserStatus;
 import org.example.springboot_backend.exception.UserNotFoundException;
 import org.example.springboot_backend.exception.InvalidCredentialsException;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -32,15 +34,17 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
+    private final SubscriptionService subscriptionService;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository, 
                       JwtService jwtService, AuthenticationManager authenticationManager,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder, SubscriptionService subscriptionService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
+        this.subscriptionService = subscriptionService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -56,6 +60,8 @@ public class AuthService {
                 .orElseThrow(() -> new UserNotFoundException("User with email '" + request.getEmail() + "' not found"));
 
         String token = jwtService.generateToken(user.getEmail());
+
+        System.out.println("JWT GENERADO: " + token);
         
         // Get the first role name (assuming user has at least one role)
         String roleName = user.getRoles().stream()
@@ -63,7 +69,28 @@ public class AuthService {
                 .map(Role::getName)
                 .orElse("USER");
         
-        return new LoginResponse(token, user.getEmail(), roleName);
+        Subscription activeSub = subscriptionService.getActiveSubscription(user);
+
+        // Default values for users without plan (Free)
+        String planName = "FREE";
+        List<String> permissions = List.of();
+
+        if (activeSub != null && activeSub.getPlan() != null) {
+
+            System.out.println("Suscripción activa encontrada: " + activeSub.getIdSubscription());
+            System.out.println("Plan del usuario: " + activeSub.getPlan().getName());
+
+            planName = activeSub.getPlan().getName();
+            permissions = subscriptionService.getPlanPermissions(activeSub.getPlan().getIdPlan());
+
+            System.out.println("Permisos del plan: " + permissions);
+        } else {
+            System.out.println("Usuario sin suscripción activa. Se asigna plan FREE");
+        }
+
+        System.out.println("Plan final enviado al cliente: " + planName);
+
+        return new LoginResponse(token, user.getEmail(), roleName, planName, permissions);
     }
 
     public UserResponseDTO registerUser(RegisterUserDTO registerRequest) {
