@@ -79,6 +79,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/files/view/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
+                .requestMatchers("/api/image-enhancer/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir crear memorias
                 .requestMatchers(HttpMethod.GET, "/api/memories").permitAll()  // ✅ TEMPORAL: Permitir listar memorias
                 .requestMatchers(HttpMethod.OPTIONS, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir OPTIONS

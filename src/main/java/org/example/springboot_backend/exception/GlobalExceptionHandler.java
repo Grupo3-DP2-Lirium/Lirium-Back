@@ -88,6 +88,82 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(errorResponse);
     }
 
+    // ========== Password Recovery Exception Handlers ==========
+    
+    @ExceptionHandler(CodeExpiredException.class)
+    public ResponseEntity<ErrorResponse> handleCodeExpired(
+            CodeExpiredException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Code Expired",
+            HttpStatus.BAD_REQUEST.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidCodeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCode(
+            InvalidCodeException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Invalid Code",
+            HttpStatus.BAD_REQUEST.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(MaxAttemptsExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxAttemptsExceeded(
+            MaxAttemptsExceededException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Max Attempts Exceeded",
+            HttpStatus.TOO_MANY_REQUESTS.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResetToken(
+            InvalidResetTokenException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Invalid Reset Token",
+            HttpStatus.BAD_REQUEST.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(WeakPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleWeakPassword(
+            WeakPasswordException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Weak Password",
+            HttpStatus.BAD_REQUEST.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(
+            TooManyRequestsException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            ex.getMessage(),
+            "Too Many Requests",
+            HttpStatus.TOO_MANY_REQUESTS.value(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+    }
+
+    // ========== End Password Recovery Exception Handlers ==========
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
             MethodArgumentNotValidException ex, WebRequest request) {
