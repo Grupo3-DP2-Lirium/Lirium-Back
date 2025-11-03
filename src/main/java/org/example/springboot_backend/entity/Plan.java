@@ -27,6 +27,9 @@ public class Plan {
     @Column(name = "active", nullable = false)
     private Boolean active;
 
+    @Column(name = "paypal_plan_id")
+    private String paypalPlanId;
+
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "plan_permission",
@@ -60,4 +63,7 @@ public class Plan {
 
     public Set<Permission> getPermissions() { return permissions; }
     public void setPermissions(Set<Permission> permissions) { this.permissions = permissions; }
+
+    public String getPaypalPlanId() { return paypalPlanId; }
+    public void setPaypalPlanId(String paypalPlanId) { this.paypalPlanId = paypalPlanId; }
 }
