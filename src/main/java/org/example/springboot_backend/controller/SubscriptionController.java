@@ -8,7 +8,9 @@ import org.example.springboot_backend.enums.PaymentMethod;
 import org.example.springboot_backend.enums.SubscriptionStatus;
 import org.example.springboot_backend.repository.SubscriptionRepository;
 import org.example.springboot_backend.repository.UserRepository;
+import org.example.springboot_backend.service.NotificationService;
 import org.example.springboot_backend.service.SubscriptionService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -21,11 +23,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/subscriptions")
 public class SubscriptionController {
-
+    
     private final SubscriptionService subscriptionService;
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
-
+    
+    @Autowired
+    private NotificationService notificationService;
+    
     public SubscriptionController(SubscriptionService subscriptionService,
                                   UserRepository userRepository,
                                   SubscriptionRepository subscriptionRepository) {
@@ -33,37 +38,53 @@ public class SubscriptionController {
         this.userRepository = userRepository;
         this.subscriptionRepository = subscriptionRepository;
     }
-
-    // 1. Listar todos los planes
+    
     @GetMapping("/plans")
     public ResponseEntity<List<Plan>> getAllPlans() {
         List<Plan> plans = subscriptionService.getAllPlans();
         return ResponseEntity.ok(plans);
     }
-
-    // 2. Crear una suscripción
+    
+    /**
+     * ✅ ACTUALIZADO: Crea notificación cuando se activa suscripción
+     */
     @PostMapping("/create")
     public ResponseEntity<?> createSubscription(
             @RequestParam UUID planId,
             @RequestParam UUID userId,
             @RequestParam PaymentMethod method,
-            @RequestParam BillingPeriod frequency
-    ) {
-        // Buscar usuario
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        // Validar si ya tiene una suscripción activa
-        boolean hasActive = subscriptionRepository.existsByUserIdUserAndStatus(userId, SubscriptionStatus.ACTIVE);
-        if (hasActive) {
-            return ResponseEntity.badRequest().body("El usuario ya tiene una suscripción activa");
+            @RequestParam BillingPeriod frequency) {
+        try {
+            // Buscar usuario
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            
+            // Validar si ya tiene una suscripción activa
+            boolean hasActive = subscriptionRepository.existsByUserIdUserAndStatus(userId, SubscriptionStatus.ACTIVE);
+            if (hasActive) {
+                return ResponseEntity.badRequest().body("El usuario ya tiene una suscripción activa");
+            }
+            
+            // Crear suscripción
+            Subscription subscription = subscriptionService.createSubscription(user, planId, method, frequency);
+            
+            // ✅ NUEVO: Notificar activación
+            String frequencyText = frequency == BillingPeriod.MONTHLY ? "Mensual" : "Anual";
+            notificationService.notifySubscriptionActivated(
+                user, 
+                subscription.getPlan().getName(), 
+                frequencyText
+            );
+            
+            System.out.println("✅ Suscripción creada y notificación enviada");
+            
+            return ResponseEntity.ok(subscription);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
-
-        // Crear suscripción
-        Subscription subscription = subscriptionService.createSubscription(user, planId, method, frequency);
-        return ResponseEntity.ok(subscription);
     }
-
+    
     @GetMapping(value = "/current-subscription", produces = MediaType.APPLICATION_JSON_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> getCurrentSubscription(Authentication authentication) {
@@ -71,34 +92,31 @@ public class SubscriptionController {
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
+            
             Subscription subscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
                     .orElse(null);
-
+            
             SubscriptionResponse response = new SubscriptionResponse();
-
+            
             if (subscription == null) {
-                // Usuario Free → status NONE
                 response.setStatus(SubscriptionStatus.NONE);
                 response.setFrequency(null);
                 response.setStartDate(null);
                 response.setEndDate(null);
                 response.setPaymentMethod(null);
-
                 response.setPlanId(null);
                 response.setPlanName("Free");
                 response.setPlanDescription("Plan gratuito");
                 response.setPlanPrice(0.0);
                 response.setPlanCurrency("USD");
             } else {
-                // Mapear suscripción y plan
                 response.setSubscriptionId(subscription.getIdSubscription());
                 response.setStatus(subscription.getStatus());
                 response.setFrequency(subscription.getFrequency());
                 response.setStartDate(subscription.getStartDate());
                 response.setEndDate(subscription.getEndDate());
                 response.setPaymentMethod(subscription.getCurrentPaymentMethod());
-
+                
                 Plan plan = subscription.getPlan();
                 response.setPlanId(plan.getIdPlan());
                 response.setPlanName(plan.getName());
@@ -106,12 +124,11 @@ public class SubscriptionController {
                 response.setPlanPrice(plan.getPrice());
                 response.setPlanCurrency(plan.getCurrency());
             }
-
+            
             return ResponseEntity.ok(response);
+            
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching current subscription: " + e.getMessage());
         }
     }
-
-    
 }
