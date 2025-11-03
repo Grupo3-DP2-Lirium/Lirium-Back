@@ -35,6 +35,9 @@ dependencies {
     // Azure Blob Storage
     implementation 'com.azure:azure-storage-blob:12.25.1'
     
+    // SendGrid Email
+    implementation 'com.sendgrid:sendgrid-java:4.10.2'
+    
     runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
