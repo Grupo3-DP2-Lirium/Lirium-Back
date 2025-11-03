@@ -123,13 +123,10 @@ jobs:
         sendgrid.from.email=no-reply@vacapp.work
         sendgrid.from.name=Remory
         
+        # Firebase Credentials (JSON as environment variable)
+        firebase.credentials.json=${{ secrets.FIREBASE_CREDENTIALS }}
+        
         EOF
-
-    # 6.1. Generate Firebase credentials from secret
-    - name: Generate firebase.json
-      run: |
-        echo '${{ secrets.FIREBASE_CREDENTIALS }}' > src/main/resources/firebase.json
-        echo "✅ Firebase credentials file created"
 
     # 7. Login a Azure
     - name: Azure Login
