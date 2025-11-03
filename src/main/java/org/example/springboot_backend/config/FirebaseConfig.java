@@ -23,7 +23,7 @@ public class FirebaseConfig {
         if (FirebaseApp.getApps().isEmpty()) {
             FirebaseOptions options;
 
-            // Prioridad 1: Leer desde propiedad de Spring (producción)
+            // Prioridad 1: Leer desde propiedad de Spring (producción - JSON comprimido en una línea)
             if (firebaseCredentialsJson != null && !firebaseCredentialsJson.trim().isEmpty()) {
                 try (InputStream serviceAccount = new ByteArrayInputStream(
                         firebaseCredentialsJson.getBytes(StandardCharsets.UTF_8))) {
