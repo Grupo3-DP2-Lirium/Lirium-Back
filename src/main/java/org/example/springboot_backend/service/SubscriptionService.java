@@ -53,10 +53,6 @@ public class SubscriptionService {
         newSubscription.setStartDate(LocalDateTime.now());
         newSubscription.setPaypalSubscriptionId(subscriptionId);
 
-        /*switch (frequency) { // No hay endDate hasta que cancele o expire
-            case MONTHLY -> newSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
-            case YEARLY -> newSubscription.setEndDate(LocalDateTime.now().plusYears(1));
-        }*/
 
         newSubscription.setCreatedDate(LocalDateTime.now());
         newSubscription.setUpdatedDate(LocalDateTime.now());
@@ -110,6 +106,54 @@ public class SubscriptionService {
         activeSub.setUpdatedDate(LocalDateTime.now());
 
         return subscriptionRepository.save(activeSub);
+    }
+
+    // QUEDA PENDIENTE
+    public Subscription changePlan(User user, UUID newPlanId) {
+        Subscription activeSub = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+                .orElseThrow(() -> new RuntimeException("No hay suscripción activa"));
+
+        Plan newPlan = planRepository.findByIdPlan(newPlanId)
+                .orElseThrow(() -> new RuntimeException("Plan nuevo no encontrado"));
+
+        // Si es un upgrade, aplica inmediatamente
+        boolean isUpgrade = newPlan.getPrice() > activeSub.getPlan().getPrice();
+
+        if (isUpgrade) {
+            activeSub.setPlan(newPlan);
+            activeSub.setUpdatedDate(LocalDateTime.now());
+            return subscriptionRepository.save(activeSub);
+        } else {
+            // Si es downgrade, programa el cambio al final del ciclo
+            LocalDateTime endOfCycle = calculateEndOfBillingCycle(activeSub);
+            Subscription newSub = new Subscription();
+            newSub.setUser(user);
+            newSub.setPlan(newPlan);
+            newSub.setStatus(SubscriptionStatus.ACTIVE); // pendiente hasta final de ciclo
+            newSub.setStartDate(endOfCycle);
+            newSub.setCreatedDate(LocalDateTime.now());
+            newSub.setUpdatedDate(LocalDateTime.now());
+            return subscriptionRepository.save(newSub);
+        }
+    }
+
+    // Calcula el fin del ciclo actual de la suscripción
+    private LocalDateTime calculateEndOfBillingCycle(Subscription sub) {
+        BillingPeriod frequency = BillingPeriod.valueOf(sub.getFrequency());
+        LocalDateTime start = sub.getStartDate();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime end = start;
+
+        switch (frequency) {
+            case MONTHLY -> {
+                while (!end.isAfter(now)) end = end.plusMonths(1);
+            }
+            case YEARLY -> {
+                while (!end.isAfter(now)) end = end.plusYears(1);
+            }
+            default -> throw new RuntimeException("Unknown billing frequency");
+        }
+        return end;
     }
 
 }

@@ -72,7 +72,7 @@ public class AuthService {
         Subscription activeSub = subscriptionService.getActiveSubscription(user);
 
         // Default values for users without plan (Free)
-        String planName = "FREE";
+        String planName = "DESCUBRE_LIRIUM";
         List<String> permissions = List.of();
 
         if (activeSub != null && activeSub.getPlan() != null) {
