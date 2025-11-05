@@ -33,7 +33,7 @@ public class Subscription {
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
-    @Column(name = "end_date", nullable = false)
+    @Column(name = "end_date")
     private LocalDateTime endDate;
 
     @Column(name = "current_payment_method")
@@ -46,6 +46,9 @@ public class Subscription {
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
 
+    @Column(name = "paypal_subscription_id", unique = true)
+    private String paypalSubscriptionId;
+
     public Subscription() {
         this.idSubscription = UUID.randomUUID();
     }
@@ -53,11 +56,16 @@ public class Subscription {
     // Getters y setters
     public UUID getIdSubscription() { return idSubscription; }
     public void setIdSubscription(UUID idSubscription) { this.idSubscription = idSubscription; }
+    
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+    
     public Plan getPlan() { return plan; }
     public void setPlan(Plan plan) { this.plan = plan; }
 
+    public String getPaypalSubscriptionId() { return paypalSubscriptionId;}
+    public void setPaypalSubscriptionId(String paypalSubscriptionId) { this.paypalSubscriptionId = paypalSubscriptionId;}
+    
     public SubscriptionStatus getStatus() { return status; }
     public void setStatus(SubscriptionStatus status) { this.status = status; }
 

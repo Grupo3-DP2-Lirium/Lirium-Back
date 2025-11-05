@@ -116,7 +116,18 @@ jobs:
         spring.task.execution.pool.core-size=2
         spring.task.execution.pool.max-size=5
         spring.task.execution.pool.queue-capacity=100
+
+        # SendGrid Email Configuration
+        sendgrid.enabled=true
+        sendgrid.api.key=${{ secrets.SENDGRID_API_KEY }}
+        sendgrid.from.email=no-reply@vacapp.work
+        sendgrid.from.name=Remory
         
+        # Firebase Credentials (JSON comprimido en una línea)
+        firebase.credentials.json=${{ secrets.FIREBASE_CREDENTIALS }}
+        
+        ml.service.url=https://ai-image-enhancer-571288030577.us-central1.run.app
+
         EOF
 
     # 7. Login a Azure

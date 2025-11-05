@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,7 +61,7 @@ public class SubscriptionController {
         }
 
         // Crear suscripción
-        Subscription subscription = subscriptionService.createSubscription(user, planId, method, frequency);
+        Subscription subscription = subscriptionService.createSubscription(user, planId, "-", method, frequency);
         return ResponseEntity.ok(subscription);
     }
 
@@ -113,5 +114,13 @@ public class SubscriptionController {
         }
     }
 
-    
+    @PutMapping("/cancel")
+    public ResponseEntity<String> cancelSubscription(Principal principal) {
+        User user = userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        subscriptionService.cancelSubscription(user);
+
+        return ResponseEntity.ok("Subscription cancelled successfully");
+    }
 }
