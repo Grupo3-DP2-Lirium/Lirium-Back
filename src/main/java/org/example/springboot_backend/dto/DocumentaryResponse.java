@@ -1,26 +1,51 @@
 package org.example.springboot_backend.dto;
 
 import org.example.springboot_backend.enums.DocumentaryStatus;
+
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class DocumentaryResponse {
+public class DocumentaryResponse implements Serializable {
+
+    // Identificación y contexto
     private UUID idDocumentary;
     private UUID memorialId;
     private String memorialName;
+
+    // Metadatos visibles
     private String title;
     private String description;
-    private DocumentaryStatus status;
-    private Integer progress;
+
+    // Personalización del documental
+    private String narrativeFocus;
+    private String emotionalTone;     // nostalgic | joyful | formal | inspiring
+    private String styleFilter;       // warm | classic | modern | natural
+    private String resolution;        // 480p | 720p | 1080p
+    private String transitionType;    // fade, etc.
+    private Integer durationPerMemory;
+
+    // Proceso y estado
+    private DocumentaryStatus status; // DRAFT, PROCESSING, COMPLETED, PUBLISHED, FAILED, CANCELLED
+    private Integer progress;         // 0 - 100
+
+    // Resultado de render
     private String videoUrl;
-    private Long videoSize;
-    private Integer videoDuration;
+    private String thumbnailUrl;
+    private Long videoSize;           // bytes
+    private Integer videoDuration;    // segundos
     private Integer totalMemories;
+
+    // Errores y trazabilidad
     private String errorMessage;
+
+    // Timestamps
     private LocalDateTime createdDate;
     private LocalDateTime processingCompleted;
+    private LocalDateTime publishedDate;
+    private LocalDateTime updatedDate;
 
-    // Getters y Setters
+    // Getters & Setters
     public UUID getIdDocumentary() { return idDocumentary; }
     public void setIdDocumentary(UUID idDocumentary) { this.idDocumentary = idDocumentary; }
 
@@ -36,6 +61,24 @@ public class DocumentaryResponse {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
+    public String getNarrativeFocus() { return narrativeFocus; }
+    public void setNarrativeFocus(String narrativeFocus) { this.narrativeFocus = narrativeFocus; }
+
+    public String getEmotionalTone() { return emotionalTone; }
+    public void setEmotionalTone(String emotionalTone) { this.emotionalTone = emotionalTone; }
+
+    public String getStyleFilter() { return styleFilter; }
+    public void setStyleFilter(String styleFilter) { this.styleFilter = styleFilter; }
+
+    public String getResolution() { return resolution; }
+    public void setResolution(String resolution) { this.resolution = resolution; }
+
+    public String getTransitionType() { return transitionType; }
+    public void setTransitionType(String transitionType) { this.transitionType = transitionType; }
+
+    public Integer getDurationPerMemory() { return durationPerMemory; }
+    public void setDurationPerMemory(Integer durationPerMemory) { this.durationPerMemory = durationPerMemory; }
+
     public DocumentaryStatus getStatus() { return status; }
     public void setStatus(DocumentaryStatus status) { this.status = status; }
 
@@ -44,6 +87,9 @@ public class DocumentaryResponse {
 
     public String getVideoUrl() { return videoUrl; }
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
 
     public Long getVideoSize() { return videoSize; }
     public void setVideoSize(Long videoSize) { this.videoSize = videoSize; }
@@ -62,4 +108,10 @@ public class DocumentaryResponse {
 
     public LocalDateTime getProcessingCompleted() { return processingCompleted; }
     public void setProcessingCompleted(LocalDateTime processingCompleted) { this.processingCompleted = processingCompleted; }
+
+    public LocalDateTime getPublishedDate() { return publishedDate; }
+    public void setPublishedDate(LocalDateTime publishedDate) { this.publishedDate = publishedDate; }
+
+    public LocalDateTime getUpdatedDate() { return updatedDate; }
+    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
 }

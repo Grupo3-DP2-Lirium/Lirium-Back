@@ -325,31 +325,44 @@ public class AIClassificationService {
     /* ==================== PARA DOCUMENTALES ==================== */
 
     /**
-     * Genera una narración emotiva para un recuerdo específico
-     * basado en su título, descripción y contexto en la vida de la persona
+     * Genera narración considerando el enfoque narrativo y tono emocional del usuario
      *
      * @param nombrePersona Nombre de la persona fallecida
      * @param titulo Título del recuerdo
      * @param descripcion Descripción del recuerdo
      * @param fecha Fecha del recuerdo (opcional)
-     * @param posicion Posición en la línea de tiempo (ej: "primer recuerdo", "último recuerdo", "recuerdo 3 de 10")
+     * @param posicion Posición en la línea de tiempo
+     * @param narrativeFocus Enfoque narrativo definido por el usuario (ej: "enfocarse en su niñez y momentos familiares")
+     * @param emotionalTone Tono emocional (nostalgic, joyful, formal, inspiring)
      * @return Texto narrativo de 1-2 oraciones para usar como subtítulo
      */
     public String generarNarracionRecuerdo(String nombrePersona, String titulo,
                                            String descripcion, LocalDate fecha,
-                                           String posicion) {
+                                           String posicion, String narrativeFocus,
+                                           String emotionalTone) {
 
         if (titulo == null || titulo.isBlank()) {
             return "Un momento especial en la vida de " + nombrePersona;
         }
 
-        String fechaTexto = fecha != null ? fecha.format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", new java.util.Locale("es", "ES"))) : "en algún momento de su vida";
+        String fechaTexto = fecha != null ?
+                fecha.format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy", new java.util.Locale("es", "ES")))
+                : "en algún momento de su vida";
 
-        String prompt = buildNarrationPrompt(nombrePersona, titulo, descripcion, fechaTexto, posicion);
+        // Determinar estilo de narración según el tono emocional
+        String estiloTono = switch (emotionalTone != null ? emotionalTone.toLowerCase() : "nostalgic") {
+            case "joyful" -> "alegre y celebratorio, destacando la felicidad";
+            case "formal" -> "respetuoso y elegante, con tono solemne";
+            case "inspiring" -> "inspirador y motivacional, resaltando logros";
+            default -> "nostálgico y emotivo, con calidez";
+        };
+
+        String prompt = buildNarrationPromptWithFocus(nombrePersona, titulo, descripcion, fechaTexto,
+                posicion, narrativeFocus, estiloTono);
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("model", modelName);
-        payload.put("temperature", 0.7); // Más creativo
+        payload.put("temperature", 0.7);
         payload.put("max_tokens", 80);
         payload.put("stream", false);
         payload.put("messages", List.of(Map.of("role", "user", "content", prompt)));
@@ -360,19 +373,16 @@ public class AIClassificationService {
 
             String jsonText = extractJson(text);
             if (jsonText == null) {
-                // Fallback: usar el título
                 return titulo;
             }
 
             Map<String, Object> obj = MAPPER.readValue(jsonText, new TypeReference<>() {});
             String narracion = obj.get("narracion") != null ? obj.get("narracion").toString() : titulo;
 
-            // Limpiar y limitar longitud
             narracion = narracion.trim()
                     .replace("\"", "")
                     .replace("\n", " ");
 
-            // Limitar a máximo 150 caracteres para que sea legible
             if (narracion.length() > 150) {
                 narracion = narracion.substring(0, 147) + "...";
             }
@@ -382,16 +392,27 @@ public class AIClassificationService {
 
         } catch (Exception e) {
             System.err.println("⚠️ Error generando narración: " + e.getMessage());
-            return titulo; // Fallback al título
+            return titulo;
         }
     }
 
-    private String buildNarrationPrompt(String nombrePersona, String titulo,
-                                        String descripcion, String fechaTexto,
-                                        String posicion) {
+    /**
+     * ✨ NUEVO: Prompt actualizado con enfoque narrativo del usuario
+     */
+    private String buildNarrationPromptWithFocus(String nombrePersona, String titulo,
+                                                 String descripcion, String fechaTexto,
+                                                 String posicion, String narrativeFocus,
+                                                 String estiloTono) {
+
+        String enfoqueTexto = narrativeFocus != null && !narrativeFocus.isBlank()
+                ? "\n\nENFOQUE DEL USUARIO: " + narrativeFocus + "\n(Considera este enfoque al crear la narración)"
+                : "";
+
         return """
     Crea una narración emotiva y concisa (1-2 oraciones máximo, ~100 caracteres) para un documental 
     conmemorativo de %s. Esta narración aparecerá como subtítulo en el video.
+    
+    ESTILO REQUERIDO: %s
     
     La narración debe:
     - Ser emotiva pero no melodramática
@@ -400,6 +421,8 @@ public class AIClassificationService {
     - Ser breve y directa (máximo 2 oraciones cortas)
     - No usar comillas ni caracteres especiales
     - Conectar emocionalmente con quien la lee
+    - Seguir el estilo de tono indicado
+    %s
     
     Contexto del momento:
     - Título: "%s"
@@ -407,14 +430,29 @@ public class AIClassificationService {
     - Fecha: %s
     - Posición en la historia: %s
     
-    Ejemplos de buen estilo:
+    Ejemplos según tono:
+    
+    Nostálgico:
     - "En 1985, Jorge descubrió su pasión por la música que marcaría toda su vida"
-    - "María se graduó con honores, cumpliendo el sueño de su familia"
-    - "Un día de verano que cambiaría todo para siempre"
+    - "Aquellos veranos en la playa, donde todo parecía eterno"
+    
+    Alegre:
+    - "María celebró su graduación rodeada de todos los que amaba"
+    - "Un día lleno de risas y momentos inolvidables"
+    
+    Formal:
+    - "Don Roberto fue reconocido por su destacada trayectoria profesional"
+    - "Un legado de dedicación y excelencia que perdura"
+    
+    Inspirador:
+    - "Contra todo pronóstico, Ana cumplió su sueño de convertirse en doctora"
+    - "Su determinación cambió el destino de toda su familia"
     
     Responde SOLO con JSON: {"narracion": "tu texto aquí"}
     """.formatted(
                 sanitize(nombrePersona),
+                estiloTono,
+                enfoqueTexto,
                 sanitize(titulo),
                 sanitize(descripcion != null ? descripcion : ""),
                 fechaTexto,

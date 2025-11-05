@@ -320,18 +320,22 @@ public class DocumentaryProcessingService {
     }
 
     @Autowired
-    private AIClassificationService aiService; // ✅ Agregar esta inyección al inicio de la clase
+    private AIClassificationService aiService;
 
     /**
-     * Genera narraciones para todos los recuerdos usando IA
+     * ACTUALIZADO: Genera narraciones considerando el enfoque y tono del documental
      */
     private List<String> generarNarraciones(List<Memory> memories, Documentary documentary) {
         List<String> narraciones = new ArrayList<>();
 
         String nombrePersona = documentary.getMemorial().getName();
+        String narrativeFocus = documentary.getNarrativeFocus();
+        String emotionalTone = documentary.getEmotionalTone() != null ? documentary.getEmotionalTone() : "nostalgic";
         int total = memories.size();
 
         System.out.println("📝 Generando " + total + " narraciones con IA...");
+        System.out.println("   🎯 Enfoque narrativo: " + (narrativeFocus != null ? narrativeFocus : "sin especificar"));
+        System.out.println("   🎭 Tono emocional: " + emotionalTone);
 
         for (int i = 0; i < memories.size(); i++) {
             Memory memory = memories.get(i);
@@ -347,12 +351,15 @@ public class DocumentaryProcessingService {
             }
 
             try {
+                // ✨ ACTUALIZADO: Pasar narrativeFocus y emotionalTone
                 String narracion = aiService.generarNarracionRecuerdo(
                         nombrePersona,
                         memory.getTitle(),
                         memory.getDescription(),
                         memory.getPhotoDate(),
-                        posicion
+                        posicion,
+                        narrativeFocus,
+                        emotionalTone
                 );
                 narraciones.add(narracion);
 
