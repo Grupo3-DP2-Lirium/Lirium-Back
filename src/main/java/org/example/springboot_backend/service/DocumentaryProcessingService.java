@@ -9,8 +9,10 @@ import org.example.springboot_backend.repository.MemoryRepository;
 import org.example.springboot_backend.service.storage.AzureBlobStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
@@ -36,6 +38,12 @@ public class DocumentaryProcessingService {
     @Autowired
     private AzureBlobStorageService azureStorageService;
 
+    @Autowired
+    private AIClassificationService aiService;
+
+    @Autowired
+    private ApplicationContext applicationContext;
+
     @Value("${ffmpeg.path:/usr/bin/ffmpeg}")
     private String ffmpegPath;
 
@@ -45,15 +53,21 @@ public class DocumentaryProcessingService {
     @Value("${documentary.fonts.path:/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf}")
     private String fontsPath;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateProgressTransactional(UUID id, int progress, DocumentaryStatus status) {
+        Documentary d = documentaryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Documentary not found"));
+        if (status != null) d.setStatus(status);
+        d.setProgress(progress);
+        d.setUpdatedDate(LocalDateTime.now());
+        documentaryRepository.saveAndFlush(d);
+    }
+
     /**
      * Procesa el documental de manera asíncrona - VERSIÓN REAL
      */
     @Async
-    @Transactional
     public void processDocumentary(UUID documentaryId) {
-        Documentary documentary = documentaryRepository.findById(documentaryId)
-                .orElseThrow(() -> new RuntimeException("Documentary not found"));
-
         Path tempDir = null;
         List<Path> downloadedFiles = new ArrayList<>();
         Path outputVideo = null;
@@ -61,41 +75,47 @@ public class DocumentaryProcessingService {
         try {
             System.out.println("🎬 Starting REAL documentary generation: " + documentaryId);
 
-            // Actualizar estado a PROCESSING
-            documentary.setStatus(DocumentaryStatus.PROCESSING);
-            documentary.setProgress(5);
-            documentary.setProcessingStarted(LocalDateTime.now());
-            documentaryRepository.save(documentary);
+            Documentary documentary = documentaryRepository.findById(documentaryId)
+                    .orElseThrow(() -> new RuntimeException("Documentary not found"));
 
-            // 1. Obtener memories
-            List<Memory> memories = getMemoriesForDocumentary(documentary);
+            updateProgressTransactional(documentaryId, 5, DocumentaryStatus.PROCESSING);
+
+            // 👇 CAMBIO: Obtener el proxy desde ApplicationContext
+            DocumentaryProcessingService proxy = applicationContext.getBean(DocumentaryProcessingService.class);
+            List<Memory> memories = proxy.loadMemoriesWithFiles(documentary.getMemoryIds());
+
             System.out.println("📝 Found " + memories.size() + " memories");
-            updateProgress(documentary, 10);
+            updateProgressTransactional(documentaryId, 10, null);
 
             // 2. Crear directorio temporal
-            tempDir = Paths.get(tempPath, documentary.getIdDocumentary().toString());
+            tempDir = Paths.get(tempPath, documentaryId.toString());
             Files.createDirectories(tempDir);
             System.out.println("📁 Created temp directory: " + tempDir);
 
             // 3. Descargar archivos de Azure
             System.out.println("⬇️ Downloading media files from Azure...");
-            downloadedFiles = downloadMediaFilesReal(memories, tempDir, documentary);
-            updateProgress(documentary, 30);
+            downloadedFiles = downloadMediaFilesReal(memories, tempDir, documentaryId);
+            updateProgressTransactional(documentaryId, 30, null);
 
             // 4. Generar video con FFmpeg
             System.out.println("🎥 Generating video with FFmpeg...");
+
+            documentary = documentaryRepository.findById(documentaryId)
+                    .orElseThrow(() -> new RuntimeException("Documentary not found"));
+
             outputVideo = generateVideoWithFFmpeg(memories, downloadedFiles, tempDir, documentary);
-            updateProgress(documentary, 80);
+            updateProgressTransactional(documentaryId, 80, null);
 
             // 5. Subir video a Azure
             System.out.println("☁️ Uploading video to Azure...");
             String videoUrl = uploadVideoToAzureReal(outputVideo, documentary);
-            updateProgress(documentary, 95);
+            updateProgressTransactional(documentaryId, 95, null);
 
-            // 6. Actualizar documentary con resultado
+            // 6. Actualizar documentary con resultado final
+            documentary = documentaryRepository.findById(documentaryId)
+                    .orElseThrow(() -> new RuntimeException("Documentary not found"));
+
             documentary.setVideoUrl(videoUrl);
-            documentary.setStatus(DocumentaryStatus.COMPLETED);
-            documentary.setProgress(100);
             documentary.setProcessingCompleted(LocalDateTime.now());
 
             if (Files.exists(outputVideo)) {
@@ -103,31 +123,77 @@ public class DocumentaryProcessingService {
                 documentary.setVideoDuration(memories.size() * documentary.getDurationPerMemory() + 10);
             }
 
+            // 👇 PRIMERO guardar todos los datos
             documentaryRepository.save(documentary);
+
+            // 👇 LUEGO actualizar status a COMPLETED
+            updateProgressTransactional(documentaryId, 100, DocumentaryStatus.COMPLETED);
 
             System.out.println("✅ Documentary completed successfully!");
             System.out.println("   - Video URL: " + videoUrl);
             System.out.println("   - Size: " + (documentary.getVideoSize() / 1024 / 1024) + " MB");
+            System.out.println("   - Duration: " + documentary.getVideoDuration() + " seconds");
 
         } catch (Exception e) {
             System.err.println("❌ Documentary generation failed: " + e.getMessage());
             e.printStackTrace();
 
-            documentary.setStatus(DocumentaryStatus.FAILED);
-            documentary.setErrorMessage(e.getMessage());
-            documentary.setProcessingCompleted(LocalDateTime.now());
-            documentaryRepository.save(documentary);
+            updateProgressTransactional(documentaryId, 0, DocumentaryStatus.FAILED);
+
+            Documentary documentary = documentaryRepository.findById(documentaryId).orElse(null);
+            if (documentary != null) {
+                documentary.setErrorMessage(e.getMessage());
+                documentary.setProcessingCompleted(LocalDateTime.now());
+                documentaryRepository.save(documentary);
+            }
 
         } finally {
-            // Limpiar archivos temporales
             cleanupTempFiles(downloadedFiles, outputVideo, tempDir);
         }
     }
 
     /**
+     * Carga memories con files en contexto transaccional
+     */
+    @Transactional(readOnly = true)
+    public List<Memory> loadMemoriesWithFiles(String memoryIdsString) {
+        System.out.println("📦 Loading memories with files in transaction...");
+
+        String[] memoryIdStrings = memoryIdsString.split(",");
+        List<UUID> memoryIds = Arrays.stream(memoryIdStrings)
+                .map(UUID::fromString)
+                .collect(Collectors.toList());
+
+        List<Memory> memories = memoryRepository.findAllById(memoryIds);
+
+        System.out.println("📦 Loaded " + memories.size() + " memories, initializing files...");
+
+        // Inicializar files mientras la sesión está activa
+        for (Memory memory : memories) {
+            if (memory.getFiles() != null) {
+                int fileCount = memory.getFiles().size();
+                System.out.println("   ✅ Memory " + memory.getIdMemory() + " has " + fileCount + " files");
+            }
+        }
+
+        List<Memory> sortedMemories = memories.stream()
+                .sorted(Comparator.comparing(m ->
+                        m.getPhotoDate() != null ? m.getPhotoDate() : java.time.LocalDate.MIN))
+                .collect(Collectors.toList());
+
+        System.out.println("✅ Memories loaded and initialized successfully");
+        return sortedMemories;
+    }
+
+
+
+
+
+
+    /**
      * Descarga los archivos de media desde Azure (REAL)
      */
-    private List<Path> downloadMediaFilesReal(List<Memory> memories, Path tempDir, Documentary documentary) throws IOException {
+    private List<Path> downloadMediaFilesReal(List<Memory> memories, Path tempDir, UUID documentaryId) throws IOException {
         List<Path> downloadedFiles = new ArrayList<>();
 
         int index = 0;
@@ -137,16 +203,8 @@ public class DocumentaryProcessingService {
                 continue;
             }
 
-            // Tomar el primer archivo (imagen o video)
             File file = memory.getFiles().get(0);
-
-            // Extraer el path del blob desde storagePath
-            String blobPath = file.getStoragePath();
-
-            // Limpiar el path si tiene barras invertidas (Windows)
-            blobPath = blobPath.replace("\\", "/");
-
-            // Determinar extensión del archivo
+            String blobPath = file.getStoragePath().replace("\\", "/");
             String extension = getFileExtension(file.getFileName());
             Path localFile = tempDir.resolve(String.format("media_%03d%s", index, extension));
 
@@ -156,13 +214,11 @@ public class DocumentaryProcessingService {
                 downloadedFiles.add(localFile);
                 index++;
 
-                // Actualizar progreso
                 int progressIncrement = (int) ((20.0 / memories.size()) * (index));
-                updateProgress(documentary, 10 + progressIncrement);
+                updateProgressTransactional(documentaryId, 10 + progressIncrement, null);
 
             } catch (Exception e) {
                 System.err.println("❌ Failed to download: " + blobPath + " - " + e.getMessage());
-                // Continuar con los siguientes archivos
             }
         }
 
@@ -173,7 +229,6 @@ public class DocumentaryProcessingService {
         System.out.println("✅ Downloaded " + downloadedFiles.size() + " files");
         return downloadedFiles;
     }
-
     /**
      * Genera el video usando FFmpeg (REAL)
      */
@@ -210,7 +265,8 @@ public class DocumentaryProcessingService {
                 if (line.contains("frame=")) {
                     int currentProgress = documentary.getProgress();
                     if (currentProgress < 75) {
-                        updateProgress(documentary, Math.min(75, currentProgress + 1));
+                        int current = documentary.getProgress();
+                        updateProgressTransactional(documentary.getIdDocumentary(), Math.min(75, current + 1), null);
                     }
                 }
             }
@@ -319,8 +375,6 @@ public class DocumentaryProcessingService {
         return fileListPath;
     }
 
-    @Autowired
-    private AIClassificationService aiService;
 
     /**
      * ACTUALIZADO: Genera narraciones considerando el enfoque y tono del documental
@@ -613,16 +667,7 @@ public class DocumentaryProcessingService {
 
     // Métodos auxiliares
 
-    private List<Memory> getMemoriesForDocumentary(Documentary documentary) {
-        String[] memoryIdStrings = documentary.getMemoryIds().split(",");
-        List<UUID> memoryIds = Arrays.stream(memoryIdStrings)
-                .map(UUID::fromString)
-                .collect(Collectors.toList());
 
-        return memoryRepository.findAllById(memoryIds).stream()
-                .sorted(Comparator.comparing(m -> m.getPhotoDate() != null ? m.getPhotoDate() : java.time.LocalDate.MIN))
-                .collect(Collectors.toList());
-    }
 
     private void updateProgress(Documentary documentary, int progress) {
         documentary.setProgress(progress);
