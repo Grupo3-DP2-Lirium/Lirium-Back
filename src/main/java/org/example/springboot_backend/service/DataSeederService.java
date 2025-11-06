@@ -112,19 +112,38 @@ public class DataSeederService {
             "ADMIN"
         ));
 
-        // Crear usuarios de prueba
-        for (int i = 1; i <= 5; i++) {
+        // Crear usuarios de prueba (muchos más para probar el panel de admin)
+        for (int i = 1; i <= 25; i++) {
             String firstName = firstNames[random.nextInt(firstNames.length)];
             String lastName = lastNames[random.nextInt(lastNames.length)];
             String email = firstName.toLowerCase() + "." + lastName.toLowerCase() + i + "@test.com";
+            
+            // Asignar roles de manera variada
+            String role = "USER";
+            if (i % 8 == 0) {
+                role = "ADMIN";
+            } else if (i % 4 == 0) {
+                role = "PREMIUM";
+            }
             
             users.add(createUser(
                 email,
                 "password123",
                 firstName,
                 lastName,
-                "USER"
+                role
             ));
+        }
+        
+        // Crear algunos usuarios adicionales con datos específicos para pruebas
+        users.add(createUser("maria.test@admin.com", "password123", "María", "Administradora", "ADMIN"));
+        users.add(createUser("juan.premium@test.com", "password123", "Juan", "Premium", "PREMIUM"));
+        users.add(createUser("ana.inactive@test.com", "password123", "Ana", "Inactiva", "USER"));
+        users.add(createUser("carlos.olduser@test.com", "password123", "Carlos", "Antiguo", "USER"));
+        
+        // Establecer algunos usuarios como suspendidos para pruebas
+        if (users.size() > 20) {
+            users.get(users.size() - 2).setStatus(UserStatus.SUSPENDED);
         }
 
         userRepository.saveAll(users);
@@ -284,12 +303,27 @@ public class DataSeederService {
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setFirstName(firstName);
         user.setFirstLastName(lastName);
-        user.setSecondLastName(""); // Opcional
+        user.setSecondLastName(random.nextBoolean() ? lastNames[random.nextInt(lastNames.length)] : ""); // A veces segundo apellido
         user.setStatus(UserStatus.ACTIVE);
-        user.setUsedSpace(0.0);
+        
+        // Espacio usado aleatorio (entre 0 MB y 8 GB)
+        double maxSpace = 8192.0 * 1024 * 1024; // 8 GB en bytes
+        double usedSpace = random.nextDouble() * maxSpace;
+        user.setUsedSpace(usedSpace);
         user.setTotalCapacity(10240.0 * 1024 * 1024); // 10 GB en bytes
-        user.setCreatedDate(LocalDate.now().minusDays(random.nextInt(30))); // Fecha aleatoria últimos 30 días
-        user.setUpdatedDate(LocalDate.now());
+        
+        // Fechas de registro variadas (últimos 365 días)
+        LocalDate createdDate = LocalDate.now().minusDays(random.nextInt(365));
+        user.setCreatedDate(createdDate);
+        user.setUpdatedDate(createdDate.plusDays(random.nextInt((int) createdDate.until(LocalDate.now()).getDays() + 1)));
+        
+        // Última sesión aleatoria (entre fecha de creación y ahora)
+        if (random.nextBoolean()) { // 50% de usuarios tienen fecha de última sesión
+            LocalDateTime lastSession = createdDate.atStartOfDay().plusDays(random.nextInt((int) createdDate.until(LocalDate.now()).getDays() + 1))
+                    .plusHours(random.nextInt(24))
+                    .plusMinutes(random.nextInt(60));
+            user.setLastSessionDate(lastSession);
+        }
         
         Set<Role> roles = new HashSet<>();
         roles.add(role);
