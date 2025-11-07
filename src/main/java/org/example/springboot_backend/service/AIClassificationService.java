@@ -2,6 +2,7 @@ package org.example.springboot_backend.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.springboot_backend.entity.Memory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class AIClassificationService {
@@ -458,6 +460,174 @@ public class AIClassificationService {
                 fechaTexto,
                 posicion
         );
+    }
+
+    /* ==================== PARA CÁPSULAS ==================== */
+
+    /**
+     * Selecciona los recuerdos más relevantes para una cápsula basándose en el prompt del usuario
+     *
+     * @param userPrompt Prompt libre del usuario (ej: "Cumpleaños 80 de Lupi", "Navidad 2023")
+     * @param nombrePersona Nombre de la persona del memorial
+     * @param allMemories Todos los recuerdos disponibles del memorial
+     * @param maxMemories Máximo de recuerdos a seleccionar (8-12)
+     * @return Lista de recuerdos seleccionados, ordenados por relevancia
+     */
+    public List<Memory> seleccionarRecuerdosParaCapsula(String userPrompt, String nombrePersona,
+                                                        List<Memory> allMemories, int maxMemories) {
+
+        System.out.println("🤖 Seleccionando recuerdos para cápsula con prompt: " + userPrompt);
+        System.out.println("📦 Total memories disponibles: " + allMemories.size());
+
+        if (allMemories.isEmpty()) {
+            return List.of();
+        }
+
+        // Si hay pocos recuerdos, devolverlos todos
+        if (allMemories.size() <= maxMemories) {
+            System.out.println("✅ Menos de " + maxMemories + " recuerdos, devolviendo todos");
+            return allMemories;
+        }
+
+        try {
+            // Crear resumen de cada recuerdo
+            List<Map<String, String>> memorySummaries = new ArrayList<>();
+            for (int i = 0; i < allMemories.size(); i++) {
+                Memory m = allMemories.get(i);
+                Map<String, String> summary = new HashMap<>();
+                summary.put("index", String.valueOf(i));
+                summary.put("title", m.getTitle() != null ? m.getTitle() : "Sin título");
+                summary.put("description", m.getDescription() != null ?
+                        (m.getDescription().length() > 100 ?
+                                m.getDescription().substring(0, 100) + "..." :
+                                m.getDescription()) :
+                        "Sin descripción");
+                summary.put("date", m.getPhotoDate() != null ? m.getPhotoDate().toString() : "Sin fecha");
+                memorySummaries.add(summary);
+            }
+
+            String prompt = buildMemorySelectionPrompt(userPrompt, nombrePersona, memorySummaries, maxMemories);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("model", modelName);
+            payload.put("temperature", 0.4);
+            payload.put("max_tokens", 200);
+            payload.put("stream", false);
+            payload.put("messages", List.of(Map.of("role", "user", "content", prompt)));
+
+            String text = postOpenRouter(payload);
+            String jsonText = extractJson(text);
+
+            if (jsonText == null) {
+                System.err.println("⚠️ No se pudo extraer JSON, usando selección por fecha");
+                return selectMemoriesByDateFallback(allMemories, maxMemories);
+            }
+
+            Map<String, Object> obj = MAPPER.readValue(jsonText, new TypeReference<>() {});
+            List<Integer> selectedIndices = extractIntegerList(obj.get("indices"));
+
+            if (selectedIndices == null || selectedIndices.isEmpty()) {
+                System.err.println("⚠️ No se obtuvieron índices, usando fallback");
+                return selectMemoriesByDateFallback(allMemories, maxMemories);
+            }
+
+            // Seleccionar memories según los índices
+            List<Memory> selectedMemories = new ArrayList<>();
+            for (Integer index : selectedIndices) {
+                if (index >= 0 && index < allMemories.size()) {
+                    selectedMemories.add(allMemories.get(index));
+                }
+            }
+
+            // Si no se seleccionó ninguno, usar fallback
+            if (selectedMemories.isEmpty()) {
+                System.err.println("⚠️ No se seleccionaron recuerdos válidos, usando fallback");
+                return selectMemoriesByDateFallback(allMemories, maxMemories);
+            }
+
+            System.out.println("✅ Seleccionados " + selectedMemories.size() + " recuerdos con IA");
+            return selectedMemories;
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Error en selección de recuerdos: " + e.getMessage());
+            e.printStackTrace();
+            return selectMemoriesByDateFallback(allMemories, maxMemories);
+        }
+    }
+
+    private String buildMemorySelectionPrompt(String userPrompt, String nombrePersona,
+                                              List<Map<String, String>> memorySummaries, int maxMemories) {
+        StringBuilder memoriesText = new StringBuilder();
+        for (Map<String, String> summary : memorySummaries) {
+            memoriesText.append(String.format("[%s] Título: %s | Descripción: %s | Fecha: %s\n",
+                    summary.get("index"),
+                    summary.get("title"),
+                    summary.get("description"),
+                    summary.get("date")));
+        }
+
+        return """
+        Eres un asistente que ayuda a crear cápsulas de video emotivas sobre %s.
+        
+        El usuario quiere crear una cápsula sobre: "%s"
+        
+        De la siguiente lista de recuerdos, selecciona los %d MÁS RELEVANTES que mejor coincidan con el tema.
+        
+        RECUERDOS DISPONIBLES:
+        %s
+        
+        Criterios de selección:
+                - Prioriza recuerdos que mencionen directamente el tema en título o descripción
+                - Si el prompt menciona una fecha/época, prioriza recuerdos de ese periodo
+                - Si el prompt menciona un evento, prioriza recuerdos relacionados con ese evento
+                - Busca coherencia temática entre los recuerdos seleccionados
+                - Prefiere recuerdos con fechas específicas sobre los que no tienen fecha
+                - Selecciona EXACTAMENTE %d recuerdos (no más, no menos)
+               \s
+                Responde SOLO con JSON: {"indices": [lista de números de índice]}
+                Ejemplo: {"indices": [0, 5, 12, 18, 23, 30, 35, 42]}
+                """.formatted(nombrePersona, userPrompt, maxMemories, memoriesText.toString(), maxMemories);
+            }
+
+
+
+    private List<Integer> extractIntegerList(Object value) {
+        if (value == null) return null;
+
+        if (value instanceof List<?> list) {
+            List<Integer> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    result.add(((Number) item).intValue());
+                } else if (item instanceof String) {
+                    try {
+                        result.add(Integer.parseInt(item.toString()));
+                    } catch (NumberFormatException e) {
+                        System.err.println("⚠️ No se pudo parsear: " + item);
+                    }
+                }
+            }
+            return result;
+        }
+
+        return null;
+    }
+
+    /**
+     * Fallback: selecciona recuerdos más recientes con fecha
+     */
+    private List<Memory> selectMemoriesByDateFallback(List<Memory> allMemories, int maxMemories) {
+        System.out.println("📅 Using date-based fallback selection");
+
+        return allMemories.stream()
+                .sorted((m1, m2) -> {
+                    if (m1.getPhotoDate() == null && m2.getPhotoDate() == null) return 0;
+                    if (m1.getPhotoDate() == null) return 1;
+                    if (m2.getPhotoDate() == null) return -1;
+                    return m2.getPhotoDate().compareTo(m1.getPhotoDate());
+                })
+                .limit(maxMemories)
+                .collect(Collectors.toList());
     }
 
 }
