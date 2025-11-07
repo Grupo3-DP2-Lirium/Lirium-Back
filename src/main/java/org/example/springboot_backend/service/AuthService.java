@@ -142,6 +142,12 @@ public class AuthService {
         return convertToUserResponseDTO(savedUser);
     }
 
+    public UserResponseDTO getUserInfo(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User with email '" + email + "' not found"));
+        return convertToUserResponseDTO(user);
+    }
+
     private UserResponseDTO convertToUserResponseDTO(User user) {
         UserResponseDTO dto = new UserResponseDTO();
         dto.setIdUser(user.getIdUser());

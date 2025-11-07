@@ -7,9 +7,10 @@ import java.util.UUID;
 
 import org.example.springboot_backend.dto.UserAdminResponse;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.enums.AuditAction;
 import org.example.springboot_backend.enums.UserStatus;
 import org.example.springboot_backend.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.springboot_backend.service.AuditLogService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,8 +36,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @SecurityRequirement(name = "Bearer Authentication")
 public class AdminUserController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
+
+    public AdminUserController(UserRepository userRepository, AuditLogService auditLogService) {
+        this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
+    }
 
     @GetMapping
     // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
@@ -96,6 +102,14 @@ public class AdminUserController {
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
             
+            // Registrar en auditoría
+            auditLogService.log(
+                AuditAction.ADMIN_USER_DISABLE,
+                "User",
+                userId.toString(),
+                "Usuario " + user.getEmail() + " fue deshabilitado por un administrador"
+            );
+            
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario deshabilitado exitosamente");
             response.put("user", mapToAdminResponse(user));
@@ -123,6 +137,14 @@ public class AdminUserController {
             user.setStatus(UserStatus.ACTIVE);
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
+            
+            // Registrar en auditoría
+            auditLogService.log(
+                AuditAction.ADMIN_USER_ENABLE,
+                "User",
+                userId.toString(),
+                "Usuario " + user.getEmail() + " fue habilitado por un administrador"
+            );
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario habilitado exitosamente");
