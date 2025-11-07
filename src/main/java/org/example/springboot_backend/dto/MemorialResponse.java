@@ -19,7 +19,7 @@ public class MemorialResponse {
     private Double usedSpace;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
-
+    private Boolean isOwner;
     // getters y setters
     public UUID getIdMemorial() { return idMemorial; }
     public void setIdMemorial(UUID idMemorial) { this.idMemorial = idMemorial; }
@@ -49,4 +49,6 @@ public class MemorialResponse {
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
+    public Boolean getIsOwner() { return isOwner; }
+    public void setIsOwner(Boolean isOwner) { this.isOwner = isOwner; }
 }

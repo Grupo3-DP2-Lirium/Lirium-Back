@@ -4,6 +4,7 @@ import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
 import org.example.springboot_backend.entity.*;
+import org.example.springboot_backend.repository.CollaboratorRepository;
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.MemoryRepository;
 import org.example.springboot_backend.service.storage.StorageService;
@@ -14,34 +15,34 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class MemorialService implements IMemorialService {
-
+    
     @Autowired
     private MemorialRepository memorialRepository;
-
+    
     @Autowired
     private StorageService storageService;
-
+    
     @Autowired
     private MemoryRepository memoryRepository;
-
+    
     @Autowired
     private MemoryService memoryService;
+    
+    @Autowired
+    private CollaboratorRepository collaboratorRepository;
 
-    // Create a new Memorial with optional profile photo
     @Override
     public MemorialResponse createMemorial(MemorialRequest request, MultipartFile profilePhoto, User user) {
-
-        // Validate storage if photo exists
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            double photoSize = profilePhoto.getSize(); // in bytes
+            double photoSize = profilePhoto.getSize();
             storageService.validateUserStorageCapacity(user, photoSize);
         }
 
-        // Build Memorial entity
         Memorial memorial = new Memorial();
         memorial.setName(request.getName());
         memorial.setNickname(request.getNickname());
@@ -53,42 +54,37 @@ public class MemorialService implements IMemorialService {
         memorial.setJournal(request.isJournal());
         memorial.setCreatedDate(LocalDateTime.now());
         memorial.setUser(user);
-
         memorial = memorialRepository.save(memorial);
 
-        // Handle profile photo
         if (profilePhoto != null && !profilePhoto.isEmpty()) {
-            // Upload photo and get File
             File uploadedFile = storageService.processSingleFile(profilePhoto, memorial);
-
-            // Link photo to memorial
             memorial.setProfilePhoto(uploadedFile);
-
-            // Update user storage usage
             storageService.increaseUserUsedSpace(user, profilePhoto.getSize());
-
-            // Save again with photo
             memorial = memorialRepository.save(memorial);
         }
 
-        return buildResponse(memorial);
+        // ✅ Pasar el usuario actual para calcular isOwner
+        return buildResponse(memorial, user);
     }
 
-    // List memorials for a user
     @Override
-    public java.util.List<MemorialResponse> getMyMemorials(User user) {
-        java.util.List<Memorial> memorials = memorialRepository.findByUser(user);
-        return memorials.stream().map(this::buildResponse).toList();
+    public List<MemorialResponse> getMyMemorials(User user) {
+        List<Memorial> memorials = memorialRepository.findByUser(user);
+        // ✅ Siempre son del usuario, así que isOwner = true
+        return memorials.stream()
+                .map(m -> buildResponse(m, user))
+                .collect(Collectors.toList());
     }
 
-    // List memorials where user is a collaborator
     @Override
-    public java.util.List<MemorialResponse> getCollaborativeMemorials(User user) {
-        java.util.List<Memorial> memorials = memorialRepository.findMemorialsByCollaborator(user);
-        return memorials.stream().map(this::buildResponse).toList();
+    public List<MemorialResponse> getCollaborativeMemorials(User user) {
+        List<Memorial> memorials = memorialRepository.findMemorialsByCollaborator(user);
+        // ✅ Calcular isOwner para cada memorial
+        return memorials.stream()
+                .map(m -> buildResponse(m, user))
+                .collect(Collectors.toList());
     }
 
-    // Get a memorial by ID
     @Override
     public MemorialResponse getMemorialById(String memorialId, User user) {
         try {
@@ -96,41 +92,40 @@ public class MemorialService implements IMemorialService {
             Memorial memorial = memorialRepository.findById(uuid)
                     .orElseThrow(() -> new RuntimeException("Memorial not found with ID: " + memorialId));
 
-            // Verify that user has access to this memorial (owner or collaborator)
             boolean isOwner = memorial.getUser().getIdUser().equals(user.getIdUser());
-            boolean isCollaborator = memorialRepository.findMemorialsByCollaborator(user).stream()
-                    .anyMatch(m -> m.getIdMemorial().equals(uuid));
+            boolean isCollaborator = collaboratorRepository
+                    .existsByUserAndMemorialAndIsActiveTrue(user, memorial);
 
             if (!isOwner && !isCollaborator) {
                 throw new RuntimeException("User does not have access to this memorial");
             }
 
-            return buildResponse(memorial);
+            // ✅ Pasar el usuario para calcular isOwner
+            return buildResponse(memorial, user);
+            
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid memorial ID format: " + memorialId);
         }
     }
 
-    // Update a memorial by ID
     @Override
-    public MemorialResponse updateMemorial(String memorialId, MemorialRequest request, MultipartFile profilePhoto, User user) {
+    public MemorialResponse updateMemorial(String memorialId, MemorialRequest request, 
+                                          MultipartFile profilePhoto, User user) {
         try {
             java.util.UUID uuid = java.util.UUID.fromString(memorialId);
             Memorial memorial = memorialRepository.findById(uuid)
                     .orElseThrow(() -> new RuntimeException("Memorial not found with ID: " + memorialId));
 
-            // Verify that user is the owner (only owner can update)
+            // ✅ Verificar si es dueño
             if (!memorial.getUser().getIdUser().equals(user.getIdUser())) {
                 throw new RuntimeException("Only the owner can update this memorial");
             }
 
-            // Validate storage if new photo exists
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
-                double photoSize = profilePhoto.getSize(); // in bytes
+                double photoSize = profilePhoto.getSize();
                 storageService.validateUserStorageCapacity(user, photoSize);
             }
 
-            // Update memorial fields
             memorial.setName(request.getName());
             memorial.setNickname(request.getNickname());
             memorial.setBirthDate(request.getBirthDate());
@@ -141,34 +136,24 @@ public class MemorialService implements IMemorialService {
             memorial.setJournal(request.isJournal());
             memorial.setUpdatedDate(LocalDateTime.now());
 
-            // Handle profile photo update
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
-                // Delete old photo if exists
                 if (memorial.getProfilePhoto() != null) {
                     File oldPhoto = memorial.getProfilePhoto();
                     double oldPhotoSize = oldPhoto.getFileSize() != null ? oldPhoto.getFileSize() : 0.0;
-                    
-                    // Delete from storage
                     storageService.deleteFile(oldPhoto);
-                    
-                    // Decrease user storage
                     storageService.decreaseUserUsedSpace(user, oldPhotoSize);
-                    
                     memorial.setProfilePhoto(null);
                 }
-
-                // Upload new photo
+                
                 File uploadedFile = storageService.processSingleFile(profilePhoto, memorial);
                 memorial.setProfilePhoto(uploadedFile);
-
-                // Update user storage usage
                 storageService.increaseUserUsedSpace(user, profilePhoto.getSize());
             }
 
-            // Save updated memorial
             memorial = memorialRepository.save(memorial);
-
-            return buildResponse(memorial);
+            
+            // ✅ Pasar el usuario para calcular isOwner
+            return buildResponse(memorial, user);
             
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid memorial ID format: " + memorialId);
@@ -179,34 +164,27 @@ public class MemorialService implements IMemorialService {
     public void deleteMemorial(String memorialId, User user) {
         try {
             System.out.println("Eliminando memorial: " + memorialId + " para usuario: " + user.getEmail());
-
-            // Buscar el memorial
+            
             java.util.UUID uuid = java.util.UUID.fromString(memorialId);
             Memorial memorial = memorialRepository.findById(uuid)
                     .orElseThrow(() -> new RuntimeException("Memorial not found with ID: " + memorialId));
 
-            // Verificar que el usuario sea el dueño
+            // ✅ Solo el dueño puede eliminar
             if (!memorial.getUser().getIdUser().equals(user.getIdUser())) {
                 throw new RuntimeException("User does not have permission to delete this memorial");
             }
 
-            // Liberar espacio usado por el memorial
             if (memorial.getUsedSpace() != null && memorial.getUsedSpace() > 0) {
                 storageService.decreaseUserUsedSpace(user, memorial.getUsedSpace());
                 System.out.println("Liberado espacio del usuario: " + (memorial.getUsedSpace() / (1024 * 1024)) + " MB");
             }
 
-            // Eliminar el memorial (profilePhoto se borrará automáticamente por orphanRemoval)
-            memorialRepository.delete(memorial);
-
-            // Eliminar foto de perfil si existe
             if (memorial.getProfilePhoto() != null) {
                 File profilePhoto = memorial.getProfilePhoto();
                 storageService.deleteFile(profilePhoto);
                 System.out.println("Foto de perfil eliminada: " + profilePhoto.getFileName());
             }
 
-            // Eliminar memorias asociadas
             List<Memory> associatedMemories = memoryRepository.findByMemorialIdMemorial(memorial.getIdMemorial());
             if (associatedMemories != null && !associatedMemories.isEmpty()) {
                 for (Memory memory : associatedMemories) {
@@ -219,8 +197,9 @@ public class MemorialService implements IMemorialService {
                 }
             }
 
+            memorialRepository.delete(memorial);
             System.out.println("Memorial eliminado exitosamente: " + memorialId);
-
+            
         } catch (Exception e) {
             System.err.println("Error eliminando memorial: " + e.getMessage());
             e.printStackTrace();
@@ -228,7 +207,8 @@ public class MemorialService implements IMemorialService {
         }
     }
 
-    private MemorialResponse buildResponse(Memorial memorial) {
+    // ✅ NUEVO: Método helper que calcula isOwner
+    private MemorialResponse buildResponse(Memorial memorial, User currentUser) {
         MemorialResponse response = new MemorialResponse();
         response.setIdMemorial(memorial.getIdMemorial());
         response.setName(memorial.getName());
@@ -240,8 +220,17 @@ public class MemorialService implements IMemorialService {
         response.setCollaborative(memorial.isCollaborative());
         response.setJournal(memorial.isJournal());
         response.setCreatedDate(memorial.getCreatedDate());
+        response.setUpdatedDate(memorial.getUpdatedDate());
+        
+        // ✅ CRÍTICO: Calcular isOwner comparando usuarios
+        boolean isOwner = memorial.getUser().getIdUser().equals(currentUser.getIdUser());
+        response.setIsOwner(isOwner);
+        
+        System.out.println("🔍 Memorial: " + memorial.getName() + 
+                         " | Owner: " + memorial.getUser().getEmail() + 
+                         " | Current: " + currentUser.getEmail() + 
+                         " | isOwner: " + isOwner);
 
-        // Add profile photo if exists
         if (memorial.getProfilePhoto() != null) {
             File file = memorial.getProfilePhoto();
             response.setProfilePhoto(buildFileResponse(file));
@@ -258,7 +247,7 @@ public class MemorialService implements IMemorialService {
         response.setFileType(file.getFileType());
         response.setMimeType(file.getMimeType());
         response.setFileUrl(file.getFileUrl());
-        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0); // Convert bytes to MB
+        response.setFileSize(file.getFileSize() != null ? file.getFileSize() / (1024 * 1024) : 0.0);
         response.setUploadedDate(file.getUploadedDate());
         return response;
     }
