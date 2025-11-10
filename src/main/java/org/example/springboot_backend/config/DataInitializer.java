@@ -9,6 +9,7 @@ import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.PermissionRepository;
 import org.example.springboot_backend.repository.RoleRepository;
 import org.springframework.stereotype.Component;
+import java.util.HashSet;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
 import java.util.Set;

@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import java.util.UUID;
 @RequestMapping("/api/admin/users")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://lirium-front.vercel.app"})
 @PreAuthorize("hasAuthority('ADMIN_ACCESS')")
+@SecurityRequirement(name = "Bearer Authentication")
 public class AdminUserController {
 
     @Autowired
