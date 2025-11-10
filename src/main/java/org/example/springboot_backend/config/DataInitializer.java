@@ -8,8 +8,11 @@ import org.example.springboot_backend.entity.Permission;
 import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.PermissionRepository;
 import org.example.springboot_backend.repository.RoleRepository;
+import org.example.springboot_backend.service.RoleService;
 import org.springframework.stereotype.Component;
 import java.util.HashSet;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +36,9 @@ public class DataInitializer {
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
 
+    @Autowired
+    private RoleService roleService;
+
     public DataInitializer(
             PlanRepository planRepository,
             PermissionRepository permissionRepository,
@@ -45,11 +51,26 @@ public class DataInitializer {
 
     @PostConstruct
     public void initData() {
+        initRole();
         initPermissions();
         initPlans();
         initPlanPermissions();
         assignAdminPermissions();
     }
+
+    // ------------------- ROLES -------------------
+    private void initRole() {
+        if (roleRepository.count() == 0) {
+            Role adminRole = roleService.createRoleIfNotExists("ADMIN");
+            Role userRole = roleService.createRoleIfNotExists("USER");
+            Role userPremiumRole = roleService.createRoleIfNotExists("PREMIUM");
+            roleRepository.saveAll(List.of(adminRole, userRole, userPremiumRole));
+            System.out.println("Roles creados correctamente.");
+        } else {
+            System.out.println("Los roles ya existen, no se crearán duplicados.");
+        }
+    }
+
 
     // ------------------- PERMISOS -------------------
     private void initPermissions() {
