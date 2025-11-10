@@ -2,10 +2,12 @@ package org.example.springboot_backend.config;
 
 import jakarta.annotation.PostConstruct;
 import org.example.springboot_backend.entity.Plan;
+import org.example.springboot_backend.entity.Role;
 import org.example.springboot_backend.entity.CurrencyType;
 import org.example.springboot_backend.entity.Permission;
 import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.PermissionRepository;
+import org.example.springboot_backend.repository.RoleRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
@@ -17,13 +19,16 @@ public class DataInitializer {
 
     private final PlanRepository planRepository;
     private final PermissionRepository permissionRepository;
+    private final RoleRepository roleRepository;
 
     public DataInitializer(
             PlanRepository planRepository,
-            PermissionRepository permissionRepository
+            PermissionRepository permissionRepository,
+            RoleRepository roleRepository
     ) {
         this.planRepository = planRepository;
         this.permissionRepository = permissionRepository;
+        this.roleRepository = roleRepository;
     }
 
     @PostConstruct
@@ -31,6 +36,7 @@ public class DataInitializer {
         initPermissions();
         initPlans();
         initPlanPermissions();
+        assignAdminPermissions();
     }
 
     // ------------------- PERMISOS -------------------
@@ -41,11 +47,18 @@ public class DataInitializer {
             Permission p3 = new Permission("ACCESS_MY_PERSONAL_SPACE", "Acceso a espacio personal");
             Permission p4 = new Permission("CREATE_MEMORIALS", "Crea memoriales ilimitados");
             Permission p5 = new Permission("IA_FEATURES", "Acceso a funciones de IA");
+            Permission p6 = new Permission("ADMIN_ACCESS", "Acceso al panel de administración");
 
-            permissionRepository.saveAll(List.of(p1, p2, p3, p4, p5));
+            permissionRepository.saveAll(List.of(p1, p2, p3, p4, p5, p6));
             System.out.println("Permisos creados correctamente.");
         } else {
-            System.out.println("Los permisos ya existen, no se crearán duplicados.");
+            // Verificar si existe ADMIN_ACCESS, si no existe agregarlo
+            if (permissionRepository.findByName("ADMIN_ACCESS").isEmpty()) {
+                Permission adminAccess = new Permission("ADMIN_ACCESS", "Acceso al panel de administración");
+                permissionRepository.save(adminAccess);
+                System.out.println("Permiso ADMIN_ACCESS agregado.");
+            }
+            System.out.println("Los permisos ya existen, verificación completada.");
         }
     }
 
@@ -139,5 +152,47 @@ public class DataInitializer {
 
         planRepository.saveAll(List.of(free, creaYComparte, legadoEterno));
         System.out.println("✅ Permisos por plan asignados correctamente.");
+    }
+
+    // ------------------- ADMIN PERMISSIONS -------------------
+    private void assignAdminPermissions() {
+        try {
+            // Buscar el rol ADMIN
+            var adminRoleOpt = roleRepository.findByName("ADMIN");
+            if (adminRoleOpt.isEmpty()) {
+                System.out.println("⚠️ Rol ADMIN no encontrado, saltando asignación de permisos de admin");
+                return;
+            }
+
+            Role adminRole = adminRoleOpt.get();
+            
+            // Buscar el permiso ADMIN_ACCESS
+            var adminAccessOpt = permissionRepository.findByName("ADMIN_ACCESS");
+            if (adminAccessOpt.isEmpty()) {
+                System.out.println("⚠️ Permiso ADMIN_ACCESS no encontrado");
+                return;
+            }
+
+            Permission adminAccess = adminAccessOpt.get();
+            
+            // Agregar el permiso al rol si no lo tiene
+            Set<Permission> currentPermissions = adminRole.getPermissions();
+            if (currentPermissions == null) {
+                currentPermissions = new HashSet<>();
+            }
+            
+            boolean wasAdded = currentPermissions.add(adminAccess);
+            adminRole.setPermissions(currentPermissions);
+            roleRepository.save(adminRole);
+            
+            if (wasAdded) {
+                System.out.println("✅ Permiso ADMIN_ACCESS asignado al rol ADMIN");
+            } else {
+                System.out.println("ℹ️ El rol ADMIN ya tenía el permiso ADMIN_ACCESS");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("❌ Error al asignar permisos de admin: " + e.getMessage());
+        }
     }
 }

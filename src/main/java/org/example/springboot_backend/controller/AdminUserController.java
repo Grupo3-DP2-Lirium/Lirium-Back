@@ -24,7 +24,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/admin/users")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "https://lirium-front.vercel.app"})
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('ADMIN_ACCESS')")
 public class AdminUserController {
 
     @Autowired

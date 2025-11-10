@@ -22,6 +22,8 @@ public class DataSeederService {
     @Autowired
     private RoleService roleService;
     
+
+    
     @Autowired
     private UserRepository userRepository;
     
@@ -80,6 +82,7 @@ public class DataSeederService {
             return;
         }
 
+        // Crear roles básicos
         List<String> roleNames = Arrays.asList("USER", "ADMIN", "PREMIUM");
         
         for (String roleName : roleNames) {
