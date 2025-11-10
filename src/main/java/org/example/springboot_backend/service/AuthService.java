@@ -5,7 +5,6 @@ import org.example.springboot_backend.dto.LoginResponse;
 import org.example.springboot_backend.dto.RegisterUserDTO;
 import org.example.springboot_backend.dto.UserResponseDTO;
 import org.example.springboot_backend.entity.User;
-import org.example.springboot_backend.entity.Plan;
 import org.example.springboot_backend.entity.Role;
 import org.example.springboot_backend.entity.Subscription;
 import org.example.springboot_backend.enums.UserStatus;
@@ -14,7 +13,6 @@ import org.example.springboot_backend.exception.InvalidCredentialsException;
 import org.example.springboot_backend.exception.EmailAlreadyExistsException;
 import org.example.springboot_backend.exception.RoleNotFoundException;
 import org.example.springboot_backend.repository.UserRepository;
-import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.RoleRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -37,18 +35,16 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final SubscriptionService subscriptionService;
-    private final PlanRepository planRepository;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository, 
                       JwtService jwtService, AuthenticationManager authenticationManager,
-                      PasswordEncoder passwordEncoder, SubscriptionService subscriptionService, PlanRepository planRepository) {
+                      PasswordEncoder passwordEncoder, SubscriptionService subscriptionService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
         this.subscriptionService = subscriptionService;
-        this.planRepository = planRepository;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -89,11 +85,6 @@ public class AuthService {
 
             System.out.println("Permisos del plan: " + permissions);
         } else {
-            // Usuario sin suscripción → plan FREE
-            Plan freePlan = planRepository.findByName("DESCUBRE_REMORY")
-                    .orElseThrow(() -> new RuntimeException("Plan FREE no encontrado"));
-            planName = freePlan.getName();
-            permissions = subscriptionService.getPlanPermissions(freePlan.getIdPlan());
             System.out.println("Usuario sin suscripción activa. Se asigna plan FREE");
         }
 

@@ -61,28 +61,9 @@ public class SubscriptionService {
     }
 
     public Subscription getActiveSubscription(User user) {
-        Subscription activeSub = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
-                .orElse(null);
-
-        if (activeSub == null) {
-            // No tiene suscripción activa → es Free
-            return null;
-        }
-
-        // Validar fecha de fin
-        if (activeSub.getEndDate() != null && activeSub.getEndDate().isBefore(LocalDateTime.now())) {
-            // Suscripción vencida → marcar como CANCELLED en BD si quieres
-            activeSub.setStatus(SubscriptionStatus.CANCELLED);
-            activeSub.setUpdatedDate(LocalDateTime.now());
-            subscriptionRepository.save(activeSub);
-
-            // Retornar null o lanzar excepción
-            throw new RuntimeException("No tienes un plan premium activo");
-            // O simplemente: return null;
-        }
-
-        // Suscripción activa y vigente
-        return activeSub;
+        // Buscar suscripción activa para el usuario (solo un plan activo por tipo)
+        return subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+                .orElse(null); // null → significa que es Free
     }
 
     public List<String> getPlanPermissions(UUID planId) {
@@ -97,7 +78,7 @@ public class SubscriptionService {
             throw new RuntimeException("No active subscription to cancel.");
         }
 
-        //activeSub.setStatus(SubscriptionStatus.CANCELLED);
+        activeSub.setStatus(SubscriptionStatus.CANCELLED);
         activeSub.setUpdatedDate(LocalDateTime.now());
 
         BillingPeriod frequency = BillingPeriod.valueOf(activeSub.getFrequency());
@@ -121,6 +102,7 @@ public class SubscriptionService {
         }
 
         activeSub.setEndDate(end);
+        activeSub.setStatus(SubscriptionStatus.CANCELLED);
         activeSub.setUpdatedDate(LocalDateTime.now());
 
         return subscriptionRepository.save(activeSub);

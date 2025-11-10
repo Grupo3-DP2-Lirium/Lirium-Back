@@ -9,24 +9,13 @@ import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.PermissionRepository;
 import org.example.springboot_backend.repository.RoleRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Value;
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Component
 public class DataInitializer {
-
-    @Value("${paypal.plan.create_share.monthly}")
-    private String createShareMonthly;
-
-    @Value("${paypal.plan.create_share.yearly}")
-    private String createShareYearly;
-
-    @Value("${paypal.plan.eternal_legacy.monthly}")
-    private String eternoMonthly;
-
-    @Value("${paypal.plan.eternal_legacy.yearly}")
-    private String eternoYearly;
 
     private final PlanRepository planRepository;
     private final PermissionRepository permissionRepository;
@@ -100,7 +89,7 @@ public class DataInitializer {
             crea.setMaxCollaborations(null);
             crea.setMaxDocumentariesPerMonth(1);
             crea.setSupportLevel("STANDARD");
-            crea.setPaypalPlanId(createShareMonthly); // o yearly según quieras inicializar
+            crea.setPaypalPlanId("P-97330861H7471194ANEDJ2RA");
 
             Plan legado = new Plan();
             legado.setName("LEGADO_ETERNO");
@@ -114,7 +103,6 @@ public class DataInitializer {
             legado.setMaxCollaborations(null);
             legado.setMaxDocumentariesPerMonth(2);
             legado.setSupportLevel("PRIORITY");
-            legado.setPaypalPlanId(eternoYearly);
 
             planRepository.saveAll(List.of(free, crea, legado));
             System.out.println("Planes creados correctamente.");

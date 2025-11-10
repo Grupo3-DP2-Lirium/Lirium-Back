@@ -85,6 +85,7 @@ public class SubscriptionController {
                 response.setStartDate(null);
                 response.setEndDate(null);
                 response.setPaymentMethod(null);
+
                 response.setPlanId(null);
                 response.setPlanName("Free");
                 response.setPlanDescription("Plan gratuito");
@@ -105,8 +106,6 @@ public class SubscriptionController {
                 response.setPlanDescription(plan.getDescription());
                 response.setPlanPrice(plan.getPrice());
                 response.setPlanCurrency(plan.getCurrency());
-                response.setStorageLimitGb(plan.getStorageLimitGb());
-                
             }
 
             return ResponseEntity.ok(response);
@@ -123,10 +122,5 @@ public class SubscriptionController {
         subscriptionService.cancelSubscription(user);
 
         return ResponseEntity.ok("Subscription cancelled successfully");
-    }
-
-    @GetMapping("/{planId}/permissions")
-    public List<String> getPlanPermissions(@PathVariable("planId") UUID planId) {
-        return subscriptionService.getPlanPermissions(planId);
     }
 }

@@ -2,7 +2,6 @@ package org.example.springboot_backend.controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.springboot_backend.entity.Memorial;
-import org.example.springboot_backend.entity.Subscription;
 import org.springframework.http.MediaType;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
@@ -10,14 +9,12 @@ import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.IMemorialService;
 import org.example.springboot_backend.service.NotificationService;
-import org.example.springboot_backend.service.SubscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.example.springboot_backend.repository.MemorialRepository;
-import org.example.springboot_backend.repository.PlanRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -43,12 +40,6 @@ public class MemorialController {
     @Autowired
     private NotificationService notificationService;
 
-    @Autowired
-    private SubscriptionService subscriptionService;
-
-    @Autowired
-    private PlanRepository planRepository;
-
     /**
      * ✅ ACTUALIZADO: Ahora crea notificación al crear memorial
      */
@@ -64,14 +55,7 @@ public class MemorialController {
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            
-             // ✅ Validar suscripción activa
-            Subscription activeSub = subscriptionService.getActiveSubscription(user);
-            if (activeSub == null) {
-                // No tiene suscripción activa → asignar plan FREE
-                throw new RuntimeException("No tienes un plan premium activo para crear un memorial.");   
-            }
-            
+
             // Crear memorial
             MemorialResponse response = memorialService.createMemorial(request, file, user);
 

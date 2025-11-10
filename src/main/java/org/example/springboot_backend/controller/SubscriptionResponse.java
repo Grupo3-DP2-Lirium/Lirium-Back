@@ -12,7 +12,7 @@ public class SubscriptionResponse {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private PaymentMethod paymentMethod;
-    private Integer storageLimitGb;
+
     private UUID planId;
     private String planName;
     private String planDescription;
@@ -34,8 +34,7 @@ public class SubscriptionResponse {
     public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
-    public Integer getStorageLimitGb() {return storageLimitGb;}
-    public void setStorageLimitGb(Integer storageLimitGb) {this.storageLimitGb = storageLimitGb;}
+
     public UUID getPlanId() { return planId; }
     public void setPlanId(UUID planId) { this.planId = planId; }
     public String getPlanName() { return planName; }
