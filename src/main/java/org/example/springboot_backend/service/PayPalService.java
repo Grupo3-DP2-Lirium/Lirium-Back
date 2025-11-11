@@ -209,13 +209,13 @@ public class PayPalService {
     // Crear orden de suscripción en PayPal
     public Map<String, Object> createSubscription(User user, String planPaypalId, UUID planId) {
         // Verificar suscripción existente en BD
-        Subscription existing = subscriptionRepository.findByUserIdUserAndPlanIdPlan(user.getIdUser(), planId)
-            .orElse(null);
+        /*Subscription existing = subscriptionRepository.findByUserIdUserAndPlanIdPlan(user.getIdUser(), planId)
+            .orElse(null);*/
         
-        if (existing != null && existing.getStatus() == SubscriptionStatus.ACTIVE) {
+        //if (existing != null && existing.getStatus() == SubscriptionStatus.ACTIVE) {
             // Ya tiene el plan activo
-            throw new RuntimeException("El usuario ya tiene este plan activo");
-        }
+        //    throw new RuntimeException("El usuario ya tiene este plan activo");
+        //}
         
         // Si no tiene suscripción → crear orden en PayPal
         String token = getAccessToken();

@@ -36,27 +36,27 @@ public class SubscriptionService {
         Plan plan = planRepository.findByIdPlan(planId)
                 .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
 
-        // Buscar suscripción del mismo plan
+        // Buscar suscripciones activas
         Subscription activeSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
             .orElse(null);
-
-        if (activeSubscription != null) {
-            throw new RuntimeException("Ya tienes una suscripción activa. Cancélala antes de crear una nueva.");
-        }
 
         Subscription newSubscription = new Subscription();
         newSubscription.setUser(user);
         newSubscription.setPlan(plan);
-        newSubscription.setStatus(SubscriptionStatus.ACTIVE);
         newSubscription.setCurrentPaymentMethod(method);
         newSubscription.setFrequency(frequency.name());
         newSubscription.setStartDate(LocalDateTime.now());
         newSubscription.setPaypalSubscriptionId(subscriptionId);
-
-
         newSubscription.setCreatedDate(LocalDateTime.now());
         newSubscription.setUpdatedDate(LocalDateTime.now());
 
+        // Si hay una suscripción activa, la nueva queda como PENDING
+        if (activeSubscription != null) {
+            newSubscription.setStatus(SubscriptionStatus.PENDING);
+        } else {
+            newSubscription.setStatus(SubscriptionStatus.ACTIVE);
+        }
+        
         return subscriptionRepository.save(newSubscription);
     }
 
