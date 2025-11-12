@@ -14,8 +14,14 @@ public interface DocumentaryRepository extends JpaRepository<Documentary, UUID> 
     // Encontrar todos los documentales de un memorial
     List<Documentary> findByMemorial_IdMemorial(UUID memorialId);
 
+    // Encontrar documentales por memorial y estado (para separar borradores y publicados)
+    List<Documentary> findByMemorial_IdMemorialAndStatus(UUID memorialId, DocumentaryStatus status);
+
     // Encontrar documentales por usuario creador
     List<Documentary> findByCreatedBy_IdUser(UUID userId);
+
+    // Encontrar documentales por usuario y estado
+    List<Documentary> findByCreatedBy_IdUserAndStatus(UUID userId, DocumentaryStatus status);
 
     // Encontrar documentales por estado
     List<Documentary> findByStatus(DocumentaryStatus status);
@@ -25,4 +31,7 @@ public interface DocumentaryRepository extends JpaRepository<Documentary, UUID> 
 
     // Contar documentales por memorial
     long countByMemorial_IdMemorial(UUID memorialId);
+
+    // Contar por memorial y estado
+    long countByMemorial_IdMemorialAndStatus(UUID memorialId, DocumentaryStatus status);
 }
