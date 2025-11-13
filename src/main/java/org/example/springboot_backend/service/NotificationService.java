@@ -383,4 +383,59 @@ public class NotificationService {
         response.setReadDate(notification.getReadDate());
         return response;
     }
+
+    public void notifyCollaboratorJoined(User memorialOwner, User newCollaborator, Memorial memorial) {
+    try {
+        String title = "Nuevo colaborador";
+        String message = String.format(
+            "%s %s se ha unido como colaborador a tu memorial \"%s\"",
+            newCollaborator.getFirstName(),
+            newCollaborator.getFirstLastName(),
+            memorial.getName()
+        );
+        
+        Notification notification = new Notification();
+        notification.setUserId(memorialOwner.getIdUser());
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setType(NotificationType.SYSTEM);
+        notification.setCreatedDate(LocalDateTime.now());
+        notification.setRelatedEntityId(memorial.getIdMemorial().getMostSignificantBits());
+        
+        notificationRepository.save(notification);
+        
+        System.out.println("✅ Notificación enviada al dueño: " + memorialOwner.getEmail());
+    } catch (Exception e) {
+        System.err.println("❌ Error creando notificación para dueño: " + e.getMessage());
+        // No lanzar excepción para no afectar el flujo principal
+    }
+}
+
+/**
+ * Notifica al usuario que se unió exitosamente como colaborador
+ */
+public void notifyJoinedAsCollaborator(User collaborator, Memorial memorial) {
+    try {
+        String title = "Te uniste a un memorial";
+        String message = String.format(
+            "Ahora eres colaborador del memorial \"%s\". ¡Empieza a compartir recuerdos!",
+            memorial.getName()
+        );
+        
+        Notification notification = new Notification();
+        notification.setUserId(collaborator.getIdUser());
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setType(NotificationType.SYSTEM);
+        notification.setCreatedDate(LocalDateTime.now());
+        notification.setRelatedEntityId(memorial.getIdMemorial().getMostSignificantBits());
+        
+        notificationRepository.save(notification);
+        
+        System.out.println("✅ Notificación enviada al colaborador: " + collaborator.getEmail());
+    } catch (Exception e) {
+        System.err.println("❌ Error creando notificación para colaborador: " + e.getMessage());
+        // No lanzar excepción para no afectar el flujo principal
+    }
+}
 }
