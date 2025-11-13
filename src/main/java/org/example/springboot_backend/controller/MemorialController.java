@@ -49,9 +49,6 @@ public class MemorialController {
     @Autowired
     private PlanRepository planRepository;
 
-    /**
-     * ✅ ACTUALIZADO: Ahora crea notificación al crear memorial
-     */
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> createMemorial(
@@ -65,7 +62,7 @@ public class MemorialController {
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             
-             // ✅ Validar suscripción activa
+            // Validar suscripción activa
             Subscription activeSub = subscriptionService.getActiveSubscription(user);
             if (activeSub == null) {
                 // No tiene suscripción activa → asignar plan FREE
@@ -75,13 +72,13 @@ public class MemorialController {
             // Crear memorial
             MemorialResponse response = memorialService.createMemorial(request, file, user);
 
-            // ✅ NUEVO: Crear notificación automática
+            // Crear notificación automática
             Memorial memorial = memorialRepository.findById(response.getIdMemorial())
                     .orElseThrow(() -> new RuntimeException("Memorial not found after creation"));
             
             notificationService.notifyMemorialCreated(user, memorial);
             
-            System.out.println("✅ Memorial creado y notificación enviada: " + memorial.getName());
+            System.out.println("Memorial creado y notificación enviada: " + memorial.getName());
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
