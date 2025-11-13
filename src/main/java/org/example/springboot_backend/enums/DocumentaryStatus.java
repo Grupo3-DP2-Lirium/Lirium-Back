@@ -1,9 +1,10 @@
 package org.example.springboot_backend.enums;
 
 public enum DocumentaryStatus {
-    PENDING,        // Recién creado, esperando procesamiento
+    DRAFT,          // Borrador - recién creado o editado
     PROCESSING,     // En proceso de generación
-    COMPLETED,      // Completado exitosamente
+    COMPLETED,      // Completado pero no publicado aún
+    PUBLISHED,      // Publicado en el perfil
     FAILED,         // Falló el proceso
     CANCELLED       // Cancelado por el usuario
 }

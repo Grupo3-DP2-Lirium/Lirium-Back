@@ -1,53 +1,35 @@
 package org.example.springboot_backend.dto;
 
-import org.example.springboot_backend.enums.DocumentaryStatus;
-
+import org.example.springboot_backend.enums.CapsuleStatus;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class DocumentaryResponse implements Serializable {
-
-    // Identificación y contexto
-    private UUID idDocumentary;
+public class CapsuleResponse implements Serializable {
+    private UUID idCapsule;
     private UUID memorialId;
     private String memorialName;
-
-    // Metadatos visibles
+    private String userPrompt;
     private String title;
     private String description;
-
-    // Personalización del documental
-    private String narrativeFocus;
-    private String emotionalTone;     // nostalgic | joyful | formal | inspiring
-    private String styleFilter;       // warm | classic | modern | natural
-    private String resolution;        // 480p | 720p | 1080p
-    private String transitionType;    // fade, etc.
-    private Integer durationPerMemory;
-
-    // Proceso y estado
-    private DocumentaryStatus status; // DRAFT, PROCESSING, COMPLETED, PUBLISHED, FAILED, CANCELLED
-    private Integer progress;         // 0 - 100
-
-    // Resultado de render
+    private String musicTrack;
+    private String filter;
+    private CapsuleStatus status;
+    private Integer progress;
     private String videoUrl;
     private String thumbnailUrl;
-    private Long videoSize;           // bytes
-    private Integer videoDuration;    // segundos
+    private Long videoSize;
+    private Integer videoDuration;
     private Integer totalMemories;
-
-    // Errores y trazabilidad
     private String errorMessage;
-
-    // Timestamps
     private LocalDateTime createdDate;
     private LocalDateTime processingCompleted;
     private LocalDateTime publishedDate;
     private LocalDateTime updatedDate;
 
     // Getters & Setters
-    public UUID getIdDocumentary() { return idDocumentary; }
-    public void setIdDocumentary(UUID idDocumentary) { this.idDocumentary = idDocumentary; }
+    public UUID getIdCapsule() { return idCapsule; }
+    public void setIdCapsule(UUID idCapsule) { this.idCapsule = idCapsule; }
 
     public UUID getMemorialId() { return memorialId; }
     public void setMemorialId(UUID memorialId) { this.memorialId = memorialId; }
@@ -55,32 +37,23 @@ public class DocumentaryResponse implements Serializable {
     public String getMemorialName() { return memorialName; }
     public void setMemorialName(String memorialName) { this.memorialName = memorialName; }
 
+    public String getUserPrompt() { return userPrompt; }
+    public void setUserPrompt(String userPrompt) { this.userPrompt = userPrompt; }
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getNarrativeFocus() { return narrativeFocus; }
-    public void setNarrativeFocus(String narrativeFocus) { this.narrativeFocus = narrativeFocus; }
+    public String getMusicTrack() { return musicTrack; }
+    public void setMusicTrack(String musicTrack) { this.musicTrack = musicTrack; }
 
-    public String getEmotionalTone() { return emotionalTone; }
-    public void setEmotionalTone(String emotionalTone) { this.emotionalTone = emotionalTone; }
+    public String getFilter() { return filter; }
+    public void setFilter(String filter) { this.filter = filter; }
 
-    public String getStyleFilter() { return styleFilter; }
-    public void setStyleFilter(String styleFilter) { this.styleFilter = styleFilter; }
-
-    public String getResolution() { return resolution; }
-    public void setResolution(String resolution) { this.resolution = resolution; }
-
-    public String getTransitionType() { return transitionType; }
-    public void setTransitionType(String transitionType) { this.transitionType = transitionType; }
-
-    public Integer getDurationPerMemory() { return durationPerMemory; }
-    public void setDurationPerMemory(Integer durationPerMemory) { this.durationPerMemory = durationPerMemory; }
-
-    public DocumentaryStatus getStatus() { return status; }
-    public void setStatus(DocumentaryStatus status) { this.status = status; }
+    public CapsuleStatus getStatus() { return status; }
+    public void setStatus(CapsuleStatus status) { this.status = status; }
 
     public Integer getProgress() { return progress; }
     public void setProgress(Integer progress) { this.progress = progress; }
