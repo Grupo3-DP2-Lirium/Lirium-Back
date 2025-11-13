@@ -16,6 +16,8 @@ public interface CollaboratorRepository extends JpaRepository<Collaborator, Long
     
     List<Collaborator> findByUserAndIsActiveTrue(User user);
     
+    List<Collaborator> findByMemorial(Memorial memorial);
+
     Optional<Collaborator> findByUserAndMemorialAndIsActiveTrue(User user, Memorial memorial);
     
     boolean existsByUserAndMemorialAndIsActiveTrue(User user, Memorial memorial);

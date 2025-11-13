@@ -40,84 +40,80 @@ private EmailService emailService;
     // ========== ACEPTAR CÓDIGO (CON NOTIFICACIONES) ==========
     
     @Override
-    public CollaboratorResponse acceptInviteCode(String code, User user) {
-        try {
-            System.out.println("✋ Usuario " + user.getEmail() + " acepta código: " + code);
-            
-            InviteCode inviteCode = inviteCodeRepository.findByCode(code.toUpperCase())
-                    .orElseThrow(() -> new RuntimeException("Código inválido"));
-            
-            if (inviteCode.getStatus() != InviteCodeStatusEnum.ACTIVE) {
-                throw new RuntimeException("Código no disponible");
-            }
-            
-            if (LocalDateTime.now().isAfter(inviteCode.getExpiresAt())) {
-                inviteCode.setStatus(InviteCodeStatusEnum.EXPIRED);
-                inviteCodeRepository.save(inviteCode);
-                throw new RuntimeException("Código expirado");
-            }
-            
-            if (inviteCode.getUsedCount() >= inviteCode.getMaxUses()) {
-                inviteCode.setStatus(InviteCodeStatusEnum.USED);
-                inviteCodeRepository.save(inviteCode);
-                throw new RuntimeException("Código agotado");
-            }
-            
-            Memorial memorial = inviteCode.getMemorial();
-            User memorialOwner = memorial.getUser();
-            
-            if (memorialOwner.getIdUser().equals(user.getIdUser())) {
-                throw new RuntimeException("No puedes colaborar en tu propio memorial");
-            }
-            
-            if (collaboratorRepository.existsByUserAndMemorialAndIsActiveTrue(user, memorial)) {
-                throw new RuntimeException("Ya eres colaborador");
-            }
-            
-            // Crear colaborador
-            Collaborator collaborator = new Collaborator();
-            collaborator.setUser(user);
-            collaborator.setMemorial(memorial);
-            collaborator.setCanEdit(inviteCode.getCanEdit());
-            collaborator.setCanComment(inviteCode.getCanComment());
-            collaborator.setJoinedDate(LocalDateTime.now());
-            collaborator.setIsActive(true);
-            
-            collaborator = collaboratorRepository.save(collaborator);
-            
-            // Actualizar código
-            inviteCode.setUsedCount(inviteCode.getUsedCount() + 1);
-            inviteCode.setUsedAt(LocalDateTime.now());
-            
-            if (inviteCode.getUsedCount() >= inviteCode.getMaxUses()) {
-                inviteCode.setStatus(InviteCodeStatusEnum.USED);
-            }
-            
-            inviteCodeRepository.save(inviteCode);
-            
-            // ✅ NOTIFICACIONES
-            try {
-                // Notificar al dueño del memorial
-                notificationService.notifyCollaboratorJoined(memorialOwner, user, memorial);
-                System.out.println("📧 Notificación enviada al dueño: " + memorialOwner.getEmail());
-                
-                // Notificar al nuevo colaborador
-                notificationService.notifyJoinedAsCollaborator(user, memorial);
-                System.out.println("📧 Notificación enviada al colaborador: " + user.getEmail());
-            } catch (Exception e) {
-                System.err.println("⚠️ Error enviando notificaciones: " + e.getMessage());
-                // No fallar la operación si las notificaciones fallan
-            }
-            
-            System.out.println("✅ Colaborador agregado exitosamente");
-            
-            return buildCollaboratorResponse(collaborator);
-            
-        } catch (Exception e) {
-            System.err.println("❌ Error aceptando código: " + e.getMessage());
-            throw new RuntimeException(e.getMessage(), e);
+public CollaboratorResponse acceptInviteCode(String code, User user) {
+    try {
+        System.out.println("✋ Usuario " + user.getEmail() + " acepta código: " + code);
+        
+        InviteCode inviteCode = inviteCodeRepository.findByCode(code.toUpperCase())
+                .orElseThrow(() -> new RuntimeException("Código inválido"));
+        
+        if (inviteCode.getStatus() != InviteCodeStatusEnum.ACTIVE) {
+            throw new RuntimeException("Código no disponible");
         }
+        
+        if (LocalDateTime.now().isAfter(inviteCode.getExpiresAt())) {
+            inviteCode.setStatus(InviteCodeStatusEnum.EXPIRED);
+            inviteCodeRepository.save(inviteCode);
+            throw new RuntimeException("Código expirado");
+        }
+        
+        if (inviteCode.getUsedCount() >= inviteCode.getMaxUses()) {
+            inviteCode.setStatus(InviteCodeStatusEnum.USED);
+            inviteCodeRepository.save(inviteCode);
+            throw new RuntimeException("Código agotado");
+        }
+        
+        Memorial memorial = inviteCode.getMemorial();
+        User memorialOwner = memorial.getUser();
+        
+        if (memorialOwner.getIdUser().equals(user.getIdUser())) {
+            throw new RuntimeException("No puedes colaborar en tu propio memorial");
+        }
+        
+        // ✅ FIX: Verificar solo colaboradores activos
+        // Ya no hay problema si existía uno eliminado previamente
+        if (collaboratorRepository.existsByUserAndMemorialAndIsActiveTrue(user, memorial)) {
+            throw new RuntimeException("Ya eres colaborador activo");
+        }
+        
+        // Crear colaborador
+        Collaborator collaborator = new Collaborator();
+        collaborator.setUser(user);
+        collaborator.setMemorial(memorial);
+        collaborator.setCanEdit(inviteCode.getCanEdit());
+        collaborator.setCanComment(inviteCode.getCanComment());
+        collaborator.setJoinedDate(LocalDateTime.now());
+        collaborator.setIsActive(true);
+        
+        collaborator = collaboratorRepository.save(collaborator);
+        
+        // Actualizar código
+        inviteCode.setUsedCount(inviteCode.getUsedCount() + 1);
+        inviteCode.setUsedAt(LocalDateTime.now());
+        
+        if (inviteCode.getUsedCount() >= inviteCode.getMaxUses()) {
+            inviteCode.setStatus(InviteCodeStatusEnum.USED);
+        }
+        
+        inviteCodeRepository.save(inviteCode);
+        
+        // ✅ NOTIFICACIONES
+        try {
+            notificationService.notifyCollaboratorJoined(memorialOwner, user, memorial);
+            notificationService.notifyJoinedAsCollaborator(user, memorial);
+        } catch (Exception e) {
+            System.err.println("⚠️ Error enviando notificaciones: " + e.getMessage());
+        }
+        
+        System.out.println("✅ Colaborador agregado exitosamente");
+        
+        return buildCollaboratorResponse(collaborator);
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error aceptando código: " + e.getMessage());
+        throw new RuntimeException(e.getMessage(), e);
     }
+}
 
     // ========== GENERAR CÓDIGO ==========
     
@@ -288,10 +284,11 @@ public void removeCollaborator(Long collaboratorId, User user) {
             throw new RuntimeException("Solo el dueño puede eliminar colaboradores");
         }
         
-        collaborator.setIsActive(false);
-        collaboratorRepository.save(collaborator);
+        // ✅ FIX: Eliminar físicamente en lugar de solo marcar isActive=false
+        // Esto permite re-agregar al mismo usuario después
+        collaboratorRepository.delete(collaborator);
         
-        System.out.println("✅ Colaborador eliminado: " + collaborator.getIdCollaborator());
+        System.out.println("✅ Colaborador eliminado permanentemente: " + collaborator.getIdCollaborator());
         
     } catch (Exception e) {
         System.err.println("❌ Error eliminando: " + e.getMessage());
@@ -499,25 +496,22 @@ public void inviteByEmail(
         Memorial memorial = memorialRepository.findById(memorialId)
                 .orElseThrow(() -> new RuntimeException("Memorial no encontrado"));
         
+        // ✅ VERIFICAR QUE ES DUEÑO
         if (!memorial.getUser().getIdUser().equals(inviter.getIdUser())) {
             throw new RuntimeException("Solo el dueño puede invitar");
         }
         
-        // Verificar que el email existe en la plataforma
-        User invitee = userRepository.findByEmail(inviteeEmail)
-                .orElseThrow(() -> new RuntimeException(
-                    "El usuario con email " + inviteeEmail + " no está registrado en Remory"
-                ));
-        
-        // Verificar que no se invita a sí mismo
-        if (invitee.getIdUser().equals(inviter.getIdUser())) {
-            throw new RuntimeException("No puedes invitarte a ti mismo");
-        }
-        
-        // Verificar que no sea ya colaborador
-        if (collaboratorRepository.existsByUserAndMemorialAndIsActiveTrue(invitee, memorial)) {
-            throw new RuntimeException("Este usuario ya es colaborador");
-        }
+        // ✅ PERMITIR INVITAR A CUALQUIER EMAIL (no verificar si existe)
+        // Si el usuario existe, verificar que no es el dueño ni ya colaborador
+        userRepository.findByEmail(inviteeEmail).ifPresent(existingUser -> {
+            if (existingUser.getIdUser().equals(inviter.getIdUser())) {
+                throw new RuntimeException("No puedes invitarte a ti mismo");
+            }
+            
+            if (collaboratorRepository.existsByUserAndMemorialAndIsActiveTrue(existingUser, memorial)) {
+                throw new RuntimeException("Este usuario ya es colaborador");
+            }
+        });
         
         // Generar código de invitación
         String code = generateUniqueCode();

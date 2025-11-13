@@ -5,7 +5,9 @@ import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
 import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.repository.CollaboratorRepository;
+import org.example.springboot_backend.repository.InviteCodeRepository;
 import org.example.springboot_backend.repository.MemorialRepository;
+import org.example.springboot_backend.repository.MemorialShareRepository;
 import org.example.springboot_backend.repository.MemoryRepository;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,12 @@ public class MemorialService implements IMemorialService {
     
     @Autowired
     private CollaboratorRepository collaboratorRepository;
+
+    @Autowired
+    private InviteCodeRepository inviteCodeRepository;
+
+    @Autowired
+    private MemorialShareRepository memorialShareRepository;
 
     @Override
     public MemorialResponse createMemorial(MemorialRequest request, MultipartFile profilePhoto, User user) {
@@ -174,6 +182,29 @@ public class MemorialService implements IMemorialService {
                 throw new RuntimeException("User does not have permission to delete this memorial");
             }
 
+            List<MemorialShare> memorialShares = memorialShareRepository.findByMemorial(memorial);
+            if (!memorialShares.isEmpty()) {
+                System.out.println("🔗 Eliminando " + memorialShares.size() + " enlaces compartidos...");
+                memorialShareRepository.deleteAll(memorialShares);
+                System.out.println("✅ Enlaces compartidos eliminados");
+            }
+
+            // ✅ PASO 1: Eliminar todos los INVITE CODES asociados
+            List<InviteCode> inviteCodes = inviteCodeRepository.findByMemorial(memorial);
+            if (!inviteCodes.isEmpty()) {
+                System.out.println("📋 Eliminando " + inviteCodes.size() + " códigos de invitación...");
+                inviteCodeRepository.deleteAll(inviteCodes);
+                System.out.println("✅ Códigos eliminados");
+            }
+
+            // ✅ PASO 2: Eliminar todos los COLABORADORES
+            List<Collaborator> collaborators = collaboratorRepository.findByMemorial(memorial);
+            if (!collaborators.isEmpty()) {
+                System.out.println("👥 Eliminando " + collaborators.size() + " colaboradores...");
+                collaboratorRepository.deleteAll(collaborators);
+                System.out.println("✅ Colaboradores eliminados");
+            }
+
             if (memorial.getUsedSpace() != null && memorial.getUsedSpace() > 0) {
                 storageService.decreaseUserUsedSpace(user, memorial.getUsedSpace());
                 System.out.println("Liberado espacio del usuario: " + (memorial.getUsedSpace() / (1024 * 1024)) + " MB");
@@ -226,6 +257,12 @@ public class MemorialService implements IMemorialService {
         boolean isOwner = memorial.getUser().getIdUser().equals(currentUser.getIdUser());
         response.setIsOwner(isOwner);
         
+        if (!isOwner) {
+        collaboratorRepository.findByUserAndMemorialAndIsActiveTrue(currentUser, memorial)
+                .ifPresent(collaborator -> {
+                    response.setCanEdit(collaborator.getCanEdit());
+                });
+            }
         System.out.println("🔍 Memorial: " + memorial.getName() + 
                          " | Owner: " + memorial.getUser().getEmail() + 
                          " | Current: " + currentUser.getEmail() + 

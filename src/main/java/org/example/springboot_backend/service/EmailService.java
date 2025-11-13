@@ -106,87 +106,96 @@ public class EmailService {
     }
     
     private String buildInvitationEmailBody(
-            String inviterName,
-            String memorialName,
-            String inviteCode,
-            boolean canEdit,
-            boolean canComment) {
-        
-        String permissions = canEdit ? "editar y comentar" : 
-                           canComment ? "comentar" : "ver";
-        
-        return String.format("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); 
-                              color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                    .code-box { background: white; border: 2px dashed #667eea; 
-                               padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; }
-                    .code { font-size: 32px; font-weight: bold; letter-spacing: 8px; 
-                           color: #667eea; font-family: monospace; }
-                    .button { display: inline-block; background: #667eea; color: white; 
-                             padding: 12px 30px; text-decoration: none; border-radius: 5px; 
-                             margin: 20px 0; font-weight: bold; }
-                    .permissions { background: #e8f4f8; padding: 15px; border-radius: 5px; 
-                                  margin: 15px 0; border-left: 4px solid #667eea; }
-                    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h1>🎊 ¡Tienes una invitación!</h1>
+        String inviterName,
+        String memorialName,
+        String inviteCode,
+        boolean canEdit,
+        boolean canComment) {
+    
+    String permissions = canEdit ? "editar y comentar" : 
+                       canComment ? "comentar" : "ver";
+    
+    return String.format("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); 
+                          color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+                .code-box { background: white; border: 2px dashed #667eea; 
+                           padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; }
+                .code { font-size: 32px; font-weight: bold; letter-spacing: 8px; 
+                       color: #667eea; font-family: monospace; }
+                .button { display: inline-block; background: #667eea; color: white; 
+                         padding: 12px 30px; text-decoration: none; border-radius: 5px; 
+                         margin: 20px 0; font-weight: bold; }
+                .permissions { background: #e8f4f8; padding: 15px; border-radius: 5px; 
+                              margin: 15px 0; border-left: 4px solid #667eea; }
+                .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
+                .register-box { background: #fff3cd; border: 1px solid #ffc107; 
+                               padding: 15px; border-radius: 8px; margin: 15px 0; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🎊 ¡Tienes una invitación!</h1>
+                </div>
+                <div class="content">
+                    <p>Hola,</p>
+                    <p><strong>%s</strong> te ha invitado a colaborar en el memorial 
+                       <strong>"%s"</strong> en Remory.</p>
+                    
+                    <div class="permissions">
+                        <strong>📋 Tus permisos:</strong><br>
+                        Podrás <strong>%s</strong> en este memorial.
                     </div>
-                    <div class="content">
-                        <p>Hola,</p>
-                        <p><strong>%s</strong> te ha invitado a colaborar en el memorial 
-                           <strong>"%s"</strong> en Remory.</p>
-                        
-                        <div class="permissions">
-                            <strong>📋 Tus permisos:</strong><br>
-                            Podrás <strong>%s</strong> en este memorial.
-                        </div>
-                        
-                        <p>Para aceptar la invitación, sigue estos pasos:</p>
-                        <ol>
-                            <li>Abre la app Remory</li>
-                            <li>Ve a "Colaboraciones"</li>
-                            <li>Toca "Ingresar código"</li>
-                            <li>Ingresa el siguiente código:</li>
-                        </ol>
-                        
-                        <div class="code-box">
-                            <div class="code">%s</div>
-                            <p style="color: #666; font-size: 12px; margin-top: 10px;">
-                                ⏰ Válido por 24 horas
-                            </p>
-                        </div>
-                        
-                        <p style="color: #666; font-size: 14px;">
-                            💡 <strong>Tip:</strong> Si aún no tienes Remory, puedes descargarla 
-                            desde tu tienda de aplicaciones favorita.
+                    
+                    <div class="register-box">
+                        <strong>⚠️ ¿Aún no tienes cuenta?</strong><br>
+                        Si no estás registrado en Remory, primero debes crear tu cuenta en la app.
+                        Luego, podrás usar este código para unirte al memorial.
+                    </div>
+                    
+                    <p>Para aceptar la invitación, sigue estos pasos:</p>
+                    <ol>
+                        <li><strong>Descarga</strong> la app Remory (si aún no la tienes)</li>
+                        <li><strong>Crea tu cuenta</strong> o inicia sesión</li>
+                        <li>Ve a <strong>"Colaboraciones"</strong></li>
+                        <li>Toca <strong>"Ingresar código"</strong></li>
+                        <li>Ingresa el siguiente código:</li>
+                    </ol>
+                    
+                    <div class="code-box">
+                        <div class="code">%s</div>
+                        <p style="color: #666; font-size: 12px; margin-top: 10px;">
+                            ⏰ Válido por 24 horas
                         </p>
-                        
-                        <p>Si no esperabas esta invitación, puedes ignorar este correo de forma segura.</p>
-                        
-                        <p>¡Esperamos que disfrutes colaborando en Remory!</p>
-                        
-                        <div class="footer">
-                            <p>Este es un correo automático, por favor no respondas.<br>
-                            © 2024 Remory - Preservando memorias, construyendo legados</p>
-                        </div>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 14px;">
+                        💡 <strong>Tip:</strong> Guarda este código para cuando crees tu cuenta.
+                        Puedes descargarlo desde tu tienda de aplicaciones favorita.
+                    </p>
+                    
+                    <p>Si no esperabas esta invitación, puedes ignorar este correo de forma segura.</p>
+                    
+                    <p>¡Esperamos que disfrutes colaborando en Remory!</p>
+                    
+                    <div class="footer">
+                        <p>Este es un correo automático, por favor no respondas.<br>
+                        © 2024 Remory - Preservando memorias, construyendo legados</p>
                     </div>
                 </div>
-            </body>
-            </html>
-            """, inviterName, memorialName, permissions, inviteCode);
-    }
+            </div>
+        </body>
+        </html>
+        """, inviterName, memorialName, permissions, inviteCode);
+}
     
     private void logInvitationToConsole(
             String toEmail,
