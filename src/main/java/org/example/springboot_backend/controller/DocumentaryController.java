@@ -7,7 +7,6 @@ import org.example.springboot_backend.dto.CreateDocumentaryRequest;
 import org.example.springboot_backend.dto.DocumentaryResponse;
 import org.example.springboot_backend.entity.Memorial;
 import org.example.springboot_backend.entity.User;
-import org.example.springboot_backend.enums.DocumentaryStatus;
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.DocumentaryService;
@@ -29,106 +28,57 @@ import java.util.UUID;
 @Tag(name = "Documentaries", description = "Documentary generation and management")
 @SecurityRequirement(name = "Bearer Authentication")
 public class DocumentaryController {
-
+    
     @Autowired
     private DocumentaryService documentaryService;
-
+    
     @Autowired
     private UserRepository userRepository;
-
+    
     @Autowired
     private MemorialRepository memorialRepository;
-
+    
     @Autowired
     private NotificationService notificationService;
-
+    
     /**
-     * Validar si un memorial tiene suficientes recuerdos
-     */
-    @GetMapping("/validate-memorial/{memorialId}")
-    @Operation(summary = "Validate memorial for documentary",
-            description = "Check if memorial has enough memories (min 50) for documentary creation")
-    public ResponseEntity<?> validateMemorial(@PathVariable UUID memorialId) {
-        try {
-            Map<String, Object> validation = documentaryService.validateMemorialForDocumentary(memorialId);
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", validation
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
-
-    /**
-     * ✅ ACTUALIZADO: Ahora crea en estado DRAFT y NO inicia procesamiento
+     * ✅ ACTUALIZADO: Notifica cuando inicia la creación del documental
      */
     @PostMapping
-    @Operation(summary = "Create a new documentary draft",
-            description = "Creates a documentary in DRAFT state from memorial configuration")
+    @Operation(summary = "Create a new documentary",
+            description = "Creates a documentary from timeline memories of a memorial")
     public ResponseEntity<?> createDocumentary(
             @RequestBody CreateDocumentaryRequest request,
             Authentication authentication) {
         try {
             UUID userId = getUserIdFromAuth(authentication);
-
-            // Crear documental en estado DRAFT (sin procesar aún)
-            DocumentaryResponse response = documentaryService.createDocumentaryDraft(request, userId);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                    "success", true,
-                    "message", "Documentary draft created successfully",
-                    "data", response
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
-
-    /**
-     * ✨ NUEVO: Iniciar generación del documental (cuando usuario presiona "Generar")
-     */
-    @PostMapping("/{documentaryId}/generate")
-    @Operation(summary = "Generate documentary video",
-            description = "Starts the video generation process for a DRAFT documentary")
-    public ResponseEntity<?> generateDocumentary(
-            @PathVariable UUID documentaryId,
-            Authentication authentication) {
-        try {
-            UUID userId = getUserIdFromAuth(authentication);
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-
-            DocumentaryResponse response = documentaryService.startDocumentaryGeneration(documentaryId, userId);
-
-            // Notificar inicio de procesamiento
-            Memorial memorial = memorialRepository.findById(response.getMemorialId())
+            
+            Memorial memorial = memorialRepository.findById(request.getMemorialId())
                     .orElseThrow(() -> new RuntimeException("Memorial not found"));
-
+            
+            // Crear documental
+            DocumentaryResponse response = documentaryService.createDocumentary(request, userId);
+            
+            // ✅ NUEVO: Notificar inicio de procesamiento
             notificationService.createNotification(
-                    user,
-                    org.example.springboot_backend.enums.NotificationType.DOCUMENTARY,
-                    "Documental en proceso",
-                    String.format("Tu documental de '%s' se está generando. Te notificaremos cuando esté listo.",
-                            memorial.getName()),
-                    response.getIdDocumentary().getMostSignificantBits()
+                user,
+                org.example.springboot_backend.enums.NotificationType.DOCUMENTARY,
+                "Documental en proceso",
+                String.format("Tu documental de '%s' se está generando. Te notificaremos cuando esté listo.", 
+                    memorial.getName()),
+                response.getIdDocumentary().getMostSignificantBits()
             );
-
-            return ResponseEntity.ok(Map.of(
+            
+            System.out.println("✅ Documental iniciado y notificación enviada");
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "success", true,
-                    "message", "Documentary generation started",
+                    "message", "Documentary creation started",
                     "data", response
             ));
-
+            
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
@@ -137,91 +87,7 @@ public class DocumentaryController {
             ));
         }
     }
-
-    /**
-     * ✨ NUEVO: Publicar documental en el perfil
-     */
-    @PostMapping("/{documentaryId}/publish")
-    @Operation(summary = "Publish documentary",
-            description = "Publish a COMPLETED documentary to the memorial profile")
-    public ResponseEntity<?> publishDocumentary(
-            @PathVariable UUID documentaryId,
-            Authentication authentication) {
-        try {
-            UUID userId = getUserIdFromAuth(authentication);
-            DocumentaryResponse response = documentaryService.publishDocumentary(documentaryId, userId);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Documentary published successfully",
-                    "data", response
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
-
-    /**
-     * ✨ NUEVO: Actualizar documental (editar título, descripción, etc.)
-     */
-    @PutMapping("/{documentaryId}")
-    @Operation(summary = "Update documentary",
-            description = "Update documentary details (title, description, settings)")
-    public ResponseEntity<?> updateDocumentary(
-            @PathVariable UUID documentaryId,
-            @RequestBody CreateDocumentaryRequest request,
-            Authentication authentication) {
-        try {
-            UUID userId = getUserIdFromAuth(authentication);
-            DocumentaryResponse response = documentaryService.updateDocumentary(documentaryId, request, userId);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Documentary updated successfully",
-                    "data", response
-            ));
-
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
-
-    /**
-     * ✨ NUEVO: Obtener documentales por estado (drafts o published)
-     */
-    @GetMapping("/memorial/{memorialId}/by-status")
-    @Operation(summary = "Get documentaries by status",
-            description = "Get documentaries filtered by status (DRAFT or PUBLISHED)")
-    public ResponseEntity<?> getDocumentariesByStatus(
-            @PathVariable UUID memorialId,
-            @RequestParam String status) {
-        try {
-            DocumentaryStatus documentaryStatus = DocumentaryStatus.valueOf(status.toUpperCase());
-            List<DocumentaryResponse> responses = documentaryService.getDocumentariesByMemorialAndStatus(
-                    memorialId, documentaryStatus);
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", responses
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "error", e.getMessage(),
-                    "timestamp", LocalDateTime.now()
-            ));
-        }
-    }
-
+    
     @GetMapping("/{documentaryId}")
     @Operation(summary = "Get documentary status",
             description = "Get the current status and details of a documentary")
@@ -240,7 +106,7 @@ public class DocumentaryController {
             ));
         }
     }
-
+    
     @GetMapping("/memorial/{memorialId}")
     @Operation(summary = "Get documentaries by memorial",
             description = "Get all documentaries created for a specific memorial")
@@ -259,7 +125,7 @@ public class DocumentaryController {
             ));
         }
     }
-
+    
     @GetMapping("/my-documentaries")
     @Operation(summary = "Get my documentaries",
             description = "Get all documentaries created by the current user")
@@ -279,7 +145,7 @@ public class DocumentaryController {
             ));
         }
     }
-
+    
     @PostMapping("/{documentaryId}/cancel")
     @Operation(summary = "Cancel documentary processing",
             description = "Cancel a documentary that is pending or processing")
@@ -302,7 +168,7 @@ public class DocumentaryController {
             ));
         }
     }
-
+    
     @DeleteMapping("/{documentaryId}")
     @Operation(summary = "Delete documentary",
             description = "Delete a documentary and its associated video file")
@@ -325,10 +191,7 @@ public class DocumentaryController {
             ));
         }
     }
-
-    /**
-     * Nuevo catálogo de música
-     */
+    
     @GetMapping("/music-catalog")
     @Operation(summary = "Get available music tracks",
             description = "Get list of available background music for documentaries")
@@ -336,39 +199,46 @@ public class DocumentaryController {
         try {
             List<Map<String, Object>> musicTracks = List.of(
                     Map.of(
-                            "id", "music/calm-emotional-cello.mp3",
-                            "name", "Calm Emotional Cello",
-                            "description", "Cello emotivo y calmado",
-                            "duration", "3:45",
+                            "id", "music/emotional-piano.mp3",
+                            "name", "Emotional Piano",
+                            "description", "Piano melódico y emotivo",
+                            "duration", "3:20",
                             "mood", "emotional"
                     ),
                     Map.of(
-                            "id", "music/piano-classical-music.mp3",
-                            "name", "Piano Classical Music",
-                            "description", "Piano clásico elegante",
-                            "duration", "4:20",
-                            "mood", "classical"
+                            "id", "music/uplifting-strings.mp3",
+                            "name", "Uplifting Strings",
+                            "description", "Cuerdas inspiradoras",
+                            "duration", "2:45",
+                            "mood", "uplifting"
                     ),
                     Map.of(
-                            "id", "music/simple-happy-acoustic.mp3",
-                            "name", "Simple Happy Acoustic",
-                            "description", "Acústica alegre y simple",
-                            "duration", "3:15",
-                            "mood", "happy"
-                    ),
-                    Map.of(
-                            "id", "music/mystic-melody.mp3",
-                            "name", "Mystic Melody",
-                            "description", "Melodía mística y contemplativa",
-                            "duration", "4:05",
-                            "mood", "mystic"
-                    ),
-                    Map.of(
-                            "id", "music/land-of-tranquility.mp3",
-                            "name", "Land of Tranquility",
-                            "description", "Ambiente de tranquilidad y paz",
-                            "duration", "4:30",
+                            "id", "music/peaceful-guitar.mp3",
+                            "name", "Peaceful Guitar",
+                            "description", "Guitarra tranquila y relajante",
+                            "duration", "4:10",
                             "mood", "peaceful"
+                    ),
+                    Map.of(
+                            "id", "music/peaceful-piano.mp3",
+                            "name", "Peaceful Piano",
+                            "description", "Piano melódico y tranquilo",
+                            "duration", "4:10",
+                            "mood", "peaceful"
+                    ),
+                    Map.of(
+                            "id", "music/nostalgic-melody.mp3",
+                            "name", "Nostalgic Melody",
+                            "description", "Melodía nostálgica y reflexiva",
+                            "duration", "3:50",
+                            "mood", "nostalgic"
+                    ),
+                    Map.of(
+                            "id", "music/joyful-celebration.mp3",
+                            "name", "Joyful Celebration",
+                            "description", "Alegre y celebratorio",
+                            "duration", "3:15",
+                            "mood", "joyful"
                     )
             );
             return ResponseEntity.ok(Map.of(
@@ -382,11 +252,30 @@ public class DocumentaryController {
             ));
         }
     }
-
+    
     private UUID getUserIdFromAuth(Authentication authentication) {
         String userEmail = authentication.getName();
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return user.getIdUser();
+    }
+    
+    /**
+     * ✅ MÉTODO AUXILIAR: Para que DocumentaryService lo llame cuando termine/falle
+     * Este método debe ser llamado desde DocumentaryService cuando el proceso termine
+     */
+    public void notifyDocumentaryStatus(UUID userId, String memorialName, Long documentaryId, boolean success, String errorMessage) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            if (success) {
+                notificationService.notifyDocumentaryCompleted(user, memorialName, documentaryId);
+            } else {
+                notificationService.notifyDocumentaryFailed(user, memorialName, errorMessage);
+            }
+        } catch (Exception e) {
+            System.err.println("Error al enviar notificación de documental: " + e.getMessage());
+        }
     }
 }

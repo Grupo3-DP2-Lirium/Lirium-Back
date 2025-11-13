@@ -36,82 +36,38 @@ public class SubscriptionService {
         Plan plan = planRepository.findByIdPlan(planId)
                 .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
 
+        // Buscar suscripción del mismo plan
         Subscription activeSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
-                .orElse(null);
+            .orElse(null);
 
-        Subscription pendingSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.PENDING)
-                .orElse(null);
-
-        if (pendingSubscription != null) {
-            throw new RuntimeException("Ya tienes un cambio de plan pendiente. Espera a que se active.");
+        if (activeSubscription != null) {
+            throw new RuntimeException("Ya tienes una suscripción activa. Cancélala antes de crear una nueva.");
         }
 
-        // Si existe una activa, evaluamos el tipo de cambio
-        if (activeSubscription != null && activeSubscription.getEndDate() == null) {
-
-            boolean isUpgrade = plan.getPrice() > activeSubscription.getPlan().getPrice();
-            boolean isDowngrade = plan.getPrice() < activeSubscription.getPlan().getPrice();
-
-            if (isUpgrade) {
-                // Si quiere upgrade → se hace el cambio inmediato
-                activeSubscription.setEndDate(LocalDateTime.now());
-                activeSubscription.setStatus(SubscriptionStatus.CANCELLED);
-                activeSubscription.setUpdatedDate(LocalDateTime.now());
-                subscriptionRepository.save(activeSubscription);
-
-            } else if (isDowngrade) {
-                // Si quiere downgrade → no se permite aún
-                throw new RuntimeException("Podrás cambiar a este plan cuando finalice tu suscripción actual el "
-                        + activeSubscription.getEndDate());
-            } else {
-                // Si intenta suscribirse al mismo plan
-                throw new RuntimeException("Ya tienes este plan activo actualmente.");
-            }
-        }
-
-        // Crear nueva suscripción (solo si es válido hacerlo)
         Subscription newSubscription = new Subscription();
         newSubscription.setUser(user);
         newSubscription.setPlan(plan);
+        newSubscription.setStatus(SubscriptionStatus.ACTIVE);
         newSubscription.setCurrentPaymentMethod(method);
         newSubscription.setFrequency(frequency.name());
+        newSubscription.setStartDate(LocalDateTime.now());
         newSubscription.setPaypalSubscriptionId(subscriptionId);
+
+        /*switch (frequency) { // No hay endDate hasta que cancele o expire
+            case MONTHLY -> newSubscription.setEndDate(LocalDateTime.now().plusMonths(1));
+            case YEARLY -> newSubscription.setEndDate(LocalDateTime.now().plusYears(1));
+        }*/
+
         newSubscription.setCreatedDate(LocalDateTime.now());
         newSubscription.setUpdatedDate(LocalDateTime.now());
-        newSubscription.setStartDate(LocalDateTime.now());
-        newSubscription.setStatus(SubscriptionStatus.ACTIVE);
 
         return subscriptionRepository.save(newSubscription);
-        
-        // Si quiere upgrade el plan se hace automáticamente el cambio de planes, el antiguo queda como CANCELLED con fecha de fin y la nueva activa
-        // Si quiere downgrade se le dice que lo podra hacer despues de la fecha fin de su plan actual
-        // Si cancelo su plan, se le dice que puede volver a suscribirse cuando termine su plan actual
     }
 
-    // Obtener la suscripción activa de un usuario
     public Subscription getActiveSubscription(User user) {
-        Subscription activeSub = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
-                .orElse(null);
-
-        if (activeSub == null) {
-            // No tiene suscripción activa → es Free
-            return null;
-        }
-
-        // Validar fecha de fin
-        if (activeSub.getEndDate() != null && activeSub.getEndDate().isBefore(LocalDateTime.now())) {
-            // Suscripción vencida → marcar como CANCELLED en BD si quieres
-            activeSub.setStatus(SubscriptionStatus.CANCELLED);
-            activeSub.setUpdatedDate(LocalDateTime.now());
-            subscriptionRepository.save(activeSub);
-
-            // Retornar null o lanzar excepción
-            throw new RuntimeException("No tienes un plan premium activo");
-            // O simplemente: return null;
-        }
-
-        // Suscripción activa y vigente
-        return activeSub;
+        // Buscar suscripción activa para el usuario (solo un plan activo por tipo)
+        return subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+                .orElse(null); // null → significa que es Free
     }
 
     public List<String> getPlanPermissions(UUID planId) {
@@ -126,7 +82,7 @@ public class SubscriptionService {
             throw new RuntimeException("No active subscription to cancel.");
         }
 
-        //activeSub.setStatus(SubscriptionStatus.CANCELLED);
+        activeSub.setStatus(SubscriptionStatus.CANCELLED);
         activeSub.setUpdatedDate(LocalDateTime.now());
 
         BillingPeriod frequency = BillingPeriod.valueOf(activeSub.getFrequency());
@@ -150,57 +106,10 @@ public class SubscriptionService {
         }
 
         activeSub.setEndDate(end);
+        activeSub.setStatus(SubscriptionStatus.CANCELLED);
         activeSub.setUpdatedDate(LocalDateTime.now());
 
         return subscriptionRepository.save(activeSub);
-    }
-
-    // QUEDA PENDIENTE
-    public Subscription changePlan(User user, UUID newPlanId) {
-        Subscription activeSub = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new RuntimeException("No hay suscripción activa"));
-
-        Plan newPlan = planRepository.findByIdPlan(newPlanId)
-                .orElseThrow(() -> new RuntimeException("Plan nuevo no encontrado"));
-
-        // Si es un upgrade, aplica inmediatamente
-        boolean isUpgrade = newPlan.getPrice() > activeSub.getPlan().getPrice();
-
-        if (isUpgrade) {
-            activeSub.setPlan(newPlan);
-            activeSub.setUpdatedDate(LocalDateTime.now());
-            return subscriptionRepository.save(activeSub);
-        } else {
-            // Si es downgrade, programa el cambio al final del ciclo
-            LocalDateTime endOfCycle = calculateEndOfBillingCycle(activeSub);
-            Subscription newSub = new Subscription();
-            newSub.setUser(user);
-            newSub.setPlan(newPlan);
-            newSub.setStatus(SubscriptionStatus.ACTIVE); // pendiente hasta final de ciclo
-            newSub.setStartDate(endOfCycle);
-            newSub.setCreatedDate(LocalDateTime.now());
-            newSub.setUpdatedDate(LocalDateTime.now());
-            return subscriptionRepository.save(newSub);
-        }
-    }
-
-    // Calcula el fin del ciclo actual de la suscripción
-    private LocalDateTime calculateEndOfBillingCycle(Subscription sub) {
-        BillingPeriod frequency = BillingPeriod.valueOf(sub.getFrequency());
-        LocalDateTime start = sub.getStartDate();
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime end = start;
-
-        switch (frequency) {
-            case MONTHLY -> {
-                while (!end.isAfter(now)) end = end.plusMonths(1);
-            }
-            case YEARLY -> {
-                while (!end.isAfter(now)) end = end.plusYears(1);
-            }
-            default -> throw new RuntimeException("Unknown billing frequency");
-        }
-        return end;
     }
 
 }

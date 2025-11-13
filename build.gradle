@@ -67,4 +67,5 @@ task bootRunProd(type: org.springframework.boot.gradle.tasks.run.BootRun) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'org.example.springboot_backend.SpringbootBackendApplication'
     args '--spring.profiles.active=prod'
+    jvmArgs = ["-Djava.library.path=C:/Users/mlcis/Downloads/sqljdbc_13.2.0.0_enu/sqljdbc_13.2/enu/auth/x64"]
 }

@@ -26,68 +26,52 @@ public class Documentary {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Se agrega enfoque narrativo proporcionado por el usuario
-    @Column(columnDefinition = "TEXT")
-    private String narrativeFocus;
-
-    // Se agrega tono emocional
-    @Column
-    private String emotionalTone; // nostalgic, joyful, formal, inspiring
-
     // Configuración del documental
     @Column(nullable = false)
-    private Integer durationPerMemory = 5;
+    private Integer durationPerMemory = 5; // segundos por recuerdo
 
     @Column
-    private String musicTrack;
+    private String musicTrack; // URL o nombre del track de música
 
     @Column
-    private String styleFilter = "warm"; // warm (cálido), classic, modern, natural
+    private String styleFilter = "warm"; // warm, sepia, bw, vibrant, etc
 
     @Column
-    private String transitionType = "fade";
+    private String transitionType = "fade"; // fade, slide, zoom, etc
 
     // Estado y proceso
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DocumentaryStatus status = DocumentaryStatus.DRAFT; // Al crearse inicia como DRAFT (borrador)
+    private DocumentaryStatus status = DocumentaryStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")
     private String errorMessage;
 
     @Column
-    private Integer progress = 0;
+    private Integer progress = 0; // 0-100
 
     // Resultado
     @Column
-    private String videoUrl;
+    private String videoUrl; // URL del video final en Azure
 
     @Column
-    private String storagePath;
+    private String storagePath; // Path en Azure Blob Storage
 
     @Column
-    private Long videoSize;
+    private Long videoSize; // Tamaño en bytes
 
     @Column
-    private Integer videoDuration;
+    private Integer videoDuration; // Duración total en segundos
 
     @Column
-    private String resolution = "720p";
-
-    //Thumbnail del video
-    @Column
-    private String thumbnailUrl;
-
-    //Fecha de publicación
-    @Column
-    private LocalDateTime publishedDate;
+    private String resolution = "720p"; // 480p, 720p, 1080p
 
     // Metadata del proceso
     @Column
-    private Integer totalMemories;
+    private Integer totalMemories; // Total de recuerdos incluidos
 
     @Column(columnDefinition = "TEXT")
-    private String memoryIds;
+    private String memoryIds; // IDs separados por coma de los memories incluidos
 
     @Column
     private LocalDateTime processingStarted;
@@ -101,6 +85,7 @@ public class Documentary {
     @Column
     private LocalDateTime updatedDate;
 
+    // Timestamps automáticos
     @PrePersist
     protected void onCreate() {
         createdDate = LocalDateTime.now();
@@ -127,12 +112,6 @@ public class Documentary {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-
-    public String getNarrativeFocus() { return narrativeFocus; }
-    public void setNarrativeFocus(String narrativeFocus) { this.narrativeFocus = narrativeFocus; }
-
-    public String getEmotionalTone() { return emotionalTone; }
-    public void setEmotionalTone(String emotionalTone) { this.emotionalTone = emotionalTone; }
 
     public Integer getDurationPerMemory() { return durationPerMemory; }
     public void setDurationPerMemory(Integer durationPerMemory) { this.durationPerMemory = durationPerMemory; }
@@ -169,12 +148,6 @@ public class Documentary {
 
     public String getResolution() { return resolution; }
     public void setResolution(String resolution) { this.resolution = resolution; }
-
-    public String getThumbnailUrl() { return thumbnailUrl; }
-    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
-
-    public LocalDateTime getPublishedDate() { return publishedDate; }
-    public void setPublishedDate(LocalDateTime publishedDate) { this.publishedDate = publishedDate; }
 
     public Integer getTotalMemories() { return totalMemories; }
     public void setTotalMemories(Integer totalMemories) { this.totalMemories = totalMemories; }

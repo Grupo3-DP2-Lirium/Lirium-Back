@@ -30,21 +30,6 @@ public class Plan {
     @Column(name = "paypal_plan_id")
     private String paypalPlanId;
 
-    @Column(name = "storage_limit_gb")
-    private Integer storageLimitGb;
-
-    @Column(name = "max_files")
-    private Integer maxFiles;
-
-    @Column(name = "max_collaborations")
-    private Integer maxCollaborations;
-
-    @Column(name = "max_documentaries_per_month")
-    private Integer maxDocumentariesPerMonth;
-
-    @Column(name = "support_level")
-    private String supportLevel; // BASIC, STANDARD, PRIORITY
-
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "plan_permission",
@@ -81,20 +66,4 @@ public class Plan {
 
     public String getPaypalPlanId() { return paypalPlanId; }
     public void setPaypalPlanId(String paypalPlanId) { this.paypalPlanId = paypalPlanId; }
-
-    public Integer getStorageLimitGb() { return storageLimitGb; }
-    public void setStorageLimitGb(Integer storageLimitGb) { this.storageLimitGb = storageLimitGb; }
-
-    public Integer getMaxFiles() { return maxFiles; }
-    public void setMaxFiles(Integer maxFiles) { this.maxFiles = maxFiles; }
-
-    public Integer getMaxCollaborations() { return maxCollaborations; }
-    public void setMaxCollaborations(Integer maxCollaborations) { this.maxCollaborations = maxCollaborations; }
-
-    public Integer getMaxDocumentariesPerMonth() { return maxDocumentariesPerMonth; }
-    public void setMaxDocumentariesPerMonth(Integer maxDocumentariesPerMonth) { this.maxDocumentariesPerMonth = maxDocumentariesPerMonth; }
-
-    public String getSupportLevel() { return supportLevel; }
-    public void setSupportLevel(String supportLevel) { this.supportLevel = supportLevel; }
-
 }

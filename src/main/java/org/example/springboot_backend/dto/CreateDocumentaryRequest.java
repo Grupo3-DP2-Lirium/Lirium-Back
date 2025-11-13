@@ -7,22 +7,12 @@ public class CreateDocumentaryRequest {
     private UUID memorialId;
     private String title;
     private String description;
-
-    //Enfoque narrativo del usuario
-    private String narrativeFocus;
-
-    //Tono emocional
-    private String emotionalTone; // nostalgic, joyful, formal, inspiring
-
-    private Integer durationPerMemory = 5;
-    private String musicTrack;
-
-    // Valores válidos: warm, classic, modern, natural
-    private String styleFilter = "warm";
-
-    private String transitionType = "fade";
-    private String resolution = "720p";
-    private List<UUID> excludedMemoryIds;
+    private Integer durationPerMemory = 5; // segundos (3, 5, 8)
+    private String musicTrack; // opcional
+    private String styleFilter = "warm"; // warm, sepia, bw, vibrant
+    private String transitionType = "fade"; // fade, slide, zoom
+    private String resolution = "720p"; // 480p, 720p, 1080p
+    private List<UUID> excludedMemoryIds; // Memorias a excluir (opcional)
 
     // Getters y Setters
     public UUID getMemorialId() { return memorialId; }
@@ -33,12 +23,6 @@ public class CreateDocumentaryRequest {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-
-    public String getNarrativeFocus() { return narrativeFocus; }
-    public void setNarrativeFocus(String narrativeFocus) { this.narrativeFocus = narrativeFocus; }
-
-    public String getEmotionalTone() { return emotionalTone; }
-    public void setEmotionalTone(String emotionalTone) { this.emotionalTone = emotionalTone; }
 
     public Integer getDurationPerMemory() { return durationPerMemory; }
     public void setDurationPerMemory(Integer durationPerMemory) { this.durationPerMemory = durationPerMemory; }
