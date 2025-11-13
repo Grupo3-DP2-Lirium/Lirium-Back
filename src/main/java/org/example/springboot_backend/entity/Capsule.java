@@ -1,16 +1,17 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
-import org.example.springboot_backend.enums.DocumentaryStatus;
+import org.example.springboot_backend.enums.CapsuleFilter;
+import org.example.springboot_backend.enums.CapsuleStatus;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "documentaries")
-public class Documentary {
+@Table(name = "capsules")
+public class Capsule {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID idDocumentary;
+    private UUID idCapsule;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "memorial_id", nullable = false)
@@ -20,43 +21,35 @@ public class Documentary {
     @JoinColumn(name = "created_by", nullable = false)
     private User createdBy;
 
+    // Prompt del usuario para selección automática de recuerdos
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String userPrompt; // Ej: "Cumpleaños 80 de Lupi", "Navidad 2023"
+
+    // Metadatos visibles
     @Column(nullable = false)
     private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Se agrega enfoque narrativo proporcionado por el usuario
-    @Column(columnDefinition = "TEXT")
-    private String narrativeFocus;
-
-    // Se agrega tono emocional
-    @Column
-    private String emotionalTone; // nostalgic, joyful, formal, inspiring
-
-    // Configuración del documental
-    @Column(nullable = false)
-    private Integer durationPerMemory = 5;
-
+    // Personalización
     @Column
     private String musicTrack;
 
-    @Column
-    private String styleFilter = "warm"; // warm (cálido), classic, modern, natural
-
-    @Column
-    private String transitionType = "fade";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CapsuleFilter filter = CapsuleFilter.NATURAL;
 
     // Estado y proceso
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DocumentaryStatus status = DocumentaryStatus.DRAFT; // Al crearse inicia como DRAFT (borrador)
-
-    @Column(columnDefinition = "TEXT")
-    private String errorMessage;
+    private CapsuleStatus status = CapsuleStatus.DRAFT;
 
     @Column
     private Integer progress = 0;
+
+    @Column(columnDefinition = "TEXT")
+    private String errorMessage;
 
     // Resultado
     @Column
@@ -66,34 +59,30 @@ public class Documentary {
     private String storagePath;
 
     @Column
-    private Long videoSize;
-
-    @Column
-    private Integer videoDuration;
-
-    @Column
-    private String resolution = "720p";
-
-    //Thumbnail del video
-    @Column
     private String thumbnailUrl;
 
-    //Fecha de publicación
     @Column
-    private LocalDateTime publishedDate;
+    private Long videoSize; // bytes
 
-    // Metadata del proceso
     @Column
-    private Integer totalMemories;
+    private Integer videoDuration; // segundos (max 60)
 
+    @Column
+    private Integer totalMemories; // Cantidad de recuerdos usados (8-12)
+
+    // IDs de los recuerdos seleccionados por IA
     @Column(columnDefinition = "TEXT")
-    private String memoryIds;
+    private String memoryIds; // UUIDs separados por coma
 
+    // Timestamps
     @Column
     private LocalDateTime processingStarted;
 
     @Column
     private LocalDateTime processingCompleted;
+
+    @Column
+    private LocalDateTime publishedDate;
 
     @Column(nullable = false)
     private LocalDateTime createdDate;
@@ -112,9 +101,9 @@ public class Documentary {
         updatedDate = LocalDateTime.now();
     }
 
-    // Getters y Setters
-    public UUID getIdDocumentary() { return idDocumentary; }
-    public void setIdDocumentary(UUID idDocumentary) { this.idDocumentary = idDocumentary; }
+    // Getters & Setters
+    public UUID getIdCapsule() { return idCapsule; }
+    public void setIdCapsule(UUID idCapsule) { this.idCapsule = idCapsule; }
 
     public Memorial getMemorial() { return memorial; }
     public void setMemorial(Memorial memorial) { this.memorial = memorial; }
@@ -122,38 +111,29 @@ public class Documentary {
     public User getCreatedBy() { return createdBy; }
     public void setCreatedBy(User createdBy) { this.createdBy = createdBy; }
 
+    public String getUserPrompt() { return userPrompt; }
+    public void setUserPrompt(String userPrompt) { this.userPrompt = userPrompt; }
+
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getNarrativeFocus() { return narrativeFocus; }
-    public void setNarrativeFocus(String narrativeFocus) { this.narrativeFocus = narrativeFocus; }
-
-    public String getEmotionalTone() { return emotionalTone; }
-    public void setEmotionalTone(String emotionalTone) { this.emotionalTone = emotionalTone; }
-
-    public Integer getDurationPerMemory() { return durationPerMemory; }
-    public void setDurationPerMemory(Integer durationPerMemory) { this.durationPerMemory = durationPerMemory; }
-
     public String getMusicTrack() { return musicTrack; }
     public void setMusicTrack(String musicTrack) { this.musicTrack = musicTrack; }
 
-    public String getStyleFilter() { return styleFilter; }
-    public void setStyleFilter(String styleFilter) { this.styleFilter = styleFilter; }
+    public CapsuleFilter getFilter() { return filter; }
+    public void setFilter(CapsuleFilter filter) { this.filter = filter; }
 
-    public String getTransitionType() { return transitionType; }
-    public void setTransitionType(String transitionType) { this.transitionType = transitionType; }
-
-    public DocumentaryStatus getStatus() { return status; }
-    public void setStatus(DocumentaryStatus status) { this.status = status; }
-
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public CapsuleStatus getStatus() { return status; }
+    public void setStatus(CapsuleStatus status) { this.status = status; }
 
     public Integer getProgress() { return progress; }
     public void setProgress(Integer progress) { this.progress = progress; }
+
+    public String getErrorMessage() { return errorMessage; }
+    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
 
     public String getVideoUrl() { return videoUrl; }
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
@@ -161,20 +141,14 @@ public class Documentary {
     public String getStoragePath() { return storagePath; }
     public void setStoragePath(String storagePath) { this.storagePath = storagePath; }
 
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+
     public Long getVideoSize() { return videoSize; }
     public void setVideoSize(Long videoSize) { this.videoSize = videoSize; }
 
     public Integer getVideoDuration() { return videoDuration; }
     public void setVideoDuration(Integer videoDuration) { this.videoDuration = videoDuration; }
-
-    public String getResolution() { return resolution; }
-    public void setResolution(String resolution) { this.resolution = resolution; }
-
-    public String getThumbnailUrl() { return thumbnailUrl; }
-    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
-
-    public LocalDateTime getPublishedDate() { return publishedDate; }
-    public void setPublishedDate(LocalDateTime publishedDate) { this.publishedDate = publishedDate; }
 
     public Integer getTotalMemories() { return totalMemories; }
     public void setTotalMemories(Integer totalMemories) { this.totalMemories = totalMemories; }
@@ -187,6 +161,9 @@ public class Documentary {
 
     public LocalDateTime getProcessingCompleted() { return processingCompleted; }
     public void setProcessingCompleted(LocalDateTime processingCompleted) { this.processingCompleted = processingCompleted; }
+
+    public LocalDateTime getPublishedDate() { return publishedDate; }
+    public void setPublishedDate(LocalDateTime publishedDate) { this.publishedDate = publishedDate; }
 
     public LocalDateTime getCreatedDate() { return createdDate; }
     public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }

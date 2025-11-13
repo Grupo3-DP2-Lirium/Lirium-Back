@@ -1,15 +1,20 @@
 package org.example.springboot_backend.service;
 
 import org.example.springboot_backend.entity.BillingPeriod;
+import org.example.springboot_backend.entity.ExtraStoragePlan;
 import org.example.springboot_backend.entity.PaymentAttempt;
 import org.example.springboot_backend.entity.Plan;
 import org.example.springboot_backend.entity.Subscription;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.entity.UserExtraStorage;
 import org.example.springboot_backend.enums.PaymentAttemptStatus;
 import org.example.springboot_backend.enums.PaymentMethod;
 import org.example.springboot_backend.enums.SubscriptionStatus;
+import org.example.springboot_backend.repository.ExtraStoragePlanRepository;
 import org.example.springboot_backend.repository.PaymentAttemptRepository;
+import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.SubscriptionRepository;
+import org.example.springboot_backend.repository.UserExtraStorageRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -18,8 +23,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.core.ParameterizedTypeReference;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -29,6 +36,9 @@ public class PayPalService {
     private final SubscriptionService subscriptionService;
     private final SubscriptionRepository subscriptionRepository;
     private final PaymentAttemptRepository paymentAttemptRepository;
+    private final PlanRepository planRepository;
+    private final UserExtraStorageRepository userExtraStorageRepository;
+    private final ExtraStoragePlanRepository extraStoragePlanRepository;
 
     @Value("${paypal.client.id}")
     private String clientId;
@@ -45,12 +55,18 @@ public class PayPalService {
             SubscriptionService subscriptionService,
             SubscriptionRepository subscriptionRepository,
             UserRepository userRepository,
-            PaymentAttemptRepository paymentAttemptRepository
+            PaymentAttemptRepository paymentAttemptRepository,
+            PlanRepository planRepository,
+            UserExtraStorageRepository userExtraStorageRepository,
+            ExtraStoragePlanRepository extraStoragePlanRepository
     ) {
         this.webClient = WebClient.builder().baseUrl(baseUrl).build();
         this.subscriptionService = subscriptionService;
         this.subscriptionRepository = subscriptionRepository;
         this.paymentAttemptRepository = paymentAttemptRepository;
+        this.planRepository = planRepository;
+        this.userExtraStorageRepository = userExtraStorageRepository;
+        this.extraStoragePlanRepository = extraStoragePlanRepository;
     }
 
     // Obtener access token de PayPal
@@ -208,16 +224,46 @@ public class PayPalService {
 
     // Crear orden de suscripción en PayPal
     public Map<String, Object> createSubscription(User user, String planPaypalId, UUID planId) {
-        // Verificar suscripción existente en BD
-        Subscription existing = subscriptionRepository.findByUserIdUserAndPlanIdPlan(user.getIdUser(), planId)
-            .orElse(null);
-        
-        if (existing != null && existing.getStatus() == SubscriptionStatus.ACTIVE) {
-            // Ya tiene el plan activo
-            throw new RuntimeException("El usuario ya tiene este plan activo");
+        // Validar estado actual ANTES de crear en PayPal
+        Subscription activeSub = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE).orElse(null);
+
+        // Si tiene activa, revisar si fue cancelada o aún está vigente
+        if (activeSub != null) {
+            Plan nuevoPlan = planRepository.findByIdPlan(planId)
+                    .orElseThrow(() -> new RuntimeException("Plan no encontrado"));
+
+            // Tengo sucripción activa sin cancelar
+            if (activeSub.getEndDate() == null) {
+                // Suscripción activa sin fecha de fin
+                if (nuevoPlan.getPrice() > activeSub.getPlan().getPrice()) {
+                    // Upgrade → cancelar actual y crear nueva
+                    // Esto se maneja después de crear la suscripción en PayPal
+                } else {
+                    // Downgrade → bloquear
+                    throw new RuntimeException("Tu plan actual sigue activo. Podrás cambiar a uno menor cuando finalice el ciclo actual.");
+                }
+            } else {
+                // Suscripción ya fue cancelada pero todavía no llegó el endDate
+                if (LocalDateTime.now().isBefore(activeSub.getEndDate())) {
+                    if (nuevoPlan.getPrice() > activeSub.getPlan().getPrice()) {
+                        // Upgrade permitido → crear nueva suscripción y usar la fecha de inicio actual o esperar?
+                        // Aquí podrías iniciar nueva suscripción ahora o esperar a que termine la anterior
+                    } else {
+                        // Downgrade/Misma → bloquear hasta endDate
+                        throw new RuntimeException("Tu plan actual fue cancelado, espera hasta que termine el ciclo para cambiar a un plan menor.");
+                    }
+                } else {
+                    // Suscripción terminó → actualizar status a CANCELLED si no lo está
+                    if (activeSub.getStatus() != SubscriptionStatus.CANCELLED) {
+                        activeSub.setStatus(SubscriptionStatus.CANCELLED);
+                        subscriptionRepository.save(activeSub);
+                    }
+                    // Ahora puede crear cualquier suscripción normalmente
+                }
+            }
         }
-        
-        // Si no tiene suscripción → crear orden en PayPal
+
+        // Si pasa las validaciones, recién creamos la orden en PayPal
         String token = getAccessToken();
         Map<String, Object> body = Map.of(
                 "plan_id", planPaypalId,
@@ -243,7 +289,6 @@ public class PayPalService {
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
                 .block(Duration.ofSeconds(10));
 
-        // Obtener approve link
         String approvalLink = null;
         for (Object linkObj : (Iterable<?>) response.get("links")) {
             Map<?, ?> link = (Map<?, ?>) linkObj;
@@ -257,8 +302,8 @@ public class PayPalService {
                 "subscriptionID", response.get("id"),
                 "approvalLink", approvalLink
         );
-    } 
-    
+    }
+
     // Confirmar suscripción en PayPal y crear en BD
     public void confirmSubscription(String subscriptionId, UUID planId, User user) {
         String token = getAccessToken();
@@ -275,6 +320,38 @@ public class PayPalService {
 
         if (!"ACTIVE".equals(status)) {
             throw new RuntimeException("Subscription not active: " + status);
+        }
+
+        // Verificar suscripción pendiente
+        Subscription pendingSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.PENDING)
+            .orElse(null);
+        if (pendingSubscription != null) {
+            throw new RuntimeException("Ya tienes un cambio de plan pendiente. Espera a que se active.");
+        }
+
+        // Buscar suscripción activa previa en BD
+        Subscription activeSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+            .orElse(null);
+
+        if (activeSubscription != null && activeSubscription.getEndDate() == null) {
+            try {
+                // Cancelar en PayPal
+                webClient.post()
+                    .uri("/v1/billing/subscriptions/" + activeSubscription.getPaypalSubscriptionId() + "/cancel")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Map.of("reason", "Cambio de plan"))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block(Duration.ofSeconds(10));
+
+                // Cancelar en BD
+                activeSubscription.setStatus(SubscriptionStatus.CANCELLED);
+                activeSubscription.setEndDate(LocalDateTime.now());
+                subscriptionRepository.save(activeSubscription);
+            } catch (Exception e) {
+                throw new RuntimeException("Error al cancelar la suscripción anterior: " + e.getMessage());
+            }
         }
 
         // Se crea la suscripción en BD
@@ -366,6 +443,83 @@ public class PayPalService {
             .block();
 
         return response.get("id").toString();
+    }
+
+    public Map<String, Object> createExtraStorageSubscription(User user, String planPaypalId, UUID planId) {
+        // Buscar si ya tiene una suscripción activa a ESE plan específico
+        ExtraStoragePlan plan = extraStoragePlanRepository.findByIdExtraPlan(planId)
+            .orElseThrow(() -> new RuntimeException("ExtraStoragePlan no encontrado"));
+
+        Optional<UserExtraStorage> existing =
+            userExtraStorageRepository.findByUserAndPlanAndEndDateIsNull(user, plan);
+
+        if (existing.isPresent()) {
+            throw new RuntimeException("Ya tienes este plan de almacenamiento activo.");
+        }
+
+        // De lo contrario, crear la suscripción en PayPal
+        String token = getAccessToken();
+        Map<String, Object> body = Map.of(
+                "plan_id", planPaypalId,
+                "subscriber", Map.of(
+                        "name", Map.of(
+                                "given_name", user.getFirstName(),
+                                "surname", user.getFirstLastName()
+                        ),
+                        "email_address", user.getEmail()
+                ),
+                "application_context", Map.of(
+                        "return_url", "http://10.0.2.2:8080/api/paypal/storage-success",
+                        "cancel_url", "http://10.0.2.2:8080/api/paypal/storage-cancel"
+                )
+        );
+
+        Map<String, Object> response = webClient.post()
+                .uri("/v1/billing/subscriptions")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block(Duration.ofSeconds(10));
+
+        String approvalLink = null;
+        for (Object linkObj : (Iterable<?>) response.get("links")) {
+            Map<?, ?> link = (Map<?, ?>) linkObj;
+            if ("approve".equals(link.get("rel"))) {
+                approvalLink = (String) link.get("href");
+                break;
+            }
+        }
+
+        return Map.of(
+                "subscriptionID", response.get("id"),
+                "approvalLink", approvalLink
+        );
+    }
+
+    public void confirmExtraStorageSubscription(String subscriptionId, UUID planId, User user) {
+        String token = getAccessToken();
+
+        Map<String, Object> response = webClient.get()
+                .uri("/v1/billing/subscriptions/" + subscriptionId)
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block(Duration.ofSeconds(10));
+
+        if (!"ACTIVE".equals(response.get("status"))) {
+            throw new RuntimeException("Subscription not active: " + response.get("status"));
+        }
+
+        ExtraStoragePlan plan = extraStoragePlanRepository.findByIdExtraPlan(planId)
+                .orElseThrow(() -> new RuntimeException("Plan de almacenamiento no encontrado"));
+
+        UserExtraStorage storage = new UserExtraStorage();
+        storage.setUser(user);
+        storage.setPlan(plan);
+        storage.setStartDate(LocalDate.now());
+        userExtraStorageRepository.save(storage);
     }
 
 }
