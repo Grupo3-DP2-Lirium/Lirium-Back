@@ -188,21 +188,64 @@ public class PayPalController {
 
     // EXTRAS STORAGE PLAN - Crear suscripción
     @PostMapping("/create-extra-storage-subscription")
-    public ResponseEntity<?> createExtraStorageSubscription(@RequestBody Map<String, String> request, Authentication authentication) {
+    public ResponseEntity<?> createExtraStorageSubscription(
+            @RequestBody Map<String, String> request, 
+            Authentication authentication) {
+
         try {
+            // --- Log de request recibido ---
+            System.out.println("Request body recibido: " + request);
+
             String paypalPlanId = request.get("paypalPlanId");
-            UUID extraPlanId = UUID.fromString(request.get("extraPlanId"));
+            String extraPlanIdStr = request.get("extraPlanId");
+
+            System.out.println("paypalPlanId: " + paypalPlanId);
+            System.out.println("extraPlanId: " + extraPlanIdStr);
+
+            UUID extraPlanId = UUID.fromString(extraPlanIdStr);
 
             String userEmail = authentication.getName();
+            System.out.println("Usuario autenticado: " + userEmail);
+
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             Map<String, Object> response = payPalService.createExtraStorageSubscription(user, paypalPlanId, extraPlanId);
 
+            System.out.println("Respuesta PayPalService: " + response);
+
             return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("Error en createExtraStorageSubscription: " + e.getMessage());
+            e.printStackTrace();  // Para ver el stack completo
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/storage-success")
+    public ResponseEntity<?> confirmExtraStorageSubscription(@RequestParam("subscription_id") String subscriptionId,
+                                                             @RequestParam("planId") UUID planId,
+                                                             Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            payPalService.confirmExtraStorageSubscription(subscriptionId, planId, user);
+
+            return ResponseEntity.ok(Map.of("message", "Suscripción de almacenamiento extra confirmada con éxito."));
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/storage-cancel")
+    public ResponseEntity<?> cancelExtraStorageSubscription() {
+        return ResponseEntity.ok(Map.of("message", "La suscripción fue cancelada por el usuario."));
+    }
+    
 }
