@@ -186,5 +186,23 @@ public class PayPalController {
         return ResponseEntity.ok(Map.of("status", "cancelled"));
     }
 
+    // EXTRAS STORAGE PLAN - Crear suscripción
+    @PostMapping("/create-extra-storage-subscription")
+    public ResponseEntity<?> createExtraStorageSubscription(@RequestBody Map<String, String> request, Authentication authentication) {
+        try {
+            String paypalPlanId = request.get("paypalPlanId");
+            UUID extraPlanId = UUID.fromString(request.get("extraPlanId"));
 
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Map<String, Object> response = payPalService.createExtraStorageSubscription(user, paypalPlanId, extraPlanId);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 }

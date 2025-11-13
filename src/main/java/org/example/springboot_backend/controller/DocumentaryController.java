@@ -6,18 +6,23 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.springboot_backend.dto.CreateDocumentaryRequest;
 import org.example.springboot_backend.dto.DocumentaryResponse;
 import org.example.springboot_backend.entity.Memorial;
+import org.example.springboot_backend.entity.Subscription;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.repository.DocumentaryRepository;
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.DocumentaryService;
 import org.example.springboot_backend.service.NotificationService;
+import org.example.springboot_backend.service.SubscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,10 +45,13 @@ public class DocumentaryController {
     
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private SubscriptionService subscriptionService;
+
+    @Autowired
+    private DocumentaryRepository documentaryRepository;
     
-    /**
-     * ✅ ACTUALIZADO: Notifica cuando inicia la creación del documental
-     */
     @PostMapping
     @Operation(summary = "Create a new documentary",
             description = "Creates a documentary from timeline memories of a memorial")
@@ -57,11 +65,34 @@ public class DocumentaryController {
             
             Memorial memorial = memorialRepository.findById(request.getMemorialId())
                     .orElseThrow(() -> new RuntimeException("Memorial not found"));
+
+            // Validar suscripción activa
+            Subscription activeSub = subscriptionService.getActiveSubscription(user);
+            if (activeSub == null) {
+                // No tiene suscripción activa → asignar plan FREE
+                throw new RuntimeException("No tienes un plan premium activo para crear un memorial.");   
+            }else {
+                // Verificar límite mensual del plan
+                int maxDocumentales = activeSub.getPlan().getMaxDocumentariesPerMonth();
+                
+                LocalDateTime inicioMes = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+                LocalDateTime finMes = inicioMes.plusMonths(1).minusSeconds(1);
+
+                int creadosEsteMes = documentaryRepository.countByUserAndDateRange(user.getIdUser(), inicioMes, finMes);
+
+                if (creadosEsteMes >= maxDocumentales) {
+                throw new RuntimeException("Has alcanzado el límite mensual de memoriales para tu plan: " 
+                        + activeSub.getPlan().getName());
+                }
+
+                System.out.println("Usuario con suscripción activa: " + activeSub.getPlan().getName());
+                System.out.println("Documentales creados este mes: " + creadosEsteMes + "/" + maxDocumentales);
+            }
             
             // Crear documental
             DocumentaryResponse response = documentaryService.createDocumentary(request, userId);
             
-            // ✅ NUEVO: Notificar inicio de procesamiento
+            // NUEVO: Notificar inicio de procesamiento
             notificationService.createNotification(
                 user,
                 org.example.springboot_backend.enums.NotificationType.DOCUMENTARY,

@@ -5,6 +5,7 @@ import org.example.springboot_backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +22,5 @@ public interface MemorialRepository extends JpaRepository<Memorial, UUID> {
     
     // Find user's personal reflection space (journal)
     Memorial findByUserAndIsJournalTrue(User user);
+
 }
