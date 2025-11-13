@@ -6,27 +6,19 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.springboot_backend.dto.CreateDocumentaryRequest;
 import org.example.springboot_backend.dto.DocumentaryResponse;
 import org.example.springboot_backend.entity.Memorial;
-import org.example.springboot_backend.entity.Subscription;
 import org.example.springboot_backend.entity.User;
-<<<<<<< HEAD
-import org.example.springboot_backend.repository.DocumentaryRepository;
-=======
 import org.example.springboot_backend.enums.DocumentaryStatus;
->>>>>>> c65e96ae4014e0b98f78f25005177167108554a2
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.DocumentaryService;
 import org.example.springboot_backend.service.NotificationService;
-import org.example.springboot_backend.service.SubscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
