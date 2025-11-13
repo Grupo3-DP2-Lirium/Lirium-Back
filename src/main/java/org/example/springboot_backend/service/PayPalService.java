@@ -39,6 +39,7 @@ public class PayPalService {
     private final PlanRepository planRepository;
     private final UserExtraStorageRepository userExtraStorageRepository;
     private final ExtraStoragePlanRepository extraStoragePlanRepository;
+    private final ExtraStorageService extraStorageService;
 
     @Value("${paypal.client.id}")
     private String clientId;
@@ -58,7 +59,8 @@ public class PayPalService {
             PaymentAttemptRepository paymentAttemptRepository,
             PlanRepository planRepository,
             UserExtraStorageRepository userExtraStorageRepository,
-            ExtraStoragePlanRepository extraStoragePlanRepository
+            ExtraStoragePlanRepository extraStoragePlanRepository,
+            ExtraStorageService extraStorageService
     ) {
         this.webClient = WebClient.builder().baseUrl(baseUrl).build();
         this.subscriptionService = subscriptionService;
@@ -67,6 +69,7 @@ public class PayPalService {
         this.planRepository = planRepository;
         this.userExtraStorageRepository = userExtraStorageRepository;
         this.extraStoragePlanRepository = extraStoragePlanRepository;
+        this.extraStorageService = extraStorageService;
     }
 
     // Obtener access token de PayPal
@@ -381,70 +384,6 @@ public class PayPalService {
         subscriptionService.cancelSubscription(user);
     }
 
-    public String createProduct() {
-        String token = getAccessToken();
-
-        Map<String, Object> body = Map.of(
-            "name", "Lirium App Subscription",
-            "description", "Memorial and remembrance platform subscription",
-            "type", "SERVICE",
-            "category", "SOFTWARE"
-        );
-
-        Map<String, Object> response = webClient.post()
-            .uri("/v1/catalogs/products")
-            .header("Authorization", "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(body)
-            .retrieve()
-            .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
-            .block();
-
-        return response.get("id").toString();
-    }
-
-    public String createPaypalPlan(String name, Double price, String interval) {
-        String token = getAccessToken();
-
-        Map<String, Object> body = Map.of(
-            "product_id", "YOUR_PRODUCT_ID",
-            "name", name + " " + interval,
-            "billing_cycles", new Object[]{
-                Map.of(
-                    "frequency", Map.of(
-                        "interval_unit", interval,
-                        "interval_count", 1
-                    ),
-                    "tenure_type", "REGULAR",
-                    "sequence", 1,
-                    "total_cycles", 0,
-                    "pricing_scheme", Map.of(
-                        "fixed_price", Map.of(
-                            "value", price,
-                            "currency_code", "USD"
-                        )
-                    )
-                )
-            },
-            "payment_preferences", Map.of(
-                "auto_bill_outstanding", true,
-                "setup_fee_failure_action", "CONTINUE",
-                "payment_failure_threshold", 3
-            )
-        );
-
-        Map<String, Object> response = webClient.post()
-            .uri("/v1/billing/plans")
-            .header("Authorization", "Bearer " + token)
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(body)
-            .retrieve()
-            .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
-            .block();
-
-        return response.get("id").toString();
-    }
-
     public Map<String, Object> createExtraStorageSubscription(User user, String planPaypalId, UUID planId) {
         // Buscar si ya tiene una suscripción activa a ESE plan específico
         ExtraStoragePlan plan = extraStoragePlanRepository.findByIdExtraPlan(planId)
@@ -512,14 +451,13 @@ public class PayPalService {
             throw new RuntimeException("Subscription not active: " + response.get("status"));
         }
 
-        ExtraStoragePlan plan = extraStoragePlanRepository.findByIdExtraPlan(planId)
-                .orElseThrow(() -> new RuntimeException("Plan de almacenamiento no encontrado"));
-
-        UserExtraStorage storage = new UserExtraStorage();
-        storage.setUser(user);
-        storage.setPlan(plan);
-        storage.setStartDate(LocalDate.now());
-        userExtraStorageRepository.save(storage);
+        // Se crea la suscripción en BD
+        extraStorageService.createExtraStorageSubscription(
+                user,
+                planId, // tu UUID interno
+                subscriptionId, // ID de PayPal
+                PaymentMethod.PAYPAL
+        );
     }
 
 }

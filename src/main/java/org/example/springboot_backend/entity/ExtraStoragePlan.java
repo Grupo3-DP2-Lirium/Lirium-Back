@@ -32,6 +32,9 @@ public class ExtraStoragePlan {
     @Column(name = "paypal_plan_id")
     private String paypalPlanId;
 
+    @Column(name = "frequency", nullable = false)
+    private String frequency; // "MONTHLY" o "YEARLY"
+
     public ExtraStoragePlan() {
         this.idExtraPlan = UUID.randomUUID();
     }
@@ -45,6 +48,9 @@ public class ExtraStoragePlan {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getFrequency() { return frequency; }
+    public void setFrequency(String frequency) { this.frequency = frequency; }
 
     public Integer getAdditionalStorageGb() { return additionalStorageGb; }
     public void setAdditionalStorageGb(Integer additionalStorageGb) { this.additionalStorageGb = additionalStorageGb; }

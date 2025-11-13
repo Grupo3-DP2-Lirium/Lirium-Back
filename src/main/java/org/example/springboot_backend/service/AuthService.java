@@ -3,8 +3,11 @@ package org.example.springboot_backend.service;
 import org.example.springboot_backend.dto.LoginRequest;
 import org.example.springboot_backend.dto.LoginResponse;
 import org.example.springboot_backend.dto.RegisterUserDTO;
+import org.example.springboot_backend.dto.UserExtraStorageResponse;
 import org.example.springboot_backend.dto.UserResponseDTO;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.entity.UserExtraStorage;
+import org.example.springboot_backend.entity.ExtraStoragePlan;
 import org.example.springboot_backend.entity.Plan;
 import org.example.springboot_backend.entity.Role;
 import org.example.springboot_backend.entity.Subscription;
@@ -38,10 +41,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final SubscriptionService subscriptionService;
     private final PlanRepository planRepository;
+    private final ExtraStorageService extraStorageService;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository, 
                       JwtService jwtService, AuthenticationManager authenticationManager,
-                      PasswordEncoder passwordEncoder, SubscriptionService subscriptionService, PlanRepository planRepository) {
+                      PasswordEncoder passwordEncoder, SubscriptionService subscriptionService, PlanRepository planRepository,
+                      ExtraStorageService extraStorageService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jwtService = jwtService;
@@ -49,6 +54,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.subscriptionService = subscriptionService;
         this.planRepository = planRepository;
+        this.extraStorageService = extraStorageService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -98,8 +104,26 @@ public class AuthService {
         }
 
         System.out.println("Plan final enviado al cliente: " + planName);
+        
+         // --- Extra Storage ---
+        List<UserExtraStorage> extraStorages = extraStorageService.getActiveExtraStorageSubscriptions(user);
+        List<UserExtraStorageResponse> extraStorageDTOs = extraStorages.stream()
+                .map(us -> new UserExtraStorageResponse(
+                        us.getPlan().getName(),
+                        us.getPlan().getAdditionalStorageGb(),
+                        us.getStatus().name()
+                ))
+                .toList();
+        
+        // Imprimir los detalles de las suscripciones de almacenamiento extra
+        System.out.println("Suscripciones de almacenamiento extra activas:");
+        for (UserExtraStorageResponse dto : extraStorageDTOs) {
+            System.out.println("Plan: " + dto.getPlanName() +
+                            ", Almacenamiento adicional: " + dto.getAdditionalStorageGb() + "GB" +
+                            ", Estado: " + dto.getStatus());
+}
 
-        return new LoginResponse(token, user.getEmail(), roleName, planName, permissions);
+        return new LoginResponse(token, user.getEmail(), roleName, planName, permissions, extraStorageDTOs);
     }
 
     public UserResponseDTO registerUser(RegisterUserDTO registerRequest) {
