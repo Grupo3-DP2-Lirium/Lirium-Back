@@ -9,6 +9,7 @@ import org.example.springboot_backend.dto.UserAdminResponse;
 import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.enums.UserStatus;
 import org.example.springboot_backend.repository.UserRepository;
+import org.example.springboot_backend.service.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +37,9 @@ public class AdminUserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     @GetMapping
     // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
@@ -81,7 +85,7 @@ public class AdminUserController {
     @PutMapping("/{userId}/disable")
     // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
     @Operation(summary = "Deshabilitar usuario", description = "Cambia el estado del usuario a SUSPENDED")
-    public ResponseEntity<?> disableUser(@PathVariable UUID userId) {
+    public ResponseEntity<?> disableUser(@PathVariable UUID userId, org.springframework.security.core.Authentication authentication) {
         try {
             User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -94,6 +98,11 @@ public class AdminUserController {
             user.setStatus(UserStatus.SUSPENDED);
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
+            
+            // Log audit
+            String adminEmail = authentication.getName();
+            auditLogService.log("USER_DISABLED", adminEmail, 
+                "Usuario deshabilitado: " + user.getEmail() + " (ID: " + userId + ")");
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario deshabilitado exitosamente");
@@ -109,7 +118,7 @@ public class AdminUserController {
     @PutMapping("/{userId}/enable")
     // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
     @Operation(summary = "Habilitar usuario", description = "Cambia el estado del usuario a ACTIVE")
-    public ResponseEntity<?> enableUser(@PathVariable UUID userId) {
+    public ResponseEntity<?> enableUser(@PathVariable UUID userId, org.springframework.security.core.Authentication authentication) {
         try {
             User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
@@ -122,6 +131,11 @@ public class AdminUserController {
             user.setStatus(UserStatus.ACTIVE);
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
+            
+            // Log audit
+            String adminEmail = authentication.getName();
+            auditLogService.log("USER_ENABLED", adminEmail, 
+                "Usuario habilitado: " + user.getEmail() + " (ID: " + userId + ")");
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario habilitado exitosamente");
