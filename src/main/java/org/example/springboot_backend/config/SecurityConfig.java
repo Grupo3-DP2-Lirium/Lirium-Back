@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -26,11 +27,13 @@ public class SecurityConfig {
 
     @Value("${app.security.enabled:true}")
     private boolean securityEnabled;
-    
-    private final JwtAuthenticationFilter jwtAuthFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final UserStatusFilter userStatusFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, UserStatusFilter userStatusFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.userStatusFilter = userStatusFilter;
     }
 
     /* @Bean
@@ -67,30 +70,31 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/paypal/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/files/**").permitAll()
-                .requestMatchers(HttpMethod.GET,"/api/plans/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/plans/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/view/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/files/download/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/extra-storage/**").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/api/files/**").permitAll()
                 .requestMatchers("/api/image-enhancer/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir crear memorias
-                .requestMatchers(HttpMethod.GET, "/api/memories").permitAll()  // ✅ TEMPORAL: Permitir listar memorias
+                .requestMatchers(HttpMethod.GET, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir listar memorias
                 .requestMatchers(HttpMethod.OPTIONS, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir OPTIONS
                 .requestMatchers("/api/seed/**").permitAll() // Permitir endpoints de seeding
                 .requestMatchers("/api/public/**").permitAll() // ✅ Permitir acceso público a enlaces compartidos
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .requestMatchers("/api/documentaries/**").authenticated()
                 .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(userStatusFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
@@ -109,10 +113,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOriginPattern("*");
-        configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
