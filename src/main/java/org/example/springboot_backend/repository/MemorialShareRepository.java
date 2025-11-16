@@ -1,9 +1,11 @@
 package org.example.springboot_backend.repository;
 
+import org.example.springboot_backend.entity.Memorial;
 import org.example.springboot_backend.entity.MemorialShare;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,4 +18,6 @@ public interface MemorialShareRepository extends JpaRepository<MemorialShare, UU
      * @return Optional con el MemorialShare si existe
      */
     Optional<MemorialShare> findBySlug(String slug);
+
+    List<MemorialShare> findByMemorial(Memorial memorial);
 }
