@@ -16,6 +16,8 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     Optional<User> findByIdUser(UUID idUser);
+    
+    long countByStatus(UserStatus status);
 
     /**
      * Búsqueda avanzada de usuarios con filtros múltiples
@@ -72,4 +74,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     @Query("SELECT COUNT(f) FROM File f JOIN f.memory mem WHERE mem.author.idUser = :userId")
     Long countFilesByUserId(@Param("userId") UUID userId);
+
+    
+    
 }
