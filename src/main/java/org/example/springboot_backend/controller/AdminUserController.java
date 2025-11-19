@@ -8,6 +8,7 @@ import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.enums.UserStatus;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.AdminUserService;
+import org.example.springboot_backend.service.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,9 @@ public class AdminUserController {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private AuditLogService auditLogService;
 
     /**
      * HU37 - Listar todos los usuarios con paginación y filtros
@@ -219,6 +223,18 @@ public class AdminUserController {
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
             
+            // Registrar en audit log
+            auditLogService.logUserAction(
+                "DISABLE_USER",
+                userId.toString(),
+                "Usuario deshabilitado: " + user.getEmail(),
+                Map.of(
+                    "previousStatus", "ACTIVE",
+                    "newStatus", "SUSPENDED",
+                    "userEmail", user.getEmail()
+                )
+            );
+            
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario deshabilitado exitosamente");
             response.put("user", mapToAdminResponse(user));
@@ -242,9 +258,22 @@ public class AdminUserController {
                     .body(Map.of("error", "El usuario ya está activo"));
             }
             
+            UserStatus previousStatus = user.getStatus();
             user.setStatus(UserStatus.ACTIVE);
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
+            
+            // Registrar en audit log
+            auditLogService.logUserAction(
+                "ENABLE_USER",
+                userId.toString(),
+                "Usuario habilitado: " + user.getEmail(),
+                Map.of(
+                    "previousStatus", previousStatus.name(),
+                    "newStatus", "ACTIVE",
+                    "userEmail", user.getEmail()
+                )
+            );
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario habilitado exitosamente");
