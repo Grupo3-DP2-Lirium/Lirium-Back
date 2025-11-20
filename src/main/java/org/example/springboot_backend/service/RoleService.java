@@ -41,4 +41,9 @@ public class RoleService {
     public long countRoles() {
         return roleRepository.count();
     }
+
+    public Iterable<Role> findAll() {
+        return roleRepository.findAll();
+    }
+
 }

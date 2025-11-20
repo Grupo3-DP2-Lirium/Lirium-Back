@@ -32,7 +32,7 @@ public class ExtraStoragePlan {
     @Column(name = "paypal_plan_id")
     private String paypalPlanId;
 
-    @Column(name = "frequency", nullable = false)
+    @Column(name = "frequency", nullable = true)
     private String frequency; // "MONTHLY" o "YEARLY"
 
     public ExtraStoragePlan() {

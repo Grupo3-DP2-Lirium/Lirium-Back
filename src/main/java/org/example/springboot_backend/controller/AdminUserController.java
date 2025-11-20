@@ -1,20 +1,20 @@
 package org.example.springboot_backend.controller;
 
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import org.example.springboot_backend.dto.UserAdminResponse;
+import org.example.springboot_backend.dto.UserDetailDTO;
+import org.example.springboot_backend.dto.UserListDTO;
+import org.example.springboot_backend.dto.UserSearchFiltersDTO;
 import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.enums.UserStatus;
 import org.example.springboot_backend.repository.UserRepository;
+import org.example.springboot_backend.service.AdminUserService;
+import org.example.springboot_backend.service.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,56 +25,184 @@ import org.springframework.web.bind.annotation.RestController;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Controlador para la gestión de usuarios por parte del administrador
+ * Incluye funcionalidades para listar, buscar, filtrar y ver detalles de usuarios
+ */
 @RestController
 @RequestMapping("/api/admin/users")
-@CrossOrigin(origins = "*")
-@Tag(name = "Admin - Users", description = "Endpoints para administración de usuarios")
 @SecurityRequirement(name = "Bearer Authentication")
+@CrossOrigin(origins = "*")
 public class AdminUserController {
 
     @Autowired
-    private UserRepository userRepository;
+    private AdminUserService adminUserService;
 
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private AuditLogService auditLogService;
+
+    /**
+     * HU37 - Listar todos los usuarios con paginación y filtros
+     * HU39 - Búsqueda y filtrado de usuarios
+     * 
+     * @param filters Filtros de búsqueda encapsulados en DTO
+     * @return Página de usuarios con metadatos de paginación
+     */
     @GetMapping
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
-    @Operation(summary = "Listar todos los usuarios", description = "Obtiene una lista paginada de todos los usuarios del sistema")
-    public ResponseEntity<?> getAllUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir
-    ) {
+    public ResponseEntity<Map<String, Object>> getAllUsers(UserSearchFiltersDTO filters) {
         try {
-            Sort sort = sortDir.equalsIgnoreCase("asc") 
-                ? Sort.by(sortBy).ascending() 
-                : Sort.by(sortBy).descending();
+            Page<UserListDTO> userPage = adminUserService.getUsersWithFilters(filters);
             
-            Pageable pageable = PageRequest.of(page, size, sort);
-            Page<User> usersPage = userRepository.findAll(pageable);
+            Map<String, Object> response = new HashMap<>();
+            response.put("users", userPage.getContent());
+            response.put("currentPage", userPage.getNumber());
+            response.put("totalItems", userPage.getTotalElements());
+            response.put("totalPages", userPage.getTotalPages());
+            response.put("pageSize", userPage.getSize());
+            response.put("hasNext", userPage.hasNext());
+            response.put("hasPrevious", userPage.hasPrevious());
+            response.put("isFirst", userPage.isFirst());
+            response.put("isLast", userPage.isLast());
             
-            Page<UserAdminResponse> response = usersPage.map(this::mapToAdminResponse);
+            // Información adicional sobre filtros aplicados
+            Map<String, Object> appliedFilters = new HashMap<>();
+            appliedFilters.put("search", filters.getSearch());
+            appliedFilters.put("status", filters.getStatus());
+            appliedFilters.put("role", filters.getRole());
+            appliedFilters.put("planType", filters.getPlanType());
+            appliedFilters.put("createdDateFrom", filters.getCreatedDateFrom());
+            appliedFilters.put("createdDateTo", filters.getCreatedDateTo());
+            appliedFilters.put("lastSessionFrom", filters.getLastSessionFrom());
+            appliedFilters.put("lastSessionTo", filters.getLastSessionTo());
+            appliedFilters.put("usedSpaceMin", filters.getUsedSpaceMin());
+            appliedFilters.put("usedSpaceMax", filters.getUsedSpaceMax());
+            appliedFilters.put("sortBy", filters.getSortBy());
+            appliedFilters.put("sortDirection", filters.getSortDirection());
+            
+            response.put("appliedFilters", appliedFilters);
+            response.put("success", true);
+            response.put("message", "Usuarios obtenidos exitosamente");
             
             return ResponseEntity.ok(response);
+            
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .body(Map.of("error", "Error al obtener usuarios: " + e.getMessage()));
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Error al obtener la lista de usuarios: " + e.getMessage());
+            errorResponse.put("users", null);
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
         }
     }
 
+    /**
+     * HU38 - Obtener detalle completo de un usuario específico
+     * 
+     * @param userId ID del usuario a consultar
+     * @return Detalle completo del usuario
+     */
     @GetMapping("/{userId}")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
-    @Operation(summary = "Obtener usuario por ID", description = "Obtiene los detalles de un usuario específico")
-    public ResponseEntity<?> getUserById(@PathVariable UUID userId) {
+    public ResponseEntity<Map<String, Object>> getUserDetail(@PathVariable UUID userId) {
         try {
-            User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Optional<UserDetailDTO> userDetailOpt = adminUserService.getUserDetail(userId);
             
-            return ResponseEntity.ok(mapToAdminResponse(user));
+            if (userDetailOpt.isEmpty()) {
+                Map<String, Object> notFoundResponse = new HashMap<>();
+                notFoundResponse.put("success", false);
+                notFoundResponse.put("message", "Usuario no encontrado con ID: " + userId);
+                notFoundResponse.put("user", null);
+                
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(notFoundResponse);
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Detalle del usuario obtenido exitosamente");
+            response.put("user", userDetailOpt.get());
+            
+            return ResponseEntity.ok(response);
+            
         } catch (Exception e) {
-            return ResponseEntity.badRequest()
-                .body(Map.of("error", e.getMessage()));
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Error al obtener el detalle del usuario: " + e.getMessage());
+            errorResponse.put("user", null);
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
+        }
+    }
+
+    /**
+     * Endpoint para obtener estadísticas generales de usuarios (útil para dashboard admin)
+     * 
+     * @return Estadísticas generales del sistema
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Object>> getUsersStatistics() {
+        try {
+            long totalUsers = adminUserService.getTotalUsersCount();
+            
+            Map<String, Object> statistics = new HashMap<>();
+            statistics.put("totalUsers", totalUsers);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Estadísticas obtenidas exitosamente");
+            response.put("statistics", statistics);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Error al obtener estadísticas: " + e.getMessage());
+            errorResponse.put("statistics", null);
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
+        }
+    }
+
+    /**
+     * Endpoint simple para obtener todos los usuarios sin paginación (para casos específicos)
+     * 
+     * @return Lista completa de usuarios
+     */
+    @GetMapping("/all")
+    public ResponseEntity<Map<String, Object>> getAllUsersSimple() {
+        try {
+            List<UserListDTO> users = adminUserService.getAllUsers();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Lista completa de usuarios obtenida exitosamente");
+            response.put("users", users);
+            response.put("totalCount", users.size());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "Error al obtener la lista completa de usuarios: " + e.getMessage());
+            errorResponse.put("users", null);
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
         }
     }
 
@@ -95,6 +223,18 @@ public class AdminUserController {
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
             
+            // Registrar en audit log
+            auditLogService.logUserAction(
+                "DISABLE_USER",
+                userId.toString(),
+                "Usuario deshabilitado: " + user.getEmail(),
+                Map.of(
+                    "previousStatus", "ACTIVE",
+                    "newStatus", "SUSPENDED",
+                    "userEmail", user.getEmail()
+                )
+            );
+            
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario deshabilitado exitosamente");
             response.put("user", mapToAdminResponse(user));
@@ -107,7 +247,6 @@ public class AdminUserController {
     }
 
     @PutMapping("/{userId}/enable")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
     @Operation(summary = "Habilitar usuario", description = "Cambia el estado del usuario a ACTIVE")
     public ResponseEntity<?> enableUser(@PathVariable UUID userId) {
         try {
@@ -119,9 +258,22 @@ public class AdminUserController {
                     .body(Map.of("error", "El usuario ya está activo"));
             }
             
+            UserStatus previousStatus = user.getStatus();
             user.setStatus(UserStatus.ACTIVE);
             user.setUpdatedDate(LocalDate.now());
             userRepository.save(user);
+            
+            // Registrar en audit log
+            auditLogService.logUserAction(
+                "ENABLE_USER",
+                userId.toString(),
+                "Usuario habilitado: " + user.getEmail(),
+                Map.of(
+                    "previousStatus", previousStatus.name(),
+                    "newStatus", "ACTIVE",
+                    "userEmail", user.getEmail()
+                )
+            );
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Usuario habilitado exitosamente");
@@ -135,7 +287,6 @@ public class AdminUserController {
     }
 
     @GetMapping("/stats")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: Descomentar cuando tengas usuario ADMIN
     @Operation(summary = "Estadísticas de usuarios", description = "Obtiene estadísticas generales de usuarios")
     public ResponseEntity<?> getUserStats() {
         try {
