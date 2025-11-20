@@ -337,6 +337,7 @@ public class DocumentaryController {
             List<Map<String, Object>> musicTracks = List.of(
                     Map.of(
                             "id", "music/calm-emotional-cello.mp3",
+                            "previewId", "music/previews/calm-emotional-cello_preview_20s_64k.mp3",
                             "name", "Calm Emotional Cello",
                             "description", "Cello emotivo y calmado",
                             "duration", "3:45",
@@ -344,6 +345,7 @@ public class DocumentaryController {
                     ),
                     Map.of(
                             "id", "music/piano-classical-music.mp3",
+                            "previewId", "music/previews/piano-classical_preview_20s_64k.mp3",
                             "name", "Piano Classical Music",
                             "description", "Piano clásico elegante",
                             "duration", "4:20",
@@ -351,6 +353,7 @@ public class DocumentaryController {
                     ),
                     Map.of(
                             "id", "music/simple-happy-acoustic.mp3",
+                            "previewId", "music/previews/simple-happy-acoustic_preview_20s_64k.mp3",
                             "name", "Simple Happy Acoustic",
                             "description", "Acústica alegre y simple",
                             "duration", "3:15",
@@ -358,6 +361,7 @@ public class DocumentaryController {
                     ),
                     Map.of(
                             "id", "music/mystic-melody.mp3",
+                            "previewId", "music/previews/mystic-melody_preview_20s_64k.mp3",
                             "name", "Mystic Melody",
                             "description", "Melodía mística y contemplativa",
                             "duration", "4:05",
@@ -365,6 +369,7 @@ public class DocumentaryController {
                     ),
                     Map.of(
                             "id", "music/land-of-tranquility.mp3",
+                            "previewId", "music/previews/land-of-tranquility_preview_20s_64k.mp3",
                             "name", "Land of Tranquility",
                             "description", "Ambiente de tranquilidad y paz",
                             "duration", "4:30",
