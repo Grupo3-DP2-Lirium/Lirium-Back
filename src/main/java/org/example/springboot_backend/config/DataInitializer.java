@@ -80,7 +80,7 @@ public class DataInitializer {
         if (planRepository.count() == 0) {
 
             Plan free = new Plan();
-            free.setName("DESCUBRE_REMORY");
+            free.setName("DESCUBRE_LIRIUM");
             free.setDescription("Acceso a tu espacio personal, visualización de memoriales compartidos , 1 colaboración (10 archivos)");
             free.setPrice(0.0);
             free.setActive(true);
@@ -128,7 +128,7 @@ public class DataInitializer {
     // ------------------- PLAN - PERMISSION -------------------
     private void initPlanPermissions() {
         // Obtener planes por nombre
-        Plan free = planRepository.findByName("DESCUBRE_REMORY").orElseThrow();
+        Plan free = planRepository.findByName("DESCUBRE_LIRIUM").orElseThrow();
         Plan creaYComparte = planRepository.findByName("CREA_COMPARTE").orElseThrow();
         Plan legadoEterno = planRepository.findByName("LEGADO_ETERNO").orElseThrow();
 

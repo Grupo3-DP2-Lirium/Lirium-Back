@@ -85,7 +85,7 @@ public class MemoryController {
             // Crear memoria
             MemoryResponse response = memoryService.createMemory(request, files, user);
             
-            // ✅ CORREGIDO: Construir mensaje y usar método genérico
+            //  CORREGIDO: Construir mensaje y usar método genérico
             String memoryTitle = request.getTitle() != null ? request.getTitle() : "Nueva memoria";
             String fileDetails = buildFileDetails(files);
             
@@ -97,7 +97,7 @@ public class MemoryController {
                 fileDetails
             );
             
-            // ✅ Si el memorial es colaborativo, notificar al dueño
+            //  Si el memorial es colaborativo, notificar al dueño
             Memorial memorial = memorialRepository.findById(request.getMemorialId())
                 .orElseThrow(() -> new RuntimeException("Memorial not found"));
             
@@ -112,7 +112,7 @@ public class MemoryController {
                 notificationService.notifyCollaborators(memorial, user, collaboratorMessage);
             }
             
-            System.out.println("✅ Memoria creada y notificaciones enviadas: " + memoryTitle);
+            System.out.println(" Memoria creada y notificaciones enviadas: " + memoryTitle);
             
             return ResponseEntity.ok(response);
             
@@ -123,7 +123,7 @@ public class MemoryController {
     }
     
     /**
-     * ✅ Construye detalles de archivos para notificación
+     *  Construye detalles de archivos para notificación
      */
     private String buildFileDetails(MultipartFile[] files) {
         if (files == null || files.length == 0) {

@@ -79,4 +79,5 @@ public class User {
     public void setUpdatedDate(LocalDate updatedDate) { this.updatedDate = updatedDate; }
     public LocalDateTime getLastSessionDate() { return lastSessionDate; }
     public void setLastSessionDate(LocalDateTime lastSessionDate) { this.lastSessionDate = lastSessionDate; }
+    public String getFullName() { return firstName + " " + firstLastName; }
 }
