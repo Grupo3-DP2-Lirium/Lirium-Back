@@ -86,7 +86,7 @@ public class SubscriptionController {
                 response.setEndDate(null);
                 response.setPaymentMethod(null);
                 response.setPlanId(null);
-                response.setPlanName("Free");
+                response.setPlanName("DESCUBRE_LIRIUM");
                 response.setPlanDescription("Plan gratuito");
                 response.setPlanPrice(0.0);
                 response.setPlanCurrency("USD");

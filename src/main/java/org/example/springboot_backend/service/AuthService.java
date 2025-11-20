@@ -1,5 +1,5 @@
 package org.example.springboot_backend.service;
-
+import org.example.springboot_backend.controller.SubscriptionResponse;
 import org.example.springboot_backend.dto.LoginRequest;
 import org.example.springboot_backend.dto.LoginResponse;
 import org.example.springboot_backend.dto.RegisterUserDTO;
@@ -71,6 +71,9 @@ public class AuthService {
 
         String token = jwtService.generateToken(user.getEmail());
 
+        String fullName = user.getFullName();
+        String name = user.getFirstName();
+
         System.out.println("JWT GENERADO: " + token);
         
         // Get the first role name (assuming user has at least one role)
@@ -85,25 +88,71 @@ public class AuthService {
         String planName = "DESCUBRE_LIRIUM";
         List<String> permissions = List.of();
 
-        if (activeSub != null && activeSub.getPlan() != null) {
+        SubscriptionResponse subscriptionResponse = new SubscriptionResponse();
 
-            System.out.println("Suscripción activa encontrada: " + activeSub.getIdSubscription());
-            System.out.println("Plan del usuario: " + activeSub.getPlan().getName());
-
-            planName = activeSub.getPlan().getName();
-            permissions = subscriptionService.getPlanPermissions(activeSub.getPlan().getIdPlan());
-
-            System.out.println("Permisos del plan: " + permissions);
-        } else {
-            // Usuario sin suscripción → plan FREE
-            Plan freePlan = planRepository.findByName("DESCUBRE_REMORY")
-                    .orElseThrow(() -> new RuntimeException("Plan FREE no encontrado"));
-            planName = freePlan.getName();
-            permissions = subscriptionService.getPlanPermissions(freePlan.getIdPlan());
-            System.out.println("Usuario sin suscripción activa. Se asigna plan FREE");
+        if (activeSub != null) {
+            subscriptionResponse = new SubscriptionResponse();
+            subscriptionResponse.setSubscriptionId(activeSub.getIdSubscription());
+            subscriptionResponse.setStatus(activeSub.getStatus());
+            subscriptionResponse.setFrequency(activeSub.getFrequency());
+            subscriptionResponse.setStartDate(activeSub.getStartDate());
+            subscriptionResponse.setEndDate(activeSub.getEndDate());
+            subscriptionResponse.setPaymentMethod(activeSub.getCurrentPaymentMethod());
+            
+            // Datos del plan
+            subscriptionResponse.setPlanId(activeSub.getPlan().getIdPlan());
+            subscriptionResponse.setPlanName(activeSub.getPlan().getName());
+            subscriptionResponse.setPlanDescription(activeSub.getPlan().getDescription());
+            subscriptionResponse.setPlanPrice(activeSub.getPlan().getPrice());
+            subscriptionResponse.setPlanCurrency(activeSub.getPlan().getCurrency());
+            subscriptionResponse.setStorageLimitGb(activeSub.getPlan().getStorageLimitGb());
         }
 
+        if (activeSub != null && activeSub.getPlan() != null) {
+            Plan plan = activeSub.getPlan(); // Solo aquí, dentro del if
+            System.out.println("Suscripción activa encontrada: " + activeSub.getIdSubscription());
+            System.out.println("Plan del usuario: " + plan.getName());
+
+            // Llenar SubscriptionResponse
+            subscriptionResponse.setPlanId(plan.getIdPlan());
+            subscriptionResponse.setPlanName(plan.getName());
+            subscriptionResponse.setPlanDescription(plan.getDescription());
+            subscriptionResponse.setPlanPrice(plan.getPrice());
+            subscriptionResponse.setPlanCurrency(plan.getCurrency());
+            subscriptionResponse.setStorageLimitGb(plan.getStorageLimitGb());
+            subscriptionResponse.setMaxFiles(plan.getMaxFiles());
+            subscriptionResponse.setMaxCollaborations(plan.getMaxCollaborations());
+            subscriptionResponse.setMaxDocumentariesPerMonth(plan.getMaxDocumentariesPerMonth());
+
+            permissions = subscriptionService.getPlanPermissions(plan.getIdPlan());
+            System.out.println("Permisos del plan: " + permissions);
+
+        } else {
+            // Usuario sin suscripción → plan FREE
+            Plan freePlan = planRepository.findByName("DESCUBRE_LIRIUM")
+                    .orElseThrow(() -> new RuntimeException("Plan DESCUBRE_LIRIUM no encontrado"));
+
+            System.out.println("Usuario sin suscripción activa. Se asigna plan FREE");
+
+            // Llenar SubscriptionResponse con datos del plan FREE
+            subscriptionResponse.setPlanId(freePlan.getIdPlan());
+            subscriptionResponse.setPlanName(freePlan.getName());
+            subscriptionResponse.setPlanDescription(freePlan.getDescription());
+            subscriptionResponse.setPlanPrice(freePlan.getPrice());
+            subscriptionResponse.setPlanCurrency(freePlan.getCurrency());
+            subscriptionResponse.setStorageLimitGb(freePlan.getStorageLimitGb());
+            subscriptionResponse.setMaxFiles(freePlan.getMaxFiles());
+            subscriptionResponse.setMaxCollaborations(freePlan.getMaxCollaborations());
+            subscriptionResponse.setMaxDocumentariesPerMonth(freePlan.getMaxDocumentariesPerMonth());
+
+            permissions = subscriptionService.getPlanPermissions(freePlan.getIdPlan());
+        }
+
+        System.out.println("Plan final enviado al cliente: " + subscriptionResponse.getPlanName());
+
+
         System.out.println("Plan final enviado al cliente: " + planName);
+        System.out.println("Nombre del cliente: " + fullName);
         
          // --- Extra Storage ---
         List<UserExtraStorage> extraStorages = extraStorageService.getActiveExtraStorageSubscriptions(user);
@@ -111,7 +160,8 @@ public class AuthService {
                 .map(us -> new UserExtraStorageResponse(
                         us.getPlan().getName(),
                         us.getPlan().getAdditionalStorageGb(),
-                        us.getStatus().name()
+                        us.getStatus().name(),
+                        us.getStartDate().toLocalDate()
                 ))
                 .toList();
         
@@ -121,9 +171,9 @@ public class AuthService {
             System.out.println("Plan: " + dto.getPlanName() +
                             ", Almacenamiento adicional: " + dto.getAdditionalStorageGb() + "GB" +
                             ", Estado: " + dto.getStatus());
-}
+        }
 
-        return new LoginResponse(token, user.getEmail(), roleName, planName, permissions, extraStorageDTOs);
+        return new LoginResponse(token, user.getEmail(), fullName, name, roleName, subscriptionResponse, permissions, extraStorageDTOs);
     }
 
     public UserResponseDTO registerUser(RegisterUserDTO registerRequest) {
