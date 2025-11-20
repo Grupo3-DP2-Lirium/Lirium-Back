@@ -18,6 +18,9 @@ public class SubscriptionResponse {
     private String planDescription;
     private Double planPrice;
     private String planCurrency;
+    private Integer maxFiles; // null = ilimitado
+    private Integer maxCollaborations; // null = ilimitado
+    private Integer maxDocumentariesPerMonth; // 0 = ninguno
 
     public SubscriptionResponse() {}
 
@@ -46,4 +49,10 @@ public class SubscriptionResponse {
     public void setPlanPrice(Double planPrice) { this.planPrice = planPrice; }
     public String getPlanCurrency() { return planCurrency; }
     public void setPlanCurrency(String planCurrency) { this.planCurrency = planCurrency; }
+    public Integer getMaxFiles() { return maxFiles; }
+    public void setMaxFiles(Integer maxFiles) { this.maxFiles = maxFiles; }
+    public Integer getMaxCollaborations() { return maxCollaborations; }
+    public void setMaxCollaborations(Integer maxCollaborations) { this.maxCollaborations = maxCollaborations; }
+    public Integer getMaxDocumentariesPerMonth() { return maxDocumentariesPerMonth; }
+    public void setMaxDocumentariesPerMonth(Integer maxDocumentariesPerMonth) { this.maxDocumentariesPerMonth = maxDocumentariesPerMonth; }
 }
