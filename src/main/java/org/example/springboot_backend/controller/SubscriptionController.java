@@ -106,6 +106,9 @@ public class SubscriptionController {
                 response.setPlanPrice(plan.getPrice());
                 response.setPlanCurrency(plan.getCurrency());
                 response.setStorageLimitGb(plan.getStorageLimitGb());
+                response.setMaxFiles(plan.getMaxFiles());
+                response.setMaxCollaborations(plan.getMaxCollaborations());
+                response.setMaxDocumentariesPerMonth(plan.getMaxDocumentariesPerMonth());
                 
             }
 
