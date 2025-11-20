@@ -106,6 +106,10 @@ public class AuthService {
             subscriptionResponse.setPlanPrice(activeSub.getPlan().getPrice());
             subscriptionResponse.setPlanCurrency(activeSub.getPlan().getCurrency());
             subscriptionResponse.setStorageLimitGb(activeSub.getPlan().getStorageLimitGb());
+            subscriptionResponse.setMaxFiles(activeSub.getPlan().getMaxFiles());
+            subscriptionResponse.setMaxCollaborations(activeSub.getPlan().getMaxCollaborations());
+            subscriptionResponse.setMaxDocumentariesPerMonth(activeSub.getPlan().getMaxDocumentariesPerMonth());
+
         }
 
         if (activeSub != null && activeSub.getPlan() != null) {
