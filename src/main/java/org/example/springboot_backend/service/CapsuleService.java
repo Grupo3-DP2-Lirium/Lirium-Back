@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -114,11 +115,15 @@ public class CapsuleService {
             throw new RuntimeException("Capsule is not in DRAFT or FAILED state");
         }
 
-        // ✨ SELECCIÓN AUTOMÁTICA DE RECUERDOS CON IA
+        // SELECCIÓN AUTOMÁTICA DE RECUERDOS CON IA
         List<Memory> selectedMemories = selectMemoriesWithAI(capsule);
 
         if (selectedMemories.isEmpty()) {
-            throw new RuntimeException("No memories found matching the prompt: " + capsule.getUserPrompt());
+            String errorMsg = String.format(
+                    "No se encontraron recuerdos relacionados con '%s' en este memorial. ",
+                    capsule.getUserPrompt()
+            );
+            throw new RuntimeException(errorMsg);
         }
 
         // Limitar a máximo 12 recuerdos
@@ -148,12 +153,11 @@ public class CapsuleService {
     }
 
     /**
-     * ✨ SELECCIÓN AUTOMÁTICA DE RECUERDOS CON IA
+     *  SELECCIÓN AUTOMÁTICA DE RECUERDOS CON IA
      */
     private List<Memory> selectMemoriesWithAI(Capsule capsule) {
         System.out.println("🤖 Selecting memories with AI for prompt: " + capsule.getUserPrompt());
 
-        // Obtener TODOS los recuerdos visibles del memorial
         List<Memory> allMemories = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(
                         capsule.getMemorial().getIdMemorial()
                 ).stream()
@@ -167,13 +171,63 @@ public class CapsuleService {
 
         System.out.println("📦 Total memories available: " + allMemories.size());
 
-        // Usar IA para seleccionar los más relevantes
-        return aiService.seleccionarRecuerdosParaCapsula(
+        // IA selecciona las más relevantes (sin límite rígido)
+        List<Memory> selectedMemories = aiService.seleccionarRecuerdosParaCapsula(
                 capsule.getUserPrompt(),
                 capsule.getMemorial().getName(),
                 allMemories,
-                12 // Máximo 12 recuerdos
+                20 // Suficientes candidatas para elegir
         );
+
+        if (selectedMemories.isEmpty()) {
+            String errorMsg = String.format(
+                    "No se encontraron recuerdos relacionados con '%s' en este memorial. " +
+                            "Intenta con otros temas o verifica que existan recuerdos sobre ese tema.",
+                    capsule.getUserPrompt()
+            );
+            throw new RuntimeException(errorMsg);
+        }
+
+        // Limitar inteligentemente a 12 archivos totales para máx 1 min
+        return limitToMaxFilesIntelligent(selectedMemories, 12);
+    }
+
+    /**
+     * Limita selección maximizando el uso de los 12 slots disponibles
+     */
+    private List<Memory> limitToMaxFilesIntelligent(List<Memory> memories, int maxFiles) {
+        List<Memory> result = new ArrayList<>();
+        int totalFiles = 0;
+
+        for (Memory memory : memories) {
+            if (!memory.hasFiles()) continue;
+
+            int filesInMemory = memory.getFiles().size();
+
+            // Agregar si cabe completa
+            if (totalFiles + filesInMemory <= maxFiles) {
+                result.add(memory);
+                totalFiles += filesInMemory;
+                System.out.println("   ✅ Memory " + memory.getIdMemory() +
+                        ": " + filesInMemory + " files (total: " + totalFiles + "/" + maxFiles + ")");
+            } else {
+                int remaining = maxFiles - totalFiles;
+                System.out.println("   ⏭️ Skipped memory " + memory.getIdMemory() +
+                        " (" + filesInMemory + " files, only " + remaining + " slots left)");
+            }
+
+            if (totalFiles >= maxFiles) {
+                System.out.println("✅ Reached maximum of " + maxFiles + " files");
+                break;
+            }
+        }
+
+        if (result.isEmpty()) {
+            throw new RuntimeException("Could not select any memories within file limit");
+        }
+
+        System.out.println("📊 Final: " + result.size() + " memories → " + totalFiles + " files");
+        return result;
     }
 
     /**

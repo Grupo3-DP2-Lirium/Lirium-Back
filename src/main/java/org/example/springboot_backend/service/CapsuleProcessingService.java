@@ -186,34 +186,44 @@ public class CapsuleProcessingService {
     }
 
     /**
-     * Descarga los archivos de media desde Azure
+     * Descarga TODOS los archivos de las memorias seleccionadas
      */
     private List<Path> downloadMediaFiles(List<Memory> memories, Path tempDir, UUID capsuleId) throws IOException {
         List<Path> downloadedFiles = new ArrayList<>();
+        int totalFiles = memories.stream()
+                .filter(Memory::hasFiles)
+                .mapToInt(m -> m.getFiles().size())
+                .sum();
 
-        int index = 0;
+        System.out.println("📦 Total archivos a procesar: " + totalFiles);
+
+        int fileIndex = 0;
+
         for (Memory memory : memories) {
             if (!memory.hasFiles()) {
                 System.out.println("⚠️ Memory " + memory.getIdMemory() + " has no files, skipping");
                 continue;
             }
 
-            File file = memory.getFiles().get(0);
-            String blobPath = file.getStoragePath().replace("\\", "/");
-            String extension = getFileExtension(file.getFileName());
-            Path localFile = tempDir.resolve(String.format("media_%03d%s", index, extension));
+            // PROCESAR TODOS LOS ARCHIVOS DE LA MEMORIA
+            for (File file : memory.getFiles()) {
+                String blobPath = file.getStoragePath().replace("\\", "/");
+                String extension = getFileExtension(file.getFileName());
+                Path localFile = tempDir.resolve(String.format("media_%03d%s", fileIndex, extension));
 
-            try {
-                System.out.println("⬇️ Downloading: " + blobPath);
-                azureStorageService.downloadBlobToFile(blobPath, localFile);
-                downloadedFiles.add(localFile);
-                index++;
+                try {
+                    System.out.println("⬇️ Downloading: " + blobPath + " (" + file.getFileName() + ")");
+                    azureStorageService.downloadBlobToFile(blobPath, localFile);
+                    downloadedFiles.add(localFile);
+                    fileIndex++;
 
-                int progressIncrement = (int) ((20.0 / memories.size()) * (index));
-                updateProgressTransactional(capsuleId, 10 + progressIncrement, null);
+                    // Actualizar progreso basado en archivos totales
+                    int progressIncrement = (int) ((20.0 / totalFiles) * fileIndex);
+                    updateProgressTransactional(capsuleId, 10 + progressIncrement, null);
 
-            } catch (Exception e) {
-                System.err.println("❌ Failed to download: " + blobPath + " - " + e.getMessage());
+                } catch (Exception e) {
+                    System.err.println("❌ Failed to download: " + blobPath + " - " + e.getMessage());
+                }
             }
         }
 
@@ -221,7 +231,7 @@ public class CapsuleProcessingService {
             throw new RuntimeException("No media files could be downloaded");
         }
 
-        System.out.println("✅ Downloaded " + downloadedFiles.size() + " files");
+        System.out.println("✅ Downloaded " + downloadedFiles.size() + " files from " + memories.size() + " memories");
         return downloadedFiles;
     }
 
