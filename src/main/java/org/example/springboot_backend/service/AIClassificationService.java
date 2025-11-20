@@ -483,11 +483,8 @@ public class AIClassificationService {
             return List.of();
         }
 
-        // Si hay pocos recuerdos, devolverlos todos
-        if (allMemories.size() <= maxMemories) {
-            System.out.println("✅ Menos de " + maxMemories + " recuerdos, devolviendo todos");
-            return allMemories;
-        }
+        // SIEMPRE usar IA para filtrar por relevancia, incluso si hay pocas memorias
+        // La IA debe decidir qué memorias son relevantes al prompt
 
         try {
             // Crear resumen de cada recuerdo
@@ -506,11 +503,14 @@ public class AIClassificationService {
                 memorySummaries.add(summary);
             }
 
-            String prompt = buildMemorySelectionPrompt(userPrompt, nombrePersona, memorySummaries, maxMemories);
+            // Ajustar maxMemories si hay menos disponibles
+            int effectiveMax = Math.min(maxMemories, allMemories.size());
+
+            String prompt = buildMemorySelectionPrompt(userPrompt, nombrePersona, memorySummaries, effectiveMax);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("model", modelName);
-            payload.put("temperature", 0.4);
+            payload.put("temperature", 0.3);
             payload.put("max_tokens", 200);
             payload.put("stream", false);
             payload.put("messages", List.of(Map.of("role", "user", "content", prompt)));
@@ -520,15 +520,16 @@ public class AIClassificationService {
 
             if (jsonText == null) {
                 System.err.println("⚠️ No se pudo extraer JSON, usando selección por fecha");
-                return selectMemoriesByDateFallback(allMemories, maxMemories);
+                return selectMemoriesByDateFallback(allMemories, effectiveMax);
             }
 
             Map<String, Object> obj = MAPPER.readValue(jsonText, new TypeReference<>() {});
             List<Integer> selectedIndices = extractIntegerList(obj.get("indices"));
 
             if (selectedIndices == null || selectedIndices.isEmpty()) {
-                System.err.println("⚠️ No se obtuvieron índices, usando fallback");
-                return selectMemoriesByDateFallback(allMemories, maxMemories);
+                System.err.println("⚠️ No se obtuvieron índices. No generando cápsula.");
+                //return selectMemoriesByDateFallback(allMemories, effectiveMax);
+                return List.of();
             }
 
             // Seleccionar memories según los índices
@@ -542,16 +543,18 @@ public class AIClassificationService {
             // Si no se seleccionó ninguno, usar fallback
             if (selectedMemories.isEmpty()) {
                 System.err.println("⚠️ No se seleccionaron recuerdos válidos, usando fallback");
-                return selectMemoriesByDateFallback(allMemories, maxMemories);
+                return selectMemoriesByDateFallback(allMemories, effectiveMax);
             }
 
-            System.out.println("✅ Seleccionados " + selectedMemories.size() + " recuerdos con IA");
+            System.out.println("✅ Seleccionados " + selectedMemories.size() + " recuerdos con IA de " +
+                    allMemories.size() + " disponibles");
             return selectedMemories;
 
         } catch (Exception e) {
             System.err.println("⚠️ Error en selección de recuerdos: " + e.getMessage());
             e.printStackTrace();
-            return selectMemoriesByDateFallback(allMemories, maxMemories);
+            return selectMemoriesByDateFallback(allMemories,
+                    Math.min(maxMemories, allMemories.size()));
         }
     }
 
@@ -571,22 +574,39 @@ public class AIClassificationService {
         
         El usuario quiere crear una cápsula sobre: "%s"
         
-        De la siguiente lista de recuerdos, selecciona los %d MÁS RELEVANTES que mejor coincidan con el tema.
+        De la siguiente lista de recuerdos, selecciona SOLO los más relevantes que coincidan con el tema.
         
         RECUERDOS DISPONIBLES:
         %s
         
+        INSTRUCCIONES CRÍTICAS:
+        - Selecciona ÚNICAMENTE los recuerdos que estén directamente relacionados con el tema solicitado
+        - Si el prompt menciona un evento específico (cumpleaños, boda, etc.), selecciona SOLO ese tipo de eventos
+        - Si ningún recuerdo coincide bien con el tema, selecciona el más cercano temáticamente
+        - NO incluyas recuerdos irrelevantes solo por rellenar
+        - Máximo %d recuerdos (puedes seleccionar menos si no hay suficientes relevantes)
+        
         Criterios de selección:
-                - Prioriza recuerdos que mencionen directamente el tema en título o descripción
-                - Si el prompt menciona una fecha/época, prioriza recuerdos de ese periodo
-                - Si el prompt menciona un evento, prioriza recuerdos relacionados con ese evento
-                - Busca coherencia temática entre los recuerdos seleccionados
-                - Prefiere recuerdos con fechas específicas sobre los que no tienen fecha
-                - Selecciona EXACTAMENTE %d recuerdos (no más, no menos)
-               \s
-                Responde SOLO con JSON: {"indices": [lista de números de índice]}
-                Ejemplo: {"indices": [0, 5, 12, 18, 23, 30, 35, 42]}
-                """.formatted(nombrePersona, userPrompt, maxMemories, memoriesText.toString(), maxMemories);
+        1. Relevancia directa al tema en título o descripción (PRIORIDAD MÁXIMA)
+        2. Si el prompt menciona una fecha/época, prioriza recuerdos de ese periodo
+        3. Si el prompt menciona un tipo de evento, filtra solo ese tipo
+        4. Coherencia temática entre los recuerdos seleccionados
+        5. Prefiere recuerdos con fechas específicas sobre los que no tienen fecha
+        
+        
+        IMPORTANTE:
+            - Si NO hay recuerdos relacionados con el tema, responde: {"indices": []}
+            - SOLO selecciona recuerdos que realmente coincidan con el tema
+            - Es MEJOR devolver lista vacía que seleccionar recuerdos irrelevantes
+            - El usuario prefiere un error claro que un video con contenido equivocado
+           
+        Ejemplos:
+        - Prompt "viajes" pero solo hay cumpleaños: {"indices": []}
+        - Prompt "cumpleaños" y hay índice 0,3,5: {"indices": [0,3,5]}
+        - Prompt "música" pero solo hay deportes: {"indices": []}
+       
+        Responde SOLO con JSON: {"indices": [lista o vacío]}
+        """.formatted(nombrePersona, userPrompt, memoriesText.toString(), maxMemories, maxMemories);
             }
 
 

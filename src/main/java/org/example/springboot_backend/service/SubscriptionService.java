@@ -95,7 +95,20 @@ public class SubscriptionService {
 
         if (activeSub == null) {
             // No tiene suscripción activa → es Free
-            return null;
+            // Usuario sin suscripción → asignar plan FREE DESCUBRE_LIRIUM
+            Plan freePlan = planRepository.findByName("DESCUBRE_LIRIUM")
+                    .orElseThrow(() -> new RuntimeException("Plan DESCUBRE_LIRIUM no encontrado"));
+
+            System.out.println("Usuario sin suscripción activa. Se asigna plan FREE");
+
+            // Crear nueva Subscription temporal (no necesariamente guardada en BD)
+            activeSub = new Subscription();
+            activeSub.setUser(user);
+            activeSub.setPlan(freePlan);
+            activeSub.setStatus(SubscriptionStatus.NONE); // Plan FREE
+            activeSub.setStartDate(LocalDateTime.now());
+            activeSub.setEndDate(null); // ilimitado
+            activeSub.setFrequency("FREE");
         }
 
         // Validar fecha de fin
@@ -103,14 +116,25 @@ public class SubscriptionService {
             // Suscripción vencida → marcar como CANCELLED en BD si quieres
             activeSub.setStatus(SubscriptionStatus.CANCELLED);
             activeSub.setUpdatedDate(LocalDateTime.now());
+            
             subscriptionRepository.save(activeSub);
+            System.out.println(" plan FREE");
 
             // Retornar null o lanzar excepción
             throw new RuntimeException("No tienes un plan premium activo");
             // O simplemente: return null;
         }
-
         // Suscripción activa y vigente
+        System.out.println(">>> Suscripción activa:");
+        if (activeSub.getPlan() != null) {
+            System.out.println("Plan name: " + activeSub.getPlan().getName());
+        }
+        System.out.println("Status: " + activeSub.getStatus());
+        System.out.println("Max Files: " + activeSub.getPlan().getMaxFiles());
+        System.out.println("Max Collaborations: " + activeSub.getPlan().getMaxCollaborations());
+        System.out.println("Max Documentaries: " + activeSub.getPlan().getMaxDocumentariesPerMonth());
+        System.out.println("Storage Limit GB: " + activeSub.getPlan().getStorageLimitGb());
+
         return activeSub;
     }
 

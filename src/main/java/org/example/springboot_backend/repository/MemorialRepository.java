@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface MemorialRepository extends JpaRepository<Memorial, UUID> {
     List<Memorial> findByUser(User user);
+    List<Memorial> findByUserAndIsJournalFalse(User user);
     List<Memorial> findByIsCollaborativeTrue();
     
     // Find memorials where the user is an active collaborator but NOT the owner
