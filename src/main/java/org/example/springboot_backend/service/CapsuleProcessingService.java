@@ -295,7 +295,7 @@ public class CapsuleProcessingService {
     }
 
     /**
-     * 🎨 Crea video de introducción con título (3 segundos)
+     * 🎨 Crea video de introducción con título (3 segundos) ---
      */
     private Path createTitleIntro(String title, Path tempDir) throws IOException, InterruptedException {
         Path titleVideo = tempDir.resolve("title_intro.mp4");
