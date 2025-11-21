@@ -34,7 +34,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
             !"anonymousUser".equals(authentication.getPrincipal())) {
             
             String email = authentication.getName();
-            System.out.println("🔍 UserStatusFilter: Validando usuario: " + email);
+            //System.out.println("🔍 UserStatusFilter: Validando usuario: " + email);
             
             // Buscar el usuario en la base de datos
             User user = userRepository.findByEmail(email).orElse(null);
@@ -49,7 +49,7 @@ public class UserStatusFilter extends OncePerRequestFilter {
                 response.getWriter().flush();
                 return;
             } else if (user != null) {
-                System.out.println("✅ UserStatusFilter: Usuario " + email + " está ACTIVO");
+                //System.out.println("✅ UserStatusFilter: Usuario " + email + " está ACTIVO");
             }
         }
         
