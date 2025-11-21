@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -302,13 +303,12 @@ public class CapsuleProcessingService {
         String escapedTitle = escapeFFmpegText(title);
         String fontPath = escapeFontPathForFFmpeg(fontsPath);
 
-        // Video negro con texto centrado - 9:16 (1080x1920)
         List<String> command = new ArrayList<>();
         command.add(ffmpegPath);
         command.add("-f");
         command.add("lavfi");
         command.add("-i");
-        command.add("color=c=black:s=1080x1920:d=3"); // 3 segundos, resolución vertical
+        command.add("color=c=black:s=1080x1920:d=3");
         command.add("-vf");
         command.add(String.format(
                 "drawtext=fontfile='%s':text='%s':fontsize=60:fontcolor=white:" +
@@ -318,33 +318,58 @@ public class CapsuleProcessingService {
         command.add("-c:v");
         command.add("libx264");
         command.add("-preset");
-        command.add("fast");
+        command.add("ultrafast"); // Cambio
+        command.add("-crf");
+        command.add("28"); //Cambio
         command.add("-pix_fmt");
         command.add("yuv420p");
         command.add("-y");
         command.add(titleVideo.toString());
 
         System.out.println("🎬 Creating title intro: " + title);
+        System.out.println("📝 FFmpeg command: " + String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+        // Thread para output
+        Thread outputThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("FFmpeg: " + line);
+                }
+            } catch (IOException e) {
+                System.err.println("⚠️ Error reading output: " + e.getMessage());
             }
+        });
+        outputThread.setDaemon(true);
+        outputThread.start();
+
+        System.out.println("⏳ Waiting for title creation (max 60s)...");
+        boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+
+        if (!finished) {
+            System.err.println("❌ Title creation TIMEOUT!");
+            process.destroyForcibly();
+            throw new RuntimeException("Failed to create title intro (timeout)");
         }
 
-        int exitCode = process.waitFor();
+        outputThread.join(5000);
+
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
-            System.err.println("❌ FFmpeg failed creating title: " + output.toString());
+            System.err.println("❌ FFmpeg failed creating title: exit code " + exitCode);
             throw new RuntimeException("Failed to create title intro");
         }
 
-        System.out.println("✅ Title intro created");
+        if (!Files.exists(titleVideo)) {
+            throw new RuntimeException("Title video not created");
+        }
+
+        System.out.println("✅ Title intro created (" + (Files.size(titleVideo) / 1024) + " KB)");
         return titleVideo;
     }
 
@@ -370,39 +395,73 @@ public class CapsuleProcessingService {
         command.add("-vf");
         command.add(filterChain);
         command.add("-t");
-        command.add("5"); // 5 segundos por clip
+        command.add("5");
         command.add("-c:v");
         command.add("libx264");
         command.add("-preset");
-        command.add("fast");
+        command.add("ultrafast"); // Cambio crítico
         command.add("-crf");
-        command.add("23");
+        command.add("28"); // Menos calidad = más rápido
         command.add("-pix_fmt");
         command.add("yuv420p");
         command.add("-y");
         command.add(outputFile.toString());
 
         System.out.println("🎬 Processing vertical: " + inputFile.getFileName());
+        System.out.println("📝 FFmpeg command: " + String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
         Process process = pb.start();
 
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+        // Thread para leer output sin bloquear
+        StringBuilder ffmpegOutput = new StringBuilder();
+        Thread outputThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println("FFmpeg: " + line);
+                    ffmpegOutput.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                System.err.println("⚠️ Error reading FFmpeg output: " + e.getMessage());
             }
+        });
+        outputThread.setDaemon(true);
+        outputThread.start();
+
+        //Timeout de 2 minutos
+        System.out.println("⏳ Waiting for FFmpeg (max 120s)...");
+        boolean finished = process.waitFor(120, TimeUnit.SECONDS);
+
+        if (!finished) {
+            System.err.println("❌ FFmpeg TIMEOUT after 120 seconds!");
+            System.err.println("📝 Last output:\n" + ffmpegOutput.toString());
+            process.destroyForcibly();
+            process.waitFor(5, TimeUnit.SECONDS);
+            throw new RuntimeException("FFmpeg timeout processing " + inputFile.getFileName());
         }
 
-        int exitCode = process.waitFor();
+        // Esperar al thread de output
+        outputThread.join(5000);
+
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
-            System.err.println("❌ FFmpeg failed: " + output.toString());
-            throw new RuntimeException("FFmpeg failed processing " + inputFile.getFileName());
+            System.err.println("❌ FFmpeg failed with exit code: " + exitCode);
+            System.err.println("📝 Output:\n" + ffmpegOutput.toString());
+            throw new RuntimeException("FFmpeg failed processing " + inputFile.getFileName()
+                    + " (exit code: " + exitCode + ")");
         }
 
-        System.out.println("✅ Processed: " + outputFile.getFileName());
+        // Verificar que el archivo se creó
+        if (!Files.exists(outputFile)) {
+            throw new RuntimeException("Output file not created: " + outputFile);
+        }
+
+        long fileSize = Files.size(outputFile);
+        System.out.println("✅ Processed: " + outputFile.getFileName() +
+                " (" + (fileSize / 1024) + " KB)");
     }
 
     /**
