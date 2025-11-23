@@ -1,9 +1,8 @@
 package org.example.springboot_backend.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
-
 import org.example.springboot_backend.enums.NotificationType;
 
 @Entity
@@ -27,17 +26,18 @@ public class Notification {
     @Enumerated(EnumType.STRING)
     private NotificationType type;
     
-    // ID del recurso relacionado (ej: idReminder, idMemorial, etc)
     private Long relatedEntityId;
     
     @Column(nullable = false)
     private boolean isRead = false;
     
+    // ✅ SOLUCIÓN: Usar Instant en lugar de LocalDateTime
+    // Instant siempre representa UTC
     @Column(nullable = false)
-    private LocalDateTime createdDate;
+    private Instant createdDate;
     
-    private LocalDateTime readDate;
-
+    private Instant readDate;
+    
     // Getters and Setters
     public Long getIdNotification() { return idNotification; }
     public void setIdNotification(Long idNotification) { this.idNotification = idNotification; }
@@ -60,9 +60,9 @@ public class Notification {
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { isRead = read; }
     
-    public LocalDateTime getCreatedDate() { return createdDate; }
-    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public Instant getCreatedDate() { return createdDate; }
+    public void setCreatedDate(Instant createdDate) { this.createdDate = createdDate; }
     
-    public LocalDateTime getReadDate() { return readDate; }
-    public void setReadDate(LocalDateTime readDate) { this.readDate = readDate; }
+    public Instant getReadDate() { return readDate; }
+    public void setReadDate(Instant readDate) { this.readDate = readDate; }
 }

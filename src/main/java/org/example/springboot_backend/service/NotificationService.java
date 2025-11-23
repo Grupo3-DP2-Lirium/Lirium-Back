@@ -9,6 +9,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -49,33 +50,38 @@ public class NotificationService {
     }
     
     @Transactional
-    public NotificationResponse markAsRead(Long notificationId, User user) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
-        
-        if (!notification.getUserId().equals(user.getIdUser())) {
-            throw new RuntimeException("You don't have permission to modify this notification");
-        }
-        
-        notification.setRead(true);
-        notification.setReadDate(LocalDateTime.now());
-        
-        Notification updated = notificationRepository.save(notification);
-        return toResponse(updated);
+public NotificationResponse markAsRead(Long notificationId, User user) {
+    Notification notification = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> new RuntimeException("Notification not found"));
+    
+    if (!notification.getUserId().equals(user.getIdUser())) {
+        throw new RuntimeException("You don't have permission to modify this notification");
     }
     
+    notification.setRead(true);
+    
+    // ✅ SOLUCIÓN: Usar Instant.now() en lugar de LocalDateTime.now()
+    notification.setReadDate(Instant.now());
+    
+    Notification updated = notificationRepository.save(notification);
+    return toResponse(updated);
+}
+    
     @Transactional
-    public void markAllAsRead(User user) {
-        List<Notification> unreadNotifications = notificationRepository
-                .findByUserIdAndIsReadFalseOrderByCreatedDateDesc(user.getIdUser());
-        
-        for (Notification notification : unreadNotifications) {
-            notification.setRead(true);
-            notification.setReadDate(LocalDateTime.now());
-        }
-        
-        notificationRepository.saveAll(unreadNotifications);
+public void markAllAsRead(User user) {
+    List<Notification> unreadNotifications = notificationRepository
+            .findByUserIdAndIsReadFalseOrderByCreatedDateDesc(user.getIdUser());
+    
+    // ✅ SOLUCIÓN: Usar Instant.now()
+    Instant now = Instant.now();
+    
+    for (Notification notification : unreadNotifications) {
+        notification.setRead(true);
+        notification.setReadDate(now);
     }
+    
+    notificationRepository.saveAll(unreadNotifications);
+}
     
     @Transactional
     public void deleteNotification(Long notificationId, User user) {
@@ -110,7 +116,6 @@ public class NotificationService {
             Long relatedEntityId,
             boolean sendPush) {
         
-        // Crear notificación en base de datos
         Notification notification = new Notification();
         notification.setUserId(user.getIdUser());
         notification.setTitle(title);
@@ -118,11 +123,12 @@ public class NotificationService {
         notification.setType(type);
         notification.setRelatedEntityId(relatedEntityId);
         notification.setRead(false);
-        notification.setCreatedDate(LocalDateTime.now());
+        
+        // ✅ SOLUCIÓN: Usar Instant.now() que siempre es UTC
+        notification.setCreatedDate(Instant.now());
         
         notificationRepository.save(notification);
         
-        // Enviar push notification si se requiere
         if (sendPush) {
             Map<String, String> data = new HashMap<>();
             data.put("type", type.toString());
@@ -384,17 +390,20 @@ public class NotificationService {
     // ==================== UTILIDADES ====================
     
     private NotificationResponse toResponse(Notification notification) {
-        NotificationResponse response = new NotificationResponse();
-        response.setIdNotification(notification.getIdNotification());
-        response.setTitle(notification.getTitle());
-        response.setMessage(notification.getMessage());
-        response.setType(notification.getType());
-        response.setRelatedEntityId(notification.getRelatedEntityId());
-        response.setRead(notification.isRead());
-        response.setCreatedDate(notification.getCreatedDate());
-        response.setReadDate(notification.getReadDate());
-        return response;
-    }
+    NotificationResponse response = new NotificationResponse();
+    response.setIdNotification(notification.getIdNotification());
+    response.setTitle(notification.getTitle());
+    response.setMessage(notification.getMessage());
+    response.setType(notification.getType());
+    response.setRelatedEntityId(notification.getRelatedEntityId());
+    response.setRead(notification.isRead());
+    
+    // ✅ SOLUCIÓN: Instant ya está en UTC, no necesita conversión
+    response.setCreatedDate(notification.getCreatedDate());
+    response.setReadDate(notification.getReadDate());
+    
+    return response;
+}
 
     public void notifyCollaboratorJoined(User memorialOwner, User newCollaborator, Memorial memorial) {
     try {
@@ -411,7 +420,7 @@ public class NotificationService {
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setType(NotificationType.SYSTEM);
-        notification.setCreatedDate(LocalDateTime.now());
+        notification.setCreatedDate(Instant.now());
         notification.setRelatedEntityId(memorial.getIdMemorial().getMostSignificantBits());
         
         notificationRepository.save(notification);
@@ -439,7 +448,7 @@ public void notifyJoinedAsCollaborator(User collaborator, Memorial memorial) {
         notification.setTitle(title);
         notification.setMessage(message);
         notification.setType(NotificationType.SYSTEM);
-        notification.setCreatedDate(LocalDateTime.now());
+        notification.setCreatedDate(Instant.now());
         notification.setRelatedEntityId(memorial.getIdMemorial().getMostSignificantBits());
         
         notificationRepository.save(notification);

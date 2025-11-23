@@ -77,7 +77,8 @@ public class MemorialService implements IMemorialService {
 
     @Override
     public List<MemorialResponse> getMyMemorials(User user) {
-        List<Memorial> memorials = memorialRepository.findByUser(user);
+        //List<Memorial> memorials = memorialRepository.findByUser(user);
+        List<Memorial> memorials = memorialRepository.findByUserAndIsJournalFalse(user);
         // ✅ Siempre son del usuario, así que isOwner = true
         return memorials.stream()
                 .map(m -> buildResponse(m, user))

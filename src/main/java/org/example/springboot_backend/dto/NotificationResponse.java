@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.example.springboot_backend.enums.NotificationType;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class NotificationResponse {
     private Long idNotification;
@@ -13,21 +13,22 @@ public class NotificationResponse {
     private NotificationType type;
     private Long relatedEntityId;
     
-    // ✅ SOLUCIÓN: Forzar el nombre "isRead" en JSON
     @JsonProperty("isRead")
     private boolean read;
     
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
-    private LocalDateTime createdDate;
+    // ✅ SOLUCIÓN: Usar Instant en lugar de LocalDateTime
+    // Instant siempre representa UTC y se serializa correctamente
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    private Instant createdDate;
     
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
-    private LocalDateTime readDate;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    private Instant readDate;
 
     public NotificationResponse() {}
     
     public NotificationResponse(Long idNotification, String title, String message, 
                               NotificationType type, Long relatedEntityId, 
-                              boolean isRead, LocalDateTime createdDate, LocalDateTime readDate) {
+                              boolean isRead, Instant createdDate, Instant readDate) {
         this.idNotification = idNotification;
         this.title = title;
         this.message = message;
@@ -38,6 +39,7 @@ public class NotificationResponse {
         this.readDate = readDate;
     }
 
+    // Getters and Setters
     public Long getIdNotification() { return idNotification; }
     public void setIdNotification(Long idNotification) { this.idNotification = idNotification; }
     
@@ -53,16 +55,15 @@ public class NotificationResponse {
     public Long getRelatedEntityId() { return relatedEntityId; }
     public void setRelatedEntityId(Long relatedEntityId) { this.relatedEntityId = relatedEntityId; }
     
-    // ✅ SOLUCIÓN: Getter que devuelve el campo "read" pero se serializa como "isRead"
     @JsonProperty("isRead")
     public boolean isRead() { return read; }
     
     @JsonProperty("isRead")
     public void setRead(boolean read) { this.read = read; }
     
-    public LocalDateTime getCreatedDate() { return createdDate; }
-    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
+    public Instant getCreatedDate() { return createdDate; }
+    public void setCreatedDate(Instant createdDate) { this.createdDate = createdDate; }
     
-    public LocalDateTime getReadDate() { return readDate; }
-    public void setReadDate(LocalDateTime readDate) { this.readDate = readDate; }
+    public Instant getReadDate() { return readDate; }
+    public void setReadDate(Instant readDate) { this.readDate = readDate; }
 }
