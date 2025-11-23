@@ -87,6 +87,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir crear memorias
                 .requestMatchers(HttpMethod.GET, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir listar memorias
                 .requestMatchers(HttpMethod.OPTIONS, "/api/memories").permitAll() // ✅ TEMPORAL: Permitir OPTIONS
+                .requestMatchers("/ws/**").permitAll() // Permitir conexión WS
                 .requestMatchers("/api/admin/users/**").permitAll()
                 .requestMatchers("/api/seed/**").permitAll() // Permitir endpoints de seeding
                 .requestMatchers("/api/public/**").permitAll() // ✅ Permitir acceso público a enlaces compartidos

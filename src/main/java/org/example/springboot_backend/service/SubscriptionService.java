@@ -8,6 +8,8 @@ import org.example.springboot_backend.enums.SubscriptionStatus;
 import org.example.springboot_backend.repository.PlanPermissionRepository;
 import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.SubscriptionRepository;
+import org.example.springboot_backend.repository.UserExtraStorageRepository;
+import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,15 +22,35 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final PlanRepository planRepository;
     private final PlanPermissionRepository planPermissionRepository;
+    private final UserRepository userRepository;
+    private final UserExtraStorageRepository userExtraStorageRepository;
 
-    public SubscriptionService(SubscriptionRepository subscriptionRepository, PlanRepository planRepository, PlanPermissionRepository planPermissionRepository) {
+    public SubscriptionService(SubscriptionRepository subscriptionRepository, 
+        PlanRepository planRepository, 
+        PlanPermissionRepository planPermissionRepository, 
+        UserRepository userRepository, UserExtraStorageRepository userExtraStorageRepository) {
         this.subscriptionRepository = subscriptionRepository;
         this.planRepository = planRepository;
         this.planPermissionRepository = planPermissionRepository;
+        this.userRepository = userRepository;
+        this.userExtraStorageRepository = userExtraStorageRepository;
+        
     }
 
     public List<Plan> getAllPlans() {
         return planRepository.findAll();
+    }
+
+    private double calculateTotalBytes(User user, Plan plan) {
+        double baseBytes = plan.getStorageLimitGb() * 1024d * 1024d * 1024d;
+
+        double extraBytes = userExtraStorageRepository
+            .findAllByUserAndStatus(user, SubscriptionStatus.ACTIVE)
+            .stream()
+            .mapToDouble(s -> s.getPlan().getAdditionalStorageGb() * 1024d * 1024d * 1024d)
+            .sum();
+
+        return baseBytes + extraBytes;
     }
 
     // Crear una nueva suscripción para un usuario
@@ -38,13 +60,6 @@ public class SubscriptionService {
 
         Subscription activeSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.ACTIVE)
                 .orElse(null);
-
-        Subscription pendingSubscription = subscriptionRepository.findByUserAndStatus(user, SubscriptionStatus.PENDING)
-                .orElse(null);
-
-        if (pendingSubscription != null) {
-            throw new RuntimeException("Ya tienes un cambio de plan pendiente. Espera a que se active.");
-        }
 
         // Si existe una activa, evaluamos el tipo de cambio
         if (activeSubscription != null && activeSubscription.getEndDate() == null) {
@@ -58,11 +73,12 @@ public class SubscriptionService {
                 activeSubscription.setStatus(SubscriptionStatus.CANCELLED);
                 activeSubscription.setUpdatedDate(LocalDateTime.now());
                 subscriptionRepository.save(activeSubscription);
-
+                double newCapacityBytes = calculateTotalBytes(user, plan);
+                user.setTotalCapacity(newCapacityBytes);
+                userRepository.save(user);
             } else if (isDowngrade) {
                 // Si quiere downgrade → no se permite aún
-                throw new RuntimeException("Podrás cambiar a este plan cuando finalice tu suscripción actual el "
-                        + activeSubscription.getEndDate());
+                throw new RuntimeException("Podrás cambiar a este plan cuando finalice tu suscripción actual");
             } else {
                 // Si intenta suscribirse al mismo plan
                 throw new RuntimeException("Ya tienes este plan activo actualmente.");
@@ -80,7 +96,8 @@ public class SubscriptionService {
         newSubscription.setUpdatedDate(LocalDateTime.now());
         newSubscription.setStartDate(LocalDateTime.now());
         newSubscription.setStatus(SubscriptionStatus.ACTIVE);
-
+        double capacityBytes = plan.getStorageLimitGb().longValue() * 1024L * 1024L * 1024L;
+        user.setTotalCapacity(capacityBytes);        userRepository.save(user);
         return subscriptionRepository.save(newSubscription);
         
         // Si quiere upgrade el plan se hace automáticamente el cambio de planes, el antiguo queda como CANCELLED con fecha de fin y la nueva activa
@@ -114,14 +131,14 @@ public class SubscriptionService {
         // Validar fecha de fin
         if (activeSub.getEndDate() != null && activeSub.getEndDate().isBefore(LocalDateTime.now())) {
             // Suscripción vencida → marcar como CANCELLED en BD si quieres
-            activeSub.setStatus(SubscriptionStatus.CANCELLED);
-            activeSub.setUpdatedDate(LocalDateTime.now());
+            //activeSub.setStatus(SubscriptionStatus.CANCELLED);
+            //activeSub.setUpdatedDate(LocalDateTime.now());
             
-            subscriptionRepository.save(activeSub);
-            System.out.println(" plan FREE");
+            //subscriptionRepository.save(activeSub);
+            //System.out.println(" plan FREE");
 
             // Retornar null o lanzar excepción
-            throw new RuntimeException("No tienes un plan premium activo");
+            //throw new RuntimeException("No tienes un plan premium activo");
             // O simplemente: return null;
         }
         // Suscripción activa y vigente

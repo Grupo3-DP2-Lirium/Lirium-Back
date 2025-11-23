@@ -5,6 +5,7 @@ import org.example.springboot_backend.entity.*;
 import org.example.springboot_backend.enums.NotificationType;
 import org.example.springboot_backend.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -284,6 +285,17 @@ public class NotificationService {
             null
         );
     }
+
+    @Transactional
+    public void notifySubscriptionExpired(User user, String planName) {
+        createNotification(
+            user,
+            NotificationType.SUBSCRIPTION,
+            "Suscripción expirada",
+            String.format("Tu suscripción %s venció ahora", planName),
+            null
+        );
+    }
     
     /**
      * ✅ Notificación de pago exitoso
@@ -438,4 +450,35 @@ public void notifyJoinedAsCollaborator(User collaborator, Memorial memorial) {
         // No lanzar excepción para no afectar el flujo principal
     }
 }
+
+    @Transactional
+    public void notifySubscriptionExpired2(User user, String planName) {
+        try {
+            String title = "Suscripción expirada";
+            String message = String.format(
+                "Tu suscripción %s ha expirado 😢", 
+                planName
+            );
+
+            // Crear la notificación en BD
+            Notification notification = new Notification();
+            notification.setUserId(user.getIdUser());
+            notification.setTitle(title);
+            notification.setMessage(message);
+            notification.setType(NotificationType.SUBSCRIPTION);
+            notification.setCreatedDate(LocalDateTime.now());
+            notificationRepository.save(notification);
+
+            createNotification(
+                user,
+                NotificationType.SYSTEM,
+                "Suscripción expirada",
+                String.format("Tu suscripción %s ha expirado 😢", planName)
+            );
+        } catch (Exception e) {
+            System.err.println("❌ Error creando notificación de suscripción expirada: " + e.getMessage());
+            // No lanzar excepción para no afectar el flujo principal
+        }
+    }
+
 }

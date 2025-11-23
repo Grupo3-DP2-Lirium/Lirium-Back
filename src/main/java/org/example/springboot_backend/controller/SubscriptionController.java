@@ -1,15 +1,20 @@
 package org.example.springboot_backend.controller;
 
+import org.example.springboot_backend.dto.UserExtraStorageResponse;
 import org.example.springboot_backend.entity.BillingPeriod;
 import org.example.springboot_backend.entity.Plan;
 import org.example.springboot_backend.entity.Subscription;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.entity.UserExtraStorage;
 import org.example.springboot_backend.enums.PaymentMethod;
 import org.example.springboot_backend.enums.SubscriptionStatus;
+import org.example.springboot_backend.repository.PlanRepository;
 import org.example.springboot_backend.repository.SubscriptionRepository;
 import org.example.springboot_backend.repository.UserRepository;
+import org.example.springboot_backend.service.ExtraStorageService;
 import org.example.springboot_backend.service.SubscriptionService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.method.P;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.MediaType;
@@ -26,13 +31,19 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
     private final UserRepository userRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final PlanRepository planRepository;
+    private final ExtraStorageService extraStorageService;
 
     public SubscriptionController(SubscriptionService subscriptionService,
                                   UserRepository userRepository,
-                                  SubscriptionRepository subscriptionRepository) {
+                                  SubscriptionRepository subscriptionRepository, 
+                                  PlanRepository planRepository,
+                                  ExtraStorageService extraStorageService) {
         this.subscriptionService = subscriptionService;
         this.userRepository = userRepository;
         this.subscriptionRepository = subscriptionRepository;
+        this.planRepository = planRepository;
+        this.extraStorageService = extraStorageService;
     }
 
     // 1. Listar todos los planes
@@ -79,17 +90,28 @@ public class SubscriptionController {
             SubscriptionResponse response = new SubscriptionResponse();
 
             if (subscription == null) {
+                Plan freePlan = planRepository.findByName("DESCUBRE_LIRIUM")
+                    .orElseThrow(() -> new RuntimeException("Plan DESCUBRE_LIRIUM no encontrado"));
+
+                System.out.println("Usuario sin suscripción activa. Se asigna plan FREE");
+                System.out.println("Support level de freePlan: " + freePlan.getSupportLevel());
+
                 // Usuario Free → status NONE
                 response.setStatus(SubscriptionStatus.NONE);
                 response.setFrequency(null);
                 response.setStartDate(null);
                 response.setEndDate(null);
                 response.setPaymentMethod(null);
-                response.setPlanId(null);
+                response.setPlanId(freePlan.getIdPlan());
                 response.setPlanName("DESCUBRE_LIRIUM");
                 response.setPlanDescription("Plan gratuito");
                 response.setPlanPrice(0.0);
                 response.setPlanCurrency("USD");
+                response.setStorageLimitGb(freePlan.getStorageLimitGb());
+                response.setMaxFiles(freePlan.getMaxFiles());
+                response.setMaxCollaborations(freePlan.getMaxCollaborations());
+                response.setMaxDocumentariesPerMonth(freePlan.getMaxDocumentariesPerMonth());
+                response.setSupportLevel(freePlan.getSupportLevel());
             } else {
                 // Mapear suscripción y plan
                 response.setSubscriptionId(subscription.getIdSubscription());
@@ -109,8 +131,31 @@ public class SubscriptionController {
                 response.setMaxFiles(plan.getMaxFiles());
                 response.setMaxCollaborations(plan.getMaxCollaborations());
                 response.setMaxDocumentariesPerMonth(plan.getMaxDocumentariesPerMonth());
+                response.setSupportLevel(plan.getSupportLevel());
+                //response.setPermissions(subscriptionService.getPlanPermissions(plan.getIdPlan()));
                 
             }
+
+            // --- Extra Storage ---
+            List<UserExtraStorage> extraStorages = extraStorageService.getActiveExtraStorageSubscriptions(user);
+            List<UserExtraStorageResponse> extraStorageDTOs = extraStorages.stream()
+                    .map(us -> new UserExtraStorageResponse(
+                            us.getPlan().getIdExtraPlan(),
+                            us.getPlan().getName(),
+                            us.getPlan().getAdditionalStorageGb(),
+                            us.getStatus().name(),
+                            us.getStartDate().toLocalDate()
+                    ))
+                    .toList();
+            
+            // Imprimir los detalles de las suscripciones de almacenamiento extra
+            System.out.println("Suscripciones de almacenamiento extra activas:");
+            for (UserExtraStorageResponse dto : extraStorageDTOs) {
+                System.out.println("Plan: " + dto.getPlanName() +
+                                ", Almacenamiento adicional: " + dto.getAdditionalStorageGb() + "GB" +
+                                ", Estado: " + dto.getStatus());
+            }
+            response.setExtraStorageSubscriptions(extraStorageDTOs);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {

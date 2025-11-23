@@ -153,8 +153,9 @@ public class UserService {
         );
     }
 
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public User getByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("No user exists with email " + email));
     }
 
     public User saveUser(User user) {
