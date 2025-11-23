@@ -90,6 +90,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/users/**").permitAll()
                 .requestMatchers("/api/seed/**").permitAll() // Permitir endpoints de seeding
                 .requestMatchers("/api/public/**").permitAll() // ✅ Permitir acceso público a enlaces compartidos
+                .requestMatchers("/api/memorials/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .requestMatchers("/api/documentaries/**").authenticated()
                 .anyRequest().authenticated()
