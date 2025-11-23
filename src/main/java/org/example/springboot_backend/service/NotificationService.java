@@ -475,7 +475,7 @@ public void notifyJoinedAsCollaborator(User collaborator, Memorial memorial) {
             notification.setTitle(title);
             notification.setMessage(message);
             notification.setType(NotificationType.SUBSCRIPTION);
-            notification.setCreatedDate(LocalDateTime.now());
+            notification.setCreatedDate(Instant.now());
             notificationRepository.save(notification);
 
             createNotification(
