@@ -7,6 +7,7 @@ import org.example.springboot_backend.enums.PaymentMethod;
 import org.example.springboot_backend.enums.SubscriptionStatus;
 import org.example.springboot_backend.repository.ExtraStoragePlanRepository;
 import org.example.springboot_backend.repository.UserExtraStorageRepository;
+import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -19,11 +20,14 @@ public class ExtraStorageService {
 
     private final UserExtraStorageRepository userExtraStorageRepository;
     private final ExtraStoragePlanRepository extraStoragePlanRepository;
+    private final UserRepository userRepository;
 
     public ExtraStorageService(UserExtraStorageRepository userExtraStorageRepository,
-                               ExtraStoragePlanRepository extraStoragePlanRepository) {
+                               ExtraStoragePlanRepository extraStoragePlanRepository,
+                               UserRepository userRepository) {
         this.userExtraStorageRepository = userExtraStorageRepository;
         this.extraStoragePlanRepository = extraStoragePlanRepository;
+        this.userRepository = userRepository;
     }
 
     // Crear suscripción de almacenamiento extra
@@ -42,14 +46,23 @@ public class ExtraStorageService {
         storage.setUser(user);
         storage.setPlan(plan);
         storage.setStatus(SubscriptionStatus.ACTIVE);
-        storage.setFrequency(plan.getFrequency()); // asumimos que ExtraStoragePlan tiene frequency
+        storage.setFrequency(plan.getFrequency());
         storage.setCurrentPaymentMethod(paymentMethod);
         storage.setPaypalSubscriptionId(paypalSubscriptionId);
         storage.setStartDate(LocalDateTime.now());
         storage.setCreatedDate(LocalDateTime.now());
         storage.setUpdatedDate(LocalDateTime.now());
 
-        return userExtraStorageRepository.save(storage);
+        UserExtraStorage saved = userExtraStorageRepository.save(storage);
+
+        // Update user's total capacity
+        double extraGb = plan.getAdditionalStorageGb();
+        double extraBytes = extraGb * 1024d * 1024d * 1024d;
+        double currentBytes = user.getTotalCapacity();
+        user.setTotalCapacity(currentBytes + extraBytes);
+        userRepository.save(user);
+
+        return saved;
     }
 
     // Cancelar suscripción de almacenamiento extra

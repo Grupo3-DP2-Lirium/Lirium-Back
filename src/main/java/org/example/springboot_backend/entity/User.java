@@ -37,6 +37,12 @@ public class User {
     private Double usedSpace;
     private Double totalCapacity;
 
+    @Column(name = "documentaries_purchased")
+    private Integer documentariesPurchased = 0;
+
+    @Column(name = "documentaries_available")
+    private Integer documentariesAvailable = 0;
+
     private LocalDate createdDate;
     private LocalDate updatedDate;
     private LocalDateTime lastSessionDate;
@@ -80,4 +86,8 @@ public class User {
     public LocalDateTime getLastSessionDate() { return lastSessionDate; }
     public void setLastSessionDate(LocalDateTime lastSessionDate) { this.lastSessionDate = lastSessionDate; }
     public String getFullName() { return firstName + " " + firstLastName; }
+    public Integer getDocumentariesPurchased() { return documentariesPurchased; }
+    public void setDocumentariesPurchased(Integer documentariesPurchased) { this.documentariesPurchased = documentariesPurchased    ; }
+    public Integer getDocumentariesAvailable() { return documentariesAvailable; }
+    public void setDocumentariesAvailable(Integer documentariesAvailable) { this.documentariesAvailable = documentariesAvailable; }
 }

@@ -153,7 +153,7 @@ public class DataInitializer {
             free.setDescription("Acceso a tu espacio personal, visualización de memoriales compartidos , 1 colaboración (10 archivos)");
             free.setPrice(0.0);
             free.setActive(true);
-            free.setStorageLimitGb(15);
+            free.setStorageLimitGb(15.0);
             free.setMaxFiles(10);
             free.setMaxCollaborations(1);
             free.setMaxDocumentariesPerMonth(0);
@@ -166,7 +166,7 @@ public class DataInitializer {
             crea.setPrice(8.99);
             crea.setCurrency(CurrencyType.USD.name());
             crea.setActive(true);
-            crea.setStorageLimitGb(200);
+            crea.setStorageLimitGb(200.0);
             crea.setMaxFiles(null); // null = ilimitado
             crea.setMaxCollaborations(null);
             crea.setMaxDocumentariesPerMonth(1);
@@ -180,7 +180,7 @@ public class DataInitializer {
             legado.setCurrency(CurrencyType.USD.name());
             legado.setActive(true);
             legado.setActive(true);
-            legado.setStorageLimitGb(2000);
+            legado.setStorageLimitGb(2000.0);
             legado.setMaxFiles(null);
             legado.setMaxCollaborations(null);
             legado.setMaxDocumentariesPerMonth(2);
