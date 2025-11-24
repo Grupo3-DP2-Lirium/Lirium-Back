@@ -35,7 +35,7 @@ public class SubscriptionExpirationScheduler {
     private NotificationService notificationService;
     
     // Se ejecuta cada 5 minutos
-    @Scheduled(cron = "0 */5 * * * *")
+    @Scheduled(cron = "0 */1 * * * *")
     public void expireEndedSubscriptions() {
         logger.info("Running subscription expiration scheduler");
 
@@ -58,17 +58,32 @@ public class SubscriptionExpirationScheduler {
             subscriptionRepository.save(sub);
 
             User user = sub.getUser();
-            double planBytes = sub.getPlan().getStorageLimitGb() * 1024 * 1024 * 1024;
+
+            // Bytes del plan que expira
+            double planBytes = sub.getPlan().getStorageLimitGb() * 1024.0 * 1024 * 1024;
+
+            // Capacidad actual del usuario
             double currentBytes = user.getTotalCapacity();
+            // Imprimir para depuración
+            logger.info("User {} currentBytes: {} bytes, planBytes to subtract: {} bytes",
+                        user.getEmail(), currentBytes, planBytes);
+
+
+            // Restar plan expirado
             double newBytes = currentBytes - planBytes;
 
-            // si se va a 0 -> 15GB
+            // Aplicar la lógica que me explicaste
             if (newBytes <= 0) {
-                newBytes = 15 * 1024 * 1024 * 1024; // 15GB
+                newBytes = 15.0 * 1024 * 1024 * 1024; // mínimo 15GB
+            } else {
+                newBytes += 15.0 * 1024 * 1024 * 1024; // si queda >0, sumar 15GB
             }
 
             user.setTotalCapacity(newBytes);
             userRepository.save(user);
+
+            logger.info("User {} capacity updated after plan expiration: {} bytes",
+                    user.getEmail(), newBytes);
 
             logger.warn("Subscription expired: {} - Plan: {} - User: {}",
                     sub.getIdSubscription(),
@@ -83,7 +98,7 @@ public class SubscriptionExpirationScheduler {
                 messagingTemplate.convertAndSendToUser(
                         sub.getUser().getEmail(),  // esto debe coincidir con lo que Flutter usa como "user"
                         "/topic/notifications",
-                        "Tu suscripción ha expirado"
+                        "Tu suscripción ha expirado "
                 );
                 logger.info("Notificación enviada a {}", sub.getUser().getEmail());
             } catch (Exception e) {

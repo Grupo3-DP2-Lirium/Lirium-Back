@@ -247,5 +247,46 @@ public class PayPalController {
     public ResponseEntity<?> cancelExtraStorageSubscription() {
         return ResponseEntity.ok(Map.of("message", "La suscripción fue cancelada por el usuario."));
     }
-    
+
+    @PostMapping("/create-extra-documentary-order")
+    public ResponseEntity<?> createExtraDocumentaryOrder(
+            @RequestBody Map<String, Object> request,
+            Authentication auth
+    ) {
+        try {
+            User user = userRepository.findByEmail(auth.getName())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            int quantity = (int) request.get("quantity");
+            double amount = Double.parseDouble(request.get("amount").toString());
+
+            Map<String, Object> order = payPalService.createExtraDocumentaryOrder(user, quantity, amount);
+
+            return ResponseEntity.ok(order);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    public static class CaptureExtraDocumentaryRequest {
+        public String orderId;
+        public Integer quantity;
+    }
+
+    @PostMapping("/capture-extra-documentary-order")
+    public ResponseEntity<Map<String, Object>> captureExtraDocumentary(
+            @RequestBody CaptureExtraDocumentaryRequest request,
+            Authentication authentication
+    ) {
+        // Obtener usuario autenticado
+            String userEmail = authentication.getName();
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Map<String, Object> result = payPalService.captureExtraDocumentaryOrder(request.orderId, user, request.quantity);
+        return ResponseEntity.ok(result);
+    }
+
+
 }

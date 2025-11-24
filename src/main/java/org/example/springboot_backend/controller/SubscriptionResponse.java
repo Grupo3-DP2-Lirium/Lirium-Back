@@ -23,6 +23,8 @@ public class SubscriptionResponse {
     private Integer maxFiles; // null = ilimitado
     private Integer maxCollaborations; // null = ilimitado
     private Integer maxDocumentariesPerMonth; // 0 = ninguno
+    private Integer documentariesPurchased;
+    private Integer documentariesAvailable; 
     private String supportLevel;
     private List<UserExtraStorageResponse> extraStorageSubscriptions;
 
@@ -63,4 +65,8 @@ public class SubscriptionResponse {
     public void setSupportLevel(String supportLevel) { this.supportLevel = supportLevel; }
     public List<UserExtraStorageResponse> getExtraStorageSubscriptions() { return extraStorageSubscriptions; }
     public void setExtraStorageSubscriptions(List<UserExtraStorageResponse> extraStorageSubscriptions) { this.extraStorageSubscriptions = extraStorageSubscriptions; }
+    public Integer getDocumentariesPurchased() { return documentariesPurchased; }
+    public void setDocumentariesPurchased(Integer documentariesPurchased) { this.documentariesPurchased = documentariesPurchased; }
+    public Integer getDocumentariesAvailable() { return documentariesAvailable; }   
+    public void setDocumentariesAvailable(Integer documentariesAvailable) { this.documentariesAvailable = documentariesAvailable; } 
 }

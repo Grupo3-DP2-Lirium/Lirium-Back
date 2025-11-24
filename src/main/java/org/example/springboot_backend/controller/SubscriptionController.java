@@ -112,6 +112,7 @@ public class SubscriptionController {
                 response.setMaxCollaborations(freePlan.getMaxCollaborations());
                 response.setMaxDocumentariesPerMonth(freePlan.getMaxDocumentariesPerMonth());
                 response.setSupportLevel(freePlan.getSupportLevel());
+              
             } else {
                 // Mapear suscripción y plan
                 response.setSubscriptionId(subscription.getIdSubscription());
@@ -120,7 +121,7 @@ public class SubscriptionController {
                 response.setStartDate(subscription.getStartDate());
                 response.setEndDate(subscription.getEndDate());
                 response.setPaymentMethod(subscription.getCurrentPaymentMethod());
-
+                
                 Plan plan = subscription.getPlan();
                 response.setPlanId(plan.getIdPlan());
                 response.setPlanName(plan.getName());

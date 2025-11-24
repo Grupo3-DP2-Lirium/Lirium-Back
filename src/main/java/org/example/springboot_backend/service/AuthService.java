@@ -64,7 +64,6 @@ public class AuthService {
 
         String fullName = user.getFullName();
         String name = user.getFirstName();
-
         System.out.println("JWT GENERADO: " + token);
         
         // Get the first role name (assuming user has at least one role)
@@ -82,10 +81,11 @@ public class AuthService {
             name,
             roleName,
             user.getUsedSpace(),
-            user.getTotalCapacity()
+            user.getTotalCapacity(),
+            user.getDocumentariesPurchased(),
+            user.getDocumentariesAvailable()
         );
 
-        // Imprimir todo lo que se está enviando
         System.out.println("LOGIN RESPONSE => " +
             "token: " + response.getToken() + ", " +
             "email: " + response.getEmail() + ", " +

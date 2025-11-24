@@ -40,6 +40,7 @@ public class PayPalService {
     private final UserExtraStorageRepository userExtraStorageRepository;
     private final ExtraStoragePlanRepository extraStoragePlanRepository;
     private final ExtraStorageService extraStorageService;
+    private final UserRepository userRepository;
 
     @Value("${paypal.client.id}")
     private String clientId;
@@ -70,6 +71,7 @@ public class PayPalService {
         this.userExtraStorageRepository = userExtraStorageRepository;
         this.extraStoragePlanRepository = extraStoragePlanRepository;
         this.extraStorageService = extraStorageService;
+        this.userRepository = userRepository;
     }
 
     // Obtener access token de PayPal
@@ -457,6 +459,108 @@ public class PayPalService {
                 planId, // tu UUID interno
                 subscriptionId, // ID de PayPal
                 PaymentMethod.PAYPAL
+        );
+    }
+
+    public Map<String, Object> createExtraDocumentaryOrder(User user, int quantity, double amount) {
+        String token = getAccessToken();
+
+        // Body de la orden
+        Map<String, Object> body = Map.of(
+                "intent", "CAPTURE",
+                "purchase_units", new Object[]{
+                        Map.of(
+                            "amount", Map.of("currency_code", "USD", "value", String.format("%.2f", amount)),
+                            "description", quantity + " documentales extra"
+                        )
+                },
+                "application_context", Map.of(
+                        "brand_name", "LiriumApp",
+                        "landing_page", "LOGIN",
+                        "user_action", "PAY_NOW",
+                        "return_url", "http://10.0.2.2:8080/api/paypal/storage-success",
+                        "cancel_url", "http://10.0.2.2:8080/api/paypal/storage-cancel"
+                )
+        );
+
+        Map<String, Object> response = webClient.post()
+                .uri("/v2/checkout/orders")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block(Duration.ofSeconds(10));
+
+        // Extraer link de aprobación
+        String approvalLink = null;
+        Object linksObj = response.get("links");
+        if (linksObj instanceof Iterable<?> links) {
+            for (Object obj : links) {
+                if (obj instanceof Map<?, ?> link && "approve".equals(link.get("rel"))) {
+                    approvalLink = link.get("href").toString();
+                    break;
+                }
+            }
+        }
+
+        // Guardar intento de pago
+        PaymentAttempt attempt = new PaymentAttempt();
+        attempt.setUser(user);
+        attempt.setAmount(amount);
+        attempt.setStatus(PaymentAttemptStatus.CREATED);
+        attempt.setCreatedDate(LocalDateTime.now());
+        attempt.setNotes(quantity + " documentales extra - Orden PayPal creada");
+        attempt.setTransactionId(response.get("id").toString());
+        paymentAttemptRepository.save(attempt);
+
+        return Map.of(
+                "orderId", response.get("id"),
+                "approvalLink", approvalLink
+        );
+    }
+
+    public Map<String, Object> captureExtraDocumentaryOrder(String orderId, User user, int quantity) {
+        String token = getAccessToken();
+
+        // Buscar intento de pago por orderId
+        PaymentAttempt attempt = paymentAttemptRepository
+                .findByTransactionId(orderId)
+                .orElseThrow(() -> new RuntimeException("PaymentAttempt no encontrado para orderId " + orderId));
+
+        // Llamada a la API de PayPal para capturar el pago
+        Map<String, Object> response = webClient.post()
+                .uri("/v2/checkout/orders/" + orderId + "/capture")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .block(Duration.ofSeconds(10));
+
+        if (response != null && "COMPLETED".equals(response.get("status"))) {
+            attempt.setStatus(PaymentAttemptStatus.APPROVED);
+            attempt.setUpdatedDate(LocalDateTime.now());
+            attempt.setNotes("Pago documentales extra aprobado");
+            paymentAttemptRepository.save(attempt);
+
+            // Sumar documentales al usuario según la cantidad enviada
+            user.setDocumentariesPurchased((user.getDocumentariesPurchased() == null ? 0 : user.getDocumentariesPurchased()) + quantity);
+            user.setDocumentariesAvailable((user.getDocumentariesAvailable() == null ? 0 : user.getDocumentariesAvailable()) + quantity);
+
+            userRepository.save(user);
+
+        } else {
+            attempt.setStatus(PaymentAttemptStatus.REJECTED);
+            attempt.setUpdatedDate(LocalDateTime.now());
+            attempt.setNotes("Pago documentales extra rechazado");
+            paymentAttemptRepository.save(attempt);
+        }
+
+        return Map.of(
+                "status", "success",
+                "paypalResponse", response,
+                "userId", user.getIdUser(),
+                "quantityAdded", quantity
         );
     }
 

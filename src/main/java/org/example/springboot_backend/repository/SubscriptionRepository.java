@@ -23,4 +23,5 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
         SubscriptionStatus status,
         LocalDateTime now
     );
+    List<Subscription> findByUserAndStatusAndEndDateAfter(User user, SubscriptionStatus status, LocalDateTime now);
 }
