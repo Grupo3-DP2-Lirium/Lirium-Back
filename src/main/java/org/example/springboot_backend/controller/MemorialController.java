@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.example.springboot_backend.repository.MemorialRepository;
 import org.example.springboot_backend.repository.PlanRepository;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -88,14 +90,22 @@ public class MemorialController {
 
     @GetMapping(value = "/getMemorials", produces = MediaType.APPLICATION_JSON_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> getMyMemorials(Authentication authentication) {
+    public ResponseEntity<?> getMyMemorials(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         try {
             String userEmail = authentication.getName();
+
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            List<MemorialResponse> memorials = memorialService.getMyMemorials(user);
+            Page<MemorialResponse> memorials =
+                    memorialService.getMyMemorials(user, page, size);
+
             return ResponseEntity.ok(memorials);
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching memorials: " + e.getMessage());
         }
