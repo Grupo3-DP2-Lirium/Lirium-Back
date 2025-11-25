@@ -224,16 +224,24 @@ public class MemoryController {
 
     @GetMapping("/my-memories")
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> listByAuthor(Authentication authentication) {
+    public ResponseEntity<?> listByAuthor(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size
+    ) {
         try {
             String userEmail = authentication.getName();
+
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            var memories = memoryService.listByAuthor(user);
-            return ResponseEntity.ok(memories);
+            // Obtener memoria paginada filtrada
+            Page<MemoryResponse> pagedMemories = memoryService.listByAuthor(user, page, size);
+
+            return ResponseEntity.ok(pagedMemories);
+
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Error fetching memories: " + e.getMessage());
         }
     }
 
