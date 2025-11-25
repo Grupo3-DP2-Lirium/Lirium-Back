@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import org.example.springboot_backend.dto.FileDeleteRequest;
 import org.example.springboot_backend.dto.FileResponse;
+import org.example.springboot_backend.dto.MemorialResponse;
 import org.example.springboot_backend.dto.MemoriesByTypeResponse;
 import org.example.springboot_backend.dto.MemoryCreateRequest;
 import org.example.springboot_backend.dto.MemoryLiteResponse;
@@ -31,6 +32,7 @@ import org.example.springboot_backend.repository.QuestionRepository;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -350,25 +352,27 @@ public class MemoryService implements IMemoryService {
 
     // Obtener todas las memorias del autor ordenadas por fecha de creación descendente
     @Override
-    public List<MemoryResponse> listByAuthor(User author) {
+    public Page<MemoryResponse> listByAuthor(User author, int page, int size) {
         // Obtener todas las memorias del autor
         List<Memory> memories = memoryRepository.findByAuthor(author);
 
-        // Filtrar las memorias que NO sean de tipo REFLECTION
+        // Filtrar las memorias que NO sean de tipo REFLECTION y ordenar por fecha descendente
         List<Memory> filteredMemories = memories.stream()
                 .filter(memory -> memory.getType() != org.example.springboot_backend.enums.MemoryOriginType.REFLECTION)
                 .sorted((memory1, memory2) -> {
-                    // Obtener la fecha a comparar (usamos updateDate o createdDate si updateDate es null)
                     LocalDateTime date1 = memory1.getUpdatedDate() != null ? memory1.getUpdatedDate() : memory1.getCreatedDate();
                     LocalDateTime date2 = memory2.getUpdatedDate() != null ? memory2.getUpdatedDate() : memory2.getCreatedDate();
-                    
-                    // Comparar las fechas de manera descendente
-                    return date2.compareTo(date1); // Invertimos el orden para obtener las más recientes primero
+                    return date2.compareTo(date1); // más recientes primero
                 })
                 .collect(Collectors.toList());
 
+        // Calcular los índices para la paginación
+        int start = page * size;
+        int end = Math.min(start + size, filteredMemories.size());
+        List<Memory> pagedMemories = start >= filteredMemories.size() ? List.of() : filteredMemories.subList(start, end);
+
         // Mapear a MemoryResponse
-        return filteredMemories.stream().map(memory -> {
+        List<MemoryResponse> memoryResponses = pagedMemories.stream().map(memory -> {
             MemoryResponse r = new MemoryResponse();
             r.setIdMemory(memory.getIdMemory());
             r.setType(memory.getType());
@@ -387,8 +391,8 @@ public class MemoryService implements IMemoryService {
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
                 List<FileResponse> fileResponses = memory.getFiles().stream()
-                    .map(this::buildFileResponse)
-                    .toList();
+                        .map(this::buildFileResponse)
+                        .toList();
                 r.setFiles(fileResponses);
             } else {
                 r.setFiles(List.of());
@@ -406,6 +410,9 @@ public class MemoryService implements IMemoryService {
 
             return r;
         }).toList();
+
+        Pageable pageable = PageRequest.of(page, size);
+        return new PageImpl<>(memoryResponses, pageable, filteredMemories.size());
     }
 
     @Override
