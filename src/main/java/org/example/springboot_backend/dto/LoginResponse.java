@@ -10,10 +10,11 @@ public class LoginResponse {
     private Double totalCapacity;  
     private Integer documentariesPurchased;
     private Integer documentariesAvailable;
+    private FileResponse profilePhoto;
 
     public LoginResponse(String token, String email, String fullname, 
                     String name, String role, Double usedSpace, Double totalCapacity,
-                    Integer documentariesPurchased, Integer documentariesAvailable) {
+                    Integer documentariesPurchased, Integer documentariesAvailable, FileResponse profilePhoto) {
         this.token = token;
         this.email = email;
         this.fullName = fullname;
@@ -23,6 +24,7 @@ public class LoginResponse {
         this.totalCapacity = totalCapacity;
         this.documentariesPurchased = documentariesPurchased;
         this.documentariesAvailable = documentariesAvailable;
+        this.profilePhoto = profilePhoto;
     }
 
     public String getToken() { return token; }
@@ -43,4 +45,7 @@ public class LoginResponse {
     public void setDocumentariesPurchased(Integer documentariesPurchased) { this.documentariesPurchased = documentariesPurchased; }
     public Integer getDocumentariesAvailable() { return documentariesAvailable; }
     public void setDocumentariesAvailable(Integer documentariesAvailable) { this.documentariesAvailable = documentariesAvailable; }
+    public FileResponse getProfilePhoto() { return profilePhoto; }
+    public void setProfilePhoto(FileResponse profilePhoto) { this.profilePhoto = profilePhoto; }
+    
 }

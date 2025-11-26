@@ -160,6 +160,37 @@ public class StorageService {
         return fileRepository.save(fileEntity);
     }
 
+    // Upload a single file (profile photo) for a memorial and save it to the database
+    public File processSingleFileProfile(MultipartFile file, User user) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("No file provided for upload");
+        }
+
+        // Build folder path: user-{userId}/profile_photo/
+        String folder = String.format("user-%s/profile_photo/%s",
+                user.getIdUser(),user.getIdUser());
+
+        // Upload the file
+        StorageResult result = fileStorageService.uploadFile(file, folder);
+
+        if (!result.isSuccess()) {
+            throw new RuntimeException("Failed to upload file: " + result.getErrorMessage());
+        }
+
+        // Create File entity and save
+        File fileEntity = new File();
+        fileEntity.setFileName(result.getFileName());
+        fileEntity.setOriginalFileName(file.getOriginalFilename());
+        fileEntity.setMimeType(file.getContentType());
+        fileEntity.setFileType(determineFileType(file.getContentType()));
+        fileEntity.setFileUrl(result.getFileUrl());
+        fileEntity.setFileSize(result.getFileSize());
+        fileEntity.setStorageProvider("azure");
+        fileEntity.setStoragePath(result.getStoragePath());
+
+        return fileRepository.save(fileEntity);
+    }
+
 
     // Determine file type based on MIME type.
     public String determineFileType(String mimeType) {

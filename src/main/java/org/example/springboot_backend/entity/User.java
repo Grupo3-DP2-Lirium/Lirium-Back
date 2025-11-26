@@ -21,6 +21,10 @@ public class User {
     private String secondLastName;
     private String email;
 
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "profile_photo_id")
+    private File profilePhoto;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "user_roles",
@@ -90,4 +94,7 @@ public class User {
     public void setDocumentariesPurchased(Integer documentariesPurchased) { this.documentariesPurchased = documentariesPurchased    ; }
     public Integer getDocumentariesAvailable() { return documentariesAvailable; }
     public void setDocumentariesAvailable(Integer documentariesAvailable) { this.documentariesAvailable = documentariesAvailable; }
+    public File getProfilePhoto() { return profilePhoto; }
+    public void setProfilePhoto(File profilePhoto) { this.profilePhoto = profilePhoto; }
+
 }
