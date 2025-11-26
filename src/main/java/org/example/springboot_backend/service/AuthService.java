@@ -1,9 +1,11 @@
 package org.example.springboot_backend.service;
+import org.example.springboot_backend.dto.FileResponse;
 import org.example.springboot_backend.dto.LoginRequest;
 import org.example.springboot_backend.dto.LoginResponse;
 import org.example.springboot_backend.dto.RegisterUserDTO;
 import org.example.springboot_backend.dto.UserResponseDTO;
 import org.example.springboot_backend.entity.User;
+import org.example.springboot_backend.entity.File;
 import org.example.springboot_backend.entity.Role;
 import org.example.springboot_backend.enums.UserStatus;
 import org.example.springboot_backend.exception.UserNotFoundException;
@@ -11,12 +13,15 @@ import org.example.springboot_backend.exception.InvalidCredentialsException;
 import org.example.springboot_backend.exception.EmailAlreadyExistsException;
 import org.example.springboot_backend.exception.RoleNotFoundException;
 import org.example.springboot_backend.repository.UserRepository;
+import org.example.springboot_backend.service.storage.StorageService;
 import org.example.springboot_backend.repository.RoleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -31,21 +36,21 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
+    private StorageService storageService;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository, 
                       JwtService jwtService, AuthenticationManager authenticationManager,
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                     StorageService storageService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
+        this.storageService = storageService;
     }
 
     public LoginResponse login(LoginRequest request) {
-        long start = System.currentTimeMillis();
-        System.out.println("====== LOGIN START ======");
-
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -53,14 +58,11 @@ public class AuthService {
         } catch (BadCredentialsException e) {
             throw new InvalidCredentialsException("Invalid email or password. Please check your credentials and try again.");
         }
-        System.out.println("Tiempo despues de AUTH: " + (System.currentTimeMillis() - start) + "ms");
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User with email '" + request.getEmail() + "' not found"));
-        System.out.println("Tiempo despues de BUSCAR USER: " + (System.currentTimeMillis() - start) + "ms");
 
         String token = jwtService.generateToken(user.getEmail());
-        System.out.println("Tiempo despues de GENERAR TOKEN: " + (System.currentTimeMillis() - start) + "ms");
 
         String fullName = user.getFullName();
         String name = user.getFirstName();
@@ -72,8 +74,8 @@ public class AuthService {
                 .map(Role::getName)
                 .orElse("USER");
         
-        long end = System.currentTimeMillis();
-        System.out.println("====== LOGIN END (" + (end - start) + "ms) ======");
+        FileResponse profilePhotoResponse = toFileResponse(user.getProfilePhoto());
+
         LoginResponse response = new LoginResponse(
             token,
             user.getEmail(),
@@ -83,7 +85,8 @@ public class AuthService {
             user.getUsedSpace(),
             user.getTotalCapacity(),
             user.getDocumentariesPurchased(),
-            user.getDocumentariesAvailable()
+            user.getDocumentariesAvailable(),
+            profilePhotoResponse
         );
 
         System.out.println("LOGIN RESPONSE => " +
@@ -100,45 +103,66 @@ public class AuthService {
             
     }
 
-    public UserResponseDTO registerUser(RegisterUserDTO registerRequest) {
-        // Verificar si el email ya existe
-        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
-            throw new EmailAlreadyExistsException("Email '" + registerRequest.getEmail() + "' is already registered");
+    private FileResponse toFileResponse(File file) {
+        if (file == null) {
+            return null;
         }
 
-        // Buscar el rol USER
-        Role userRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new RoleNotFoundException(
-                    "System configuration error: 'USER' role does not exist in the database. " +
-                    "Please contact the system administrator to resolve this issue."
-                ));
+        FileResponse response = new FileResponse();
+        response.setIdFile(file.getIdFile());
+        response.setFileName(file.getFileName());
+        response.setOriginalFileName(file.getOriginalFileName());
+        response.setFileType(file.getFileType());
+        response.setMimeType(file.getMimeType());
+        response.setFileUrl(file.getFileUrl());
+        response.setFileSize(file.getFileSize());
+        response.setUploadedDate(file.getUploadedDate());
 
-        // Crear nuevo usuario
+        return response;
+    }
+
+    public UserResponseDTO registerUser(RegisterUserDTO registerRequest, MultipartFile profilePhoto) {
+
+        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
+            throw new EmailAlreadyExistsException("Email already registered");
+        }
+
+        Role userRole = roleRepository.findByName("USER")
+                .orElseThrow(() -> new RoleNotFoundException("USER role not found"));
+
         User newUser = new User();
         newUser.setFirstName(registerRequest.getFirstName());
         newUser.setFirstLastName(registerRequest.getFirstLastName());
         newUser.setSecondLastName(registerRequest.getSecondLastName());
         newUser.setEmail(registerRequest.getEmail());
         newUser.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
-        
-        // Configuración por defecto
         newUser.setStatus(UserStatus.ACTIVE);
         newUser.setUsedSpace(0.0);
-        //newUser.setTotalCapacity(10240 * 1024 * 1024); // 10 GB en bytes (10240 MB * 1024 * 1024)
         newUser.setTotalCapacity(15.0 * 1024 * 1024 * 1024);
         newUser.setCreatedDate(LocalDate.now());
         newUser.setUpdatedDate(LocalDate.now());
-        
-        // Asignar rol USER
+
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
         newUser.setRoles(roles);
 
-        // Guardar usuario
-        User savedUser = userRepository.save(newUser);
+        User saved = userRepository.save(newUser);
 
-        // Convertir a DTO de respuesta
-        return convertToUserResponseDTO(savedUser);
+        // --- profile photo
+        if (profilePhoto != null && !profilePhoto.isEmpty()) {
+
+            storageService.validateUserStorageCapacity(saved, profilePhoto.getSize());
+
+            File fileUploaded = storageService.processSingleFileProfile(profilePhoto, saved);
+
+            saved.setProfilePhoto(fileUploaded);
+
+            storageService.increaseUserUsedSpace(saved, profilePhoto.getSize());
+
+            saved = userRepository.save(saved);
+        }
+
+        return convertToUserResponseDTO(saved);
     }
 
     private UserResponseDTO convertToUserResponseDTO(User user) {
