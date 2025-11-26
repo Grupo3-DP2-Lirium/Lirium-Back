@@ -16,6 +16,8 @@ java {
 
 repositories {
     mavenCentral()
+    google()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -44,6 +46,11 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // WebSocket
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+    implementation 'com.github.NaikSoftware:StompProtocolAndroid:1.6.6' // STOMP
+
 }
 
 tasks.named('test') {

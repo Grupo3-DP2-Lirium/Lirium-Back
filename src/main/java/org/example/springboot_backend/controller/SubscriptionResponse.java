@@ -1,8 +1,10 @@
 package org.example.springboot_backend.controller;
+import org.example.springboot_backend.dto.UserExtraStorageResponse;
 import org.example.springboot_backend.enums.PaymentMethod;
 import org.example.springboot_backend.enums.SubscriptionStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class SubscriptionResponse {
@@ -12,7 +14,7 @@ public class SubscriptionResponse {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private PaymentMethod paymentMethod;
-    private Integer storageLimitGb;
+    private Double storageLimitGb;
     private UUID planId;
     private String planName;
     private String planDescription;
@@ -21,6 +23,10 @@ public class SubscriptionResponse {
     private Integer maxFiles; // null = ilimitado
     private Integer maxCollaborations; // null = ilimitado
     private Integer maxDocumentariesPerMonth; // 0 = ninguno
+    private Integer documentariesPurchased;
+    private Integer documentariesAvailable; 
+    private String supportLevel;
+    private List<UserExtraStorageResponse> extraStorageSubscriptions;
 
     public SubscriptionResponse() {}
 
@@ -37,8 +43,8 @@ public class SubscriptionResponse {
     public void setEndDate(LocalDateTime endDate) { this.endDate = endDate; }
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
-    public Integer getStorageLimitGb() {return storageLimitGb;}
-    public void setStorageLimitGb(Integer storageLimitGb) {this.storageLimitGb = storageLimitGb;}
+    public Double getStorageLimitGb() {return storageLimitGb;}
+    public void setStorageLimitGb(Double storageLimitGb) {this.storageLimitGb = storageLimitGb;}
     public UUID getPlanId() { return planId; }
     public void setPlanId(UUID planId) { this.planId = planId; }
     public String getPlanName() { return planName; }
@@ -55,4 +61,12 @@ public class SubscriptionResponse {
     public void setMaxCollaborations(Integer maxCollaborations) { this.maxCollaborations = maxCollaborations; }
     public Integer getMaxDocumentariesPerMonth() { return maxDocumentariesPerMonth; }
     public void setMaxDocumentariesPerMonth(Integer maxDocumentariesPerMonth) { this.maxDocumentariesPerMonth = maxDocumentariesPerMonth; }
+    public String getSupportLevel() { return supportLevel; }
+    public void setSupportLevel(String supportLevel) { this.supportLevel = supportLevel; }
+    public List<UserExtraStorageResponse> getExtraStorageSubscriptions() { return extraStorageSubscriptions; }
+    public void setExtraStorageSubscriptions(List<UserExtraStorageResponse> extraStorageSubscriptions) { this.extraStorageSubscriptions = extraStorageSubscriptions; }
+    public Integer getDocumentariesPurchased() { return documentariesPurchased; }
+    public void setDocumentariesPurchased(Integer documentariesPurchased) { this.documentariesPurchased = documentariesPurchased; }
+    public Integer getDocumentariesAvailable() { return documentariesAvailable; }   
+    public void setDocumentariesAvailable(Integer documentariesAvailable) { this.documentariesAvailable = documentariesAvailable; } 
 }

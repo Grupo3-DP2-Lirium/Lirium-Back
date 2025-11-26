@@ -11,7 +11,7 @@ import java.util.UUID;
 public interface IMemoryService {
     MemoryResponse createMemory(MemoryCreateRequest request, MultipartFile[] files, User author);
     Page<MemoryResponse> listByMemorial(UUID idMemory, int page, int size);
-    List<MemoryResponse> listByAuthor(User author);
+    Page<MemoryResponse> listByAuthor(User user, int page, int size);
     MemoryResponse updateMemory(UUID memoryId, MemoryCreateRequest request, MultipartFile[] files, List<FileDeleteRequest> filesToDelete, User author);
     void deleteMemory(UUID memoryId, User user);
 

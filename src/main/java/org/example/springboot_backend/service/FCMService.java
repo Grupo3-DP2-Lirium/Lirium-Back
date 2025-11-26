@@ -32,7 +32,9 @@ public class FCMService {
         // Verificar si el token ya existe
         deviceTokenRepository.findByFcmToken(fcmToken).ifPresentOrElse(
             existingToken -> {
-                // Actualizar fecha de último uso
+                existingToken.setUserId(user.getIdUser()); // ✔ reasignar token
+                existingToken.setDeviceType(deviceType);
+                existingToken.setDeviceId(deviceId);
                 existingToken.setLastUsedDate(LocalDateTime.now());
                 deviceTokenRepository.save(existingToken);
             },

@@ -11,10 +11,12 @@ import org.example.springboot_backend.repository.MemorialShareRepository;
 import org.example.springboot_backend.repository.MemoryRepository;
 import org.example.springboot_backend.service.storage.StorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -76,19 +78,21 @@ public class MemorialService implements IMemorialService {
     }
 
     @Override
-    public List<MemorialResponse> getMyMemorials(User user) {
-        //List<Memorial> memorials = memorialRepository.findByUser(user);
-        List<Memorial> memorials = memorialRepository.findByUserAndIsJournalFalse(user);
-        // ✅ Siempre son del usuario, así que isOwner = true
-        return memorials.stream()
-                .map(m -> buildResponse(m, user))
-                .collect(Collectors.toList());
+    public Page<MemorialResponse> getMyMemorials(User user, int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Memorial> memorials =
+                memorialRepository.findByUserAndIsJournalFalse(user, pageable);
+
+        return memorials.map(m -> buildResponse(m, user));
     }
+
 
     @Override
     public List<MemorialResponse> getCollaborativeMemorials(User user) {
         List<Memorial> memorials = memorialRepository.findMemorialsByCollaborator(user);
-        // ✅ Calcular isOwner para cada memorial
+        // Calcular isOwner para cada memorial
         return memorials.stream()
                 .map(m -> buildResponse(m, user))
                 .collect(Collectors.toList());

@@ -1,8 +1,6 @@
 package org.example.springboot_backend.controller;
-
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.springboot_backend.entity.Memorial;
-import org.example.springboot_backend.entity.Subscription;
 import org.springframework.http.MediaType;
 import org.example.springboot_backend.dto.MemorialRequest;
 import org.example.springboot_backend.dto.MemorialResponse;
@@ -10,15 +8,13 @@ import org.example.springboot_backend.entity.User;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.IMemorialService;
 import org.example.springboot_backend.service.NotificationService;
-import org.example.springboot_backend.service.SubscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.example.springboot_backend.repository.MemorialRepository;
-import org.example.springboot_backend.repository.PlanRepository;
-
+import org.springframework.data.domain.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -43,12 +39,6 @@ public class MemorialController {
     @Autowired
     private NotificationService notificationService;
 
-    @Autowired
-    private SubscriptionService subscriptionService;
-
-    @Autowired
-    private PlanRepository planRepository;
-
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
     public ResponseEntity<?> createMemorial(
@@ -61,13 +51,6 @@ public class MemorialController {
             String userEmail = authentication.getName();
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
-            
-            // Validar suscripción activa
-            Subscription activeSub = subscriptionService.getActiveSubscription(user);
-            if (activeSub == null) {
-                // No tiene suscripción activa → asignar plan FREE
-                throw new RuntimeException("No tienes un plan premium activo para crear un memorial.");   
-            }
             
             // Crear memorial
             MemorialResponse response = memorialService.createMemorial(request, file, user);
@@ -88,14 +71,22 @@ public class MemorialController {
 
     @GetMapping(value = "/getMemorials", produces = MediaType.APPLICATION_JSON_VALUE)
     @SecurityRequirement(name = "Bearer Authentication")
-    public ResponseEntity<?> getMyMemorials(Authentication authentication) {
+    public ResponseEntity<?> getMyMemorials(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
         try {
             String userEmail = authentication.getName();
+
             User user = userRepository.findByEmail(userEmail)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            List<MemorialResponse> memorials = memorialService.getMyMemorials(user);
+            Page<MemorialResponse> memorials =
+                    memorialService.getMyMemorials(user, page, size);
+
             return ResponseEntity.ok(memorials);
+
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error fetching memorials: " + e.getMessage());
         }

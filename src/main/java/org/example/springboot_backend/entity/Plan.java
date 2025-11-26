@@ -31,7 +31,7 @@ public class Plan {
     private String paypalPlanId;
 
     @Column(name = "storage_limit_gb")
-    private Integer storageLimitGb;
+    private Double storageLimitGb;
 
     @Column(name = "max_files")
     private Integer maxFiles;
@@ -82,8 +82,8 @@ public class Plan {
     public String getPaypalPlanId() { return paypalPlanId; }
     public void setPaypalPlanId(String paypalPlanId) { this.paypalPlanId = paypalPlanId; }
 
-    public Integer getStorageLimitGb() { return storageLimitGb; }
-    public void setStorageLimitGb(Integer storageLimitGb) { this.storageLimitGb = storageLimitGb; }
+    public Double getStorageLimitGb() { return storageLimitGb; }
+    public void setStorageLimitGb(Double storageLimitGb) { this.storageLimitGb = storageLimitGb; }
 
     public Integer getMaxFiles() { return maxFiles; }
     public void setMaxFiles(Integer maxFiles) { this.maxFiles = maxFiles; }
