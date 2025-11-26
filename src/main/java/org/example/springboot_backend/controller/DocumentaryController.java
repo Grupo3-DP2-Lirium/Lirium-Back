@@ -111,17 +111,17 @@ public class DocumentaryController {
             DocumentaryResponse response = documentaryService.startDocumentaryGeneration(documentaryId, userId);
 
             // Notificar inicio de procesamiento
-            Memorial memorial = memorialRepository.findById(response.getMemorialId())
+            /*Memorial memorial = memorialRepository.findById(response.getMemorialId())
                     .orElseThrow(() -> new RuntimeException("Memorial not found"));
-
-            notificationService.createNotification(
+*/
+            /*notificationService.createNotification(
                     user,
                     org.example.springboot_backend.enums.NotificationType.DOCUMENTARY,
                     "Documental en proceso",
                     String.format("Tu documental de '%s' se está generando. Te notificaremos cuando esté listo.",
                             memorial.getName()),
                     response.getIdDocumentary().getMostSignificantBits()
-            );
+            );*/
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
