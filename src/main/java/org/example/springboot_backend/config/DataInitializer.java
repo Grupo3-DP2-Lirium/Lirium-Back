@@ -102,9 +102,9 @@ public class DataInitializer {
         initPlanPermissions();
         assignAdminPermissions();
         initExtraStoragePlans();
-        initUsers();
-        initMemorials();
-        initMemories();
+        //initUsers();
+        //initMemorials();
+        //initMemories();
     }
 
     // ------------------- ROLES -------------------

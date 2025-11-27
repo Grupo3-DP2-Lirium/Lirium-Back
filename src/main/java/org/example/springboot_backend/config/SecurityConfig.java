@@ -94,6 +94,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/memorials/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
                 .requestMatchers("/api/documentaries/**").authenticated()
+                .requestMatchers("/api/analytics/**").permitAll()
                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
