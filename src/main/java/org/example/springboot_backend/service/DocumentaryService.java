@@ -37,7 +37,7 @@ public class DocumentaryService {
     private DocumentaryProcessingService documentaryProcessingService;
 
     /**
-     * ✨ NUEVO: Valida si un memorial tiene suficientes recuerdos para crear documental
+     * Valida si un memorial tiene suficientes recuerdos para crear documental
      */
     public Map<String, Object> validateMemorialForDocumentary(UUID memorialId) {
         Memorial memorial = memorialRepository.findById(memorialId)
@@ -69,7 +69,7 @@ public class DocumentaryService {
     }
 
     /**
-     * ✨ NUEVO: Crea un documental en estado DRAFT (sin generar video todavía)
+     * Crea un documental en estado DRAFT (sin generar video todavía)
      */
     @Transactional
     public DocumentaryResponse createDocumentaryDraft(CreateDocumentaryRequest request, UUID userId) {
@@ -146,7 +146,7 @@ public class DocumentaryService {
     }
 
     /**
-     * ✨ NUEVO: Inicia la generación del video (cambia de DRAFT a PROCESSING)
+     * Inicia la generación del video (cambia de DRAFT a PROCESSING)
      */
     @Transactional
     public DocumentaryResponse startDocumentaryGeneration(UUID documentaryId, UUID userId) {
@@ -178,7 +178,7 @@ public class DocumentaryService {
     }
 
     /**
-     * ✨ NUEVO: Publica un documental completado en el perfil
+     * Publica un documental completado en el perfil
      */
     @Transactional
     public DocumentaryResponse publishDocumentary(UUID documentaryId, UUID userId) {
@@ -206,7 +206,7 @@ public class DocumentaryService {
     }
 
     /**
-     * ✨ NUEVO: Actualizar documental (solo si está en DRAFT o COMPLETED)
+     * Actualizar documental (solo si está en DRAFT o COMPLETED)
      */
     @Transactional
     public DocumentaryResponse updateDocumentary(UUID documentaryId, CreateDocumentaryRequest request, UUID userId) {
@@ -253,7 +253,7 @@ public class DocumentaryService {
     }
 
     /**
-     * ✨ NUEVO: Obtener documentales por memorial y estado
+     * Obtener documentales por memorial y estado
      */
     public List<DocumentaryResponse> getDocumentariesByMemorialAndStatus(UUID memorialId, DocumentaryStatus status) {
         List<Documentary> documentaries = documentaryRepository.findByMemorial_IdMemorialAndStatus(memorialId, status);
