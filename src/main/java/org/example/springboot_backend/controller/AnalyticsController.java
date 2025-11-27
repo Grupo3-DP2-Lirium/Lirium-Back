@@ -4,6 +4,7 @@ import org.example.springboot_backend.service.GoogleAnalyticsService;
 import org.example.springboot_backend.service.GoogleAnalyticsService.*;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,21 +20,24 @@ public class AnalyticsController {
     @Autowired
     private GoogleAnalyticsService analyticsService;
     
-    // ==================== ENDPOINTS EXISTENTES ====================
+    // ==================== ENDPOINTS PRINCIPALES CON FILTRO ====================
     
     @GetMapping("/stats")
-    @Operation(summary = "Estadísticas generales")
-    public ResponseEntity<AnalyticsStats> getAnalyticsStats() {
+    @Operation(summary = "Estadísticas generales con filtro de tiempo")
+    public ResponseEntity<AnalyticsStats> getAnalyticsStats(
+            @Parameter(description = "Número de días a consultar (7, 30, 90)")
+            @RequestParam(defaultValue = "30") int days) {
         try {
-            return ResponseEntity.ok(analyticsService.getAnalyticsStats());
+            return ResponseEntity.ok(analyticsService.getAnalyticsStats(days));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
     
     @GetMapping("/daily-users")
-    @Operation(summary = "Usuarios por día")
+    @Operation(summary = "Usuarios por día con filtro de tiempo")
     public ResponseEntity<List<DailyMetric>> getDailyUsers(
+            @Parameter(description = "Número de días a consultar")
             @RequestParam(defaultValue = "30") int days) {
         try {
             return ResponseEntity.ok(analyticsService.getDailyUsers(days));
@@ -42,78 +46,75 @@ public class AnalyticsController {
         }
     }
     
-    @GetMapping("/top-pages")
-    @Operation(summary = "Páginas más visitadas")
-    public ResponseEntity<List<PageMetric>> getTopPages(
-            @RequestParam(defaultValue = "10") int limit) {
-        try {
-            return ResponseEntity.ok(analyticsService.getTopPages(limit));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-    
     @GetMapping("/devices")
     @Operation(summary = "Estadísticas por dispositivo")
-    public ResponseEntity<List<DeviceMetric>> getDeviceStats() {
+    public ResponseEntity<List<DeviceMetric>> getDeviceStats(
+            @Parameter(description = "Número de días a consultar")
+            @RequestParam(defaultValue = "30") int days) {
         try {
-            return ResponseEntity.ok(analyticsService.getDeviceStats());
+            return ResponseEntity.ok(analyticsService.getDeviceStats(days));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
     
     @GetMapping("/locations")
-    @Operation(summary = "Ubicaciones principales")
+    @Operation(summary = "Ubicaciones principales (sin 'not set')")
     public ResponseEntity<List<LocationMetric>> getTopLocations(
+            @Parameter(description = "Número de días a consultar")
+            @RequestParam(defaultValue = "30") int days,
             @RequestParam(defaultValue = "10") int limit) {
         try {
-            return ResponseEntity.ok(analyticsService.getTopLocations(limit));
+            return ResponseEntity.ok(analyticsService.getTopLocations(days, limit));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
     
-    // ==================== NUEVOS ENDPOINTS ====================
-    
     @GetMapping("/traffic-hours")
     @Operation(summary = "Tráfico por hora del día")
-    public ResponseEntity<List<HourlyMetric>> getTrafficByHour() {
+    public ResponseEntity<List<HourlyMetric>> getTrafficByHour(
+            @Parameter(description = "Número de días a consultar")
+            @RequestParam(defaultValue = "7") int days) {
         try {
-            return ResponseEntity.ok(analyticsService.getTrafficByHour());
+            return ResponseEntity.ok(analyticsService.getTrafficByHour(days));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
     
     @GetMapping("/events")
-    @Operation(summary = "Eventos principales")
+    @Operation(summary = "Eventos principales (filtrados, sin eventos técnicos)")
     public ResponseEntity<List<EventMetric>> getTopEvents(
+            @Parameter(description = "Número de días a consultar")
+            @RequestParam(defaultValue = "30") int days,
             @RequestParam(defaultValue = "10") int limit) {
         try {
-            return ResponseEntity.ok(analyticsService.getTopEvents(limit));
+            return ResponseEntity.ok(analyticsService.getTopEvents(days, limit));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
     
-    @GetMapping("/sources")
-    @Operation(summary = "Fuentes de tráfico")
-    public ResponseEntity<List<SourceMetric>> getTrafficSources(
-            @RequestParam(defaultValue = "10") int limit) {
+    @GetMapping("/retention")
+    @Operation(summary = "Retención de usuarios (usuarios que regresan)")
+    public ResponseEntity<RetentionMetric> getUserRetention(
+            @Parameter(description = "Número de días a consultar")
+            @RequestParam(defaultValue = "30") int days) {
         try {
-            return ResponseEntity.ok(analyticsService.getTrafficSources(limit));
+            return ResponseEntity.ok(analyticsService.getUserRetention(days));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
     }
     
-    @GetMapping("/browsers")
-    @Operation(summary = "Navegadores más usados")
-    public ResponseEntity<List<BrowserMetric>> getTopBrowsers(
-            @RequestParam(defaultValue = "10") int limit) {
+    @GetMapping("/engagement-weekday")
+    @Operation(summary = "Engagement por día de la semana")
+    public ResponseEntity<List<WeekdayMetric>> getEngagementByWeekday(
+            @Parameter(description = "Número de días a consultar")
+            @RequestParam(defaultValue = "30") int days) {
         try {
-            return ResponseEntity.ok(analyticsService.getTopBrowsers(limit));
+            return ResponseEntity.ok(analyticsService.getEngagementByWeekday(days));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
