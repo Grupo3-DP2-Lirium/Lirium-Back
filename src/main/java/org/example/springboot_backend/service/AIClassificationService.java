@@ -177,7 +177,7 @@ public class AIClassificationService {
 
         Reglas:
         - Elige 1 a 3 etiquetas por lista, sin inventar nuevas.
-        - Si dudas: "otros" o "cotidiano".
+        - Si dudas: "otros" o "cotidiano", solo si no tiene ninguna etiqueta.
         - Responde solo el JSON (sin markdown, sin comentarios).
 
         Título: "%s"
@@ -399,7 +399,7 @@ public class AIClassificationService {
     }
 
     /**
-     * ✨ NUEVO: Prompt actualizado con enfoque narrativo del usuario
+     * Prompt actualizado con enfoque narrativo del usuario
      */
     private String buildNarrationPromptWithFocus(String nombrePersona, String titulo,
                                                  String descripcion, String fechaTexto,

@@ -65,7 +65,7 @@ public class DocumentaryController {
     }
 
     /**
-     * ✅ ACTUALIZADO: Ahora crea en estado DRAFT y NO inicia procesamiento
+     * Crea en estado DRAFT y NO inicia procesamiento
      */
     @PostMapping
     @Operation(summary = "Create a new documentary draft",
@@ -95,7 +95,7 @@ public class DocumentaryController {
     }
 
     /**
-     * ✨ NUEVO: Iniciar generación del documental (cuando usuario presiona "Generar")
+     * Iniciar generación del documental (cuando usuario presiona "Generar")
      */
     @PostMapping("/{documentaryId}/generate")
     @Operation(summary = "Generate documentary video",
@@ -111,17 +111,17 @@ public class DocumentaryController {
             DocumentaryResponse response = documentaryService.startDocumentaryGeneration(documentaryId, userId);
 
             // Notificar inicio de procesamiento
-            /*Memorial memorial = memorialRepository.findById(response.getMemorialId())
+            Memorial memorial = memorialRepository.findById(response.getMemorialId())
                     .orElseThrow(() -> new RuntimeException("Memorial not found"));
-*/
-            /*notificationService.createNotification(
+
+            notificationService.createNotification(
                     user,
                     org.example.springboot_backend.enums.NotificationType.DOCUMENTARY,
                     "Documental en proceso",
                     String.format("Tu documental de '%s' se está generando. Te notificaremos cuando esté listo.",
                             memorial.getName()),
                     response.getIdDocumentary().getMostSignificantBits()
-            );*/
+            );
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -139,7 +139,7 @@ public class DocumentaryController {
     }
 
     /**
-     * ✨ NUEVO: Publicar documental en el perfil
+     * Publicar documental en el perfil
      */
     @PostMapping("/{documentaryId}/publish")
     @Operation(summary = "Publish documentary",
@@ -167,7 +167,7 @@ public class DocumentaryController {
     }
 
     /**
-     * ✨ NUEVO: Actualizar documental (editar título, descripción, etc.)
+     * Actualizar documental (editar título, descripción, etc.)
      */
     @PutMapping("/{documentaryId}")
     @Operation(summary = "Update documentary",
@@ -196,7 +196,7 @@ public class DocumentaryController {
     }
 
     /**
-     * ✨ NUEVO: Obtener documentales por estado (drafts o published)
+     * Obtener documentales por estado (drafts o published)
      */
     @GetMapping("/memorial/{memorialId}/by-status")
     @Operation(summary = "Get documentaries by status",
