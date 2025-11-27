@@ -2,6 +2,7 @@ package org.example.springboot_backend.service;
 
 import org.example.springboot_backend.entity.Documentary;
 import org.example.springboot_backend.entity.File;
+import org.example.springboot_backend.entity.Memorial;
 import org.example.springboot_backend.entity.Memory;
 import org.example.springboot_backend.enums.DocumentaryStatus;
 import org.example.springboot_backend.repository.DocumentaryRepository;
@@ -120,15 +121,13 @@ public class DocumentaryProcessingService {
 
             if (Files.exists(outputVideo)) {
                 documentary.setVideoSize(Files.size(outputVideo));
-                documentary.setVideoDuration(memories.size() * documentary.getDurationPerMemory() + 10);
-                // Ajustar la duración total (memories + intro 5s + outro 5s)
-                //documentary.setVideoDuration(memories.size() * documentary.getDurationPerMemory() + 10);
+                // duration ya se seteo
             }
 
-            // 👇 PRIMERO guardar todos los datos
+            // PRIMERO guardar todos los datos
             documentaryRepository.save(documentary);
 
-            // 👇 LUEGO actualizar status a COMPLETED
+            // LUEGO actualizar status a COMPLETED
             updateProgressTransactional(documentaryId, 100, DocumentaryStatus.COMPLETED);
 
             System.out.println("✅ Documentary completed successfully!");
@@ -231,6 +230,16 @@ public class DocumentaryProcessingService {
         System.out.println("✅ Downloaded " + downloadedFiles.size() + " files");
         return downloadedFiles;
     }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateVideoDuration(UUID id, int duration) {
+        Documentary d = documentaryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Documentary not found"));
+        d.setVideoDuration(duration);
+        documentaryRepository.saveAndFlush(d);
+        System.out.println("✅ Video duration saved: " + duration + " seconds");
+    }
+
     /**
      * Genera el video usando FFmpeg (REAL)
      */
@@ -239,8 +248,10 @@ public class DocumentaryProcessingService {
 
         Path outputVideo = tempDir.resolve("documentary_output.mp4");
 
-        // Crear archivo de lista para concatenación
-        Path fileListPath = createFileListForConcat(mediaFiles, memories, tempDir, documentary);
+        // ✅ Obtener tanto el file list como la duración calculada
+        FileListResult result = createFileListForConcat(mediaFiles, memories, tempDir, documentary);
+        Path fileListPath = result.fileListPath;
+        int calculatedDuration = result.totalDuration;
 
         //Descargar música si existe
         Path musicPath = null;
@@ -251,7 +262,7 @@ public class DocumentaryProcessingService {
         // Construir comando FFmpeg con música
         List<String> command = buildFFmpegCommandWithMusic(fileListPath, musicPath, outputVideo, documentary);
 
-        System.out.println("🎬 FFmpeg command: " + String.join(" ", command));
+        //System.out.println("🎬 FFmpeg command: " + String.join(" ", command));
 
         // Ejecutar FFmpeg
         ProcessBuilder pb = new ProcessBuilder(command);
@@ -284,11 +295,15 @@ public class DocumentaryProcessingService {
         }
 
         System.out.println("✅ Video generated: " + outputVideo + " (" + (Files.size(outputVideo) / 1024 / 1024) + " MB)");
+        System.out.println("⏱️ Calculated duration: " + calculatedDuration + " seconds");
 
         // Limpiar música temporal
         if (musicPath != null) {
             Files.deleteIfExists(musicPath);
         }
+
+        // Guardar la duración usando transacción (igual que updateProgressTransactional)
+        updateVideoDuration(documentary.getIdDocumentary(), calculatedDuration);
 
         return outputVideo;
     }
@@ -348,22 +363,27 @@ public class DocumentaryProcessingService {
 
     /**
      * Crea archivo de lista para concatenación en FFmpeg
+     * @return Un objeto con el path de la lista y la duración total calculada
      */
-    private Path createFileListForConcat(List<Path> mediaFiles, List<Memory> memories,
-                                         Path tempDir, Documentary documentary) throws IOException, InterruptedException {
+    private FileListResult createFileListForConcat(List<Path> mediaFiles, List<Memory> memories,
+                                                   Path tempDir, Documentary documentary) throws IOException, InterruptedException {
         Path fileListPath = tempDir.resolve("filelist.txt");
         Path processedDir = tempDir.resolve("processed");
         Files.createDirectories(processedDir);
 
         List<String> fileListContent = new ArrayList<>();
 
+        // Variable para calcular duración REAL
+        int totalDuration = 0;
+
         // 1. GENERAR INTRO (5 segundos)
         String introText = "Documental de la vida de " + documentary.getMemorial().getName();
         if (documentary.getTitle() != null && !documentary.getTitle().isEmpty()) {
-            introText = documentary.getTitle(); // Usar el título personalizado si existe
+            introText = documentary.getTitle();
         }
         Path introClip = generateTextClip(introText, 5, processedDir, "intro");
         fileListContent.add("file '" + introClip.toAbsolutePath().toString().replace("\\", "/") + "'");
+        totalDuration += 5;
 
         // Generar narraciones para cada recuerdo
         List<String> narraciones = generarNarraciones(memories, documentary);
@@ -374,18 +394,35 @@ public class DocumentaryProcessingService {
             String narracion = narraciones.get(i);
             Path processedFile = processedDir.resolve("processed_" + i + ".mp4");
 
-            processIndividualFileWithNarration(inputFile, processedFile, memory, narracion, documentary);
+            int duration = processIndividualFileWithNarration(inputFile, processedFile, memory, narracion, documentary);
+            totalDuration += duration;
 
             fileListContent.add("file '" + processedFile.toAbsolutePath().toString().replace("\\", "/") + "'");
         }
 
         // 2. GENERAR OUTRO (5 segundos)
-        Path outroClip = generateTextClip("Hecho por Lirium", 5, processedDir, "outro");
+        Path outroClip = generateTextClip("Creado con Lirium", 5, processedDir, "outro");
         fileListContent.add("file '" + outroClip.toAbsolutePath().toString().replace("\\", "/") + "'");
+        totalDuration += 5;
 
         Files.write(fileListPath, fileListContent);
-        System.out.println("📝 Created file list with intro and outro: " + fileListPath);
-        return fileListPath;
+
+        System.out.println("📝 Created file list with intro and outro");
+        System.out.println("⏱️ Total calculated duration: " + totalDuration + " seconds");
+
+        // Retornar tanto el path como la duración
+        return new FileListResult(fileListPath, totalDuration);
+    }
+
+    //Clase interna para retornar múltiples valores
+    private static class FileListResult {
+        final Path fileListPath;
+        final int totalDuration;
+
+        FileListResult(Path fileListPath, int totalDuration) {
+            this.fileListPath = fileListPath;
+            this.totalDuration = totalDuration;
+        }
     }
 
     /**
@@ -449,13 +486,20 @@ public class DocumentaryProcessingService {
     /**
      * Procesa un archivo individual con narración generada por IA
      */
-    private void processIndividualFileWithNarration(Path inputFile, Path outputFile,
+    private int processIndividualFileWithNarration(Path inputFile, Path outputFile,
                                                     Memory memory, String narracion,
                                                     Documentary documentary) throws IOException, InterruptedException {
 
         String resolution = getResolutionDimensions(documentary.getResolution());
         String styleFilter = getStyleFilter(documentary.getStyleFilter());
         int duration = documentary.getDurationPerMemory();
+
+        String fileType = getFileType(inputFile);
+
+        if (fileType.equals("video")) {
+            duration = getVideoDuration(inputFile);
+            System.out.println("📹 Video detected, using real duration: " + duration + "s");
+        }
 
         // La narración se divide en líneas para mejor legibilidad
         String textoNarracion = wrapText(narracion, 80); // Máximo 50 caracteres por línea
@@ -468,7 +512,7 @@ public class DocumentaryProcessingService {
         // Construir filtros
         StringBuilder filters = new StringBuilder();
 
-        String fileType = getFileType(inputFile);
+        //String fileType = getFileType(inputFile);
 
         filters.append("scale=").append(resolution).append(",setsar=1");
 
@@ -555,6 +599,57 @@ public class DocumentaryProcessingService {
         }
 
         System.out.println("✅ Processed: " + outputFile.getFileName());
+
+        return duration;
+    }
+
+    /**
+     * Obtiene la duración de un video en segundos usando FFprobe
+     */
+    /**
+     * Obtiene la duración de un video en segundos usando FFprobe
+     */
+    private int getVideoDuration(Path videoPath) {
+        try {
+            //  ffprobe está en la misma carpeta que ffmpeg
+            String ffprobePath = ffmpegPath.replace("ffmpeg.exe", "ffprobe.exe");
+
+            List<String> command = new ArrayList<>();
+            command.add(ffprobePath);
+            command.add("-v");
+            command.add("error");
+            command.add("-show_entries");
+            command.add("format=duration");
+            command.add("-of");
+            command.add("default=noprint_wrappers=1:nokey=1");
+            command.add(videoPath.toString());
+
+            System.out.println("🔍 Getting video duration: " + ffprobePath);
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            Process process = pb.start();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line = reader.readLine();
+                if (line != null && !line.isEmpty()) {
+                    double durationSeconds = Double.parseDouble(line.trim());
+                    int duration = (int) Math.ceil(durationSeconds);
+                    System.out.println("✅ Video duration: " + duration + "s (real: " + durationSeconds + "s)");
+                    return duration;
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                System.err.println("⚠️ ffprobe failed with exit code: " + exitCode);
+            }
+
+        } catch (Exception e) {
+            System.err.println("⚠️ Could not get video duration, using default: " + e.getMessage());
+        }
+
+        // Fallback: usar duración por defecto si falla
+        return 5;
     }
 
     /**
@@ -795,7 +890,7 @@ public class DocumentaryProcessingService {
         command.add(outputClip.toString());
 
         System.out.println("🎬 Generating text clip: " + text);
-        System.out.println("🎬 FFmpeg command: " + String.join(" ", command));
+        //System.out.println("🎬 FFmpeg command: " + String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.redirectErrorStream(true);
@@ -806,7 +901,7 @@ public class DocumentaryProcessingService {
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
-                System.out.println("FFmpeg: " + line);
+                //System.out.println("FFmpeg: " + line);
             }
         }
 
