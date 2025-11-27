@@ -35,7 +35,7 @@ public class SubscriptionExpirationScheduler {
     private NotificationService notificationService;
     
     // Se ejecuta cada 5 minutos
-    @Scheduled(cron = "0 */1 * * * *")
+    @Scheduled(cron = "0 */5 * * * *")
     public void expireEndedSubscriptions() {
         logger.info("Running subscription expiration scheduler");
 
