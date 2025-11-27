@@ -186,11 +186,6 @@ public class DocumentaryProcessingService {
         return sortedMemories;
     }
 
-
-
-
-
-
     /**
      * Descarga los archivos de media desde Azure (REAL)
      */
@@ -248,7 +243,7 @@ public class DocumentaryProcessingService {
 
         Path outputVideo = tempDir.resolve("documentary_output.mp4");
 
-        // ✅ Obtener tanto el file list como la duración calculada
+        //  Obtener tanto el file list como la duración calculada
         FileListResult result = createFileListForConcat(mediaFiles, memories, tempDir, documentary);
         Path fileListPath = result.fileListPath;
         int calculatedDuration = result.totalDuration;
@@ -426,7 +421,7 @@ public class DocumentaryProcessingService {
     }
 
     /**
-     * ACTUALIZADO: Genera narraciones considerando el enfoque y tono del documental
+     * Genera narraciones considerando el enfoque y tono del documental
      */
     private List<String> generarNarraciones(List<Memory> memories, Documentary documentary) {
         List<String> narraciones = new ArrayList<>();
@@ -606,9 +601,6 @@ public class DocumentaryProcessingService {
     /**
      * Obtiene la duración de un video en segundos usando FFprobe
      */
-    /**
-     * Obtiene la duración de un video en segundos usando FFprobe
-     */
     private int getVideoDuration(Path videoPath) {
         try {
             //  ffprobe está en la misma carpeta que ffmpeg
@@ -688,26 +680,6 @@ public class DocumentaryProcessingService {
     }
 
     /**
-     * Construye el comando final de FFmpeg para concatenar
-     */
-    private List<String> buildFFmpegCommand(Path fileListPath, Path outputVideo, Documentary documentary) {
-        List<String> command = new ArrayList<>();
-        command.add(ffmpegPath);
-        command.add("-f");
-        command.add("concat");
-        command.add("-safe");
-        command.add("0");
-        command.add("-i");
-        command.add(fileListPath.toString());
-        command.add("-c");
-        command.add("copy");
-        command.add("-y");
-        command.add(outputVideo.toString());
-
-        return command;
-    }
-
-    /**
      * Sube el video generado a Azure (REAL)
      */
     private String uploadVideoToAzureReal(Path videoPath, Documentary documentary) throws IOException {
@@ -773,14 +745,6 @@ public class DocumentaryProcessingService {
     }
 
     // Métodos auxiliares
-
-
-
-    private void updateProgress(Documentary documentary, int progress) {
-        documentary.setProgress(progress);
-        documentaryRepository.save(documentary);
-    }
-
     private String getFileExtension(String fileName) {
         int lastDot = fileName.lastIndexOf('.');
         return lastDot > 0 ? fileName.substring(lastDot) : ".jpg";
@@ -850,11 +814,7 @@ public class DocumentaryProcessingService {
     }
 
     /**
-     * Genera un video clip con texto sobre fondo negro usando una imagen intermedia
-     */
-    /**
      * Genera un video clip con texto sobre fondo negro (para intro/outro)
-     * Usa la misma fuente configurada en fontsPath
      */
     private Path generateTextClip(String text, int duration, Path tempDir, String clipName)
             throws IOException, InterruptedException {
@@ -918,45 +878,6 @@ public class DocumentaryProcessingService {
 
         System.out.println("✅ Text clip generated: " + outputClip + " (" + (Files.size(outputClip) / 1024) + " KB)");
         return outputClip;
-    }
-
-    /**
-     * Crea una imagen PNG con texto centrado sobre fondo negro
-     */
-    private Path createTextImage(String text, Path tempDir, String name) throws IOException {
-        Path imagePath = tempDir.resolve(name + ".png");
-
-        int width = 1280;
-        int height = 720;
-
-        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
-                width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
-
-        java.awt.Graphics2D g2d = image.createGraphics();
-
-        // Fondo negro
-        g2d.setColor(java.awt.Color.BLACK);
-        g2d.fillRect(0, 0, width, height);
-
-        // Texto blanco centrado
-        g2d.setColor(java.awt.Color.WHITE);
-        g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 48));
-
-        java.awt.FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(text);
-        int textHeight = fm.getHeight();
-
-        int x = (width - textWidth) / 2;
-        int y = (height - textHeight) / 2 + fm.getAscent();
-
-        g2d.drawString(text, x, y);
-        g2d.dispose();
-
-        // Guardar imagen
-        javax.imageio.ImageIO.write(image, "png", imagePath.toFile());
-
-        System.out.println("✅ Created text image: " + imagePath);
-        return imagePath;
     }
 
 }
