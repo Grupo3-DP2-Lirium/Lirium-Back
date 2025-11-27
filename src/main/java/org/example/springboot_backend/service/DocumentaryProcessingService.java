@@ -121,6 +121,8 @@ public class DocumentaryProcessingService {
             if (Files.exists(outputVideo)) {
                 documentary.setVideoSize(Files.size(outputVideo));
                 documentary.setVideoDuration(memories.size() * documentary.getDurationPerMemory() + 10);
+                // Ajustar la duración total (memories + intro 5s + outro 5s)
+                //documentary.setVideoDuration(memories.size() * documentary.getDurationPerMemory() + 10);
             }
 
             // 👇 PRIMERO guardar todos los datos
@@ -355,7 +357,15 @@ public class DocumentaryProcessingService {
 
         List<String> fileListContent = new ArrayList<>();
 
-        // ✨ Generar narraciones para cada recuerdo
+        // 1. GENERAR INTRO (5 segundos)
+        String introText = "Documental de la vida de " + documentary.getMemorial().getName();
+        if (documentary.getTitle() != null && !documentary.getTitle().isEmpty()) {
+            introText = documentary.getTitle(); // Usar el título personalizado si existe
+        }
+        Path introClip = generateTextClip(introText, 5, processedDir, "intro");
+        fileListContent.add("file '" + introClip.toAbsolutePath().toString().replace("\\", "/") + "'");
+
+        // Generar narraciones para cada recuerdo
         List<String> narraciones = generarNarraciones(memories, documentary);
 
         for (int i = 0; i < mediaFiles.size(); i++) {
@@ -364,17 +374,19 @@ public class DocumentaryProcessingService {
             String narracion = narraciones.get(i);
             Path processedFile = processedDir.resolve("processed_" + i + ".mp4");
 
-            // Procesar cada archivo con narración generada
             processIndividualFileWithNarration(inputFile, processedFile, memory, narracion, documentary);
 
             fileListContent.add("file '" + processedFile.toAbsolutePath().toString().replace("\\", "/") + "'");
         }
 
+        // 2. GENERAR OUTRO (5 segundos)
+        Path outroClip = generateTextClip("Hecho por Lirium", 5, processedDir, "outro");
+        fileListContent.add("file '" + outroClip.toAbsolutePath().toString().replace("\\", "/") + "'");
+
         Files.write(fileListPath, fileListContent);
-        System.out.println("📝 Created file list: " + fileListPath);
+        System.out.println("📝 Created file list with intro and outro: " + fileListPath);
         return fileListPath;
     }
-
 
     /**
      * ACTUALIZADO: Genera narraciones considerando el enfoque y tono del documental
@@ -740,6 +752,116 @@ public class DocumentaryProcessingService {
             System.err.println("⚠️ Failed to download music, continuing without it: " + e.getMessage());
             return null; // Continuar sin música si falla
         }
+    }
+
+    /**
+     * Genera un video clip con texto sobre fondo negro usando una imagen intermedia
+     */
+    /**
+     * Genera un video clip con texto sobre fondo negro (para intro/outro)
+     * Usa la misma fuente configurada en fontsPath
+     */
+    private Path generateTextClip(String text, int duration, Path tempDir, String clipName)
+            throws IOException, InterruptedException {
+
+        Path outputClip = tempDir.resolve(clipName + ".mp4");
+        String escapedText = escapeFFmpegText(text);
+
+        //Usar la misma fuente que usas para los recuerdos
+        String fontPath = escapeFontPathForFFmpeg(fontsPath);
+
+        List<String> command = new ArrayList<>();
+        command.add(ffmpegPath);
+        command.add("-f");
+        command.add("lavfi");
+        command.add("-i");
+        command.add("color=c=black:s=1280x720:r=30");
+        command.add("-vf");
+        command.add("drawtext=fontfile='" + fontPath + "':" +
+                "text='" + escapedText + "':" +
+                "fontsize=48:" +
+                "fontcolor=white:" +
+                "x=(w-text_w)/2:" +
+                "y=(h-text_h)/2");
+        command.add("-c:v");
+        command.add("libx264");
+        command.add("-preset");
+        command.add("fast");
+        command.add("-t");
+        command.add(String.valueOf(duration));
+        command.add("-pix_fmt");
+        command.add("yuv420p");
+        command.add("-y");
+        command.add(outputClip.toString());
+
+        System.out.println("🎬 Generating text clip: " + text);
+        System.out.println("🎬 FFmpeg command: " + String.join(" ", command));
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+                System.out.println("FFmpeg: " + line);
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            System.err.println("❌ FFmpeg failed with exit code: " + exitCode);
+            System.err.println("❌ FFmpeg output:\n" + output.toString());
+            throw new RuntimeException("Failed to generate text clip: " + text + " (exit code: " + exitCode + ")");
+        }
+
+        if (!Files.exists(outputClip)) {
+            throw new RuntimeException("Text clip was not created: " + outputClip);
+        }
+
+        System.out.println("✅ Text clip generated: " + outputClip + " (" + (Files.size(outputClip) / 1024) + " KB)");
+        return outputClip;
+    }
+
+    /**
+     * Crea una imagen PNG con texto centrado sobre fondo negro
+     */
+    private Path createTextImage(String text, Path tempDir, String name) throws IOException {
+        Path imagePath = tempDir.resolve(name + ".png");
+
+        int width = 1280;
+        int height = 720;
+
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(
+                width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
+
+        java.awt.Graphics2D g2d = image.createGraphics();
+
+        // Fondo negro
+        g2d.setColor(java.awt.Color.BLACK);
+        g2d.fillRect(0, 0, width, height);
+
+        // Texto blanco centrado
+        g2d.setColor(java.awt.Color.WHITE);
+        g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 48));
+
+        java.awt.FontMetrics fm = g2d.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+        int textHeight = fm.getHeight();
+
+        int x = (width - textWidth) / 2;
+        int y = (height - textHeight) / 2 + fm.getAscent();
+
+        g2d.drawString(text, x, y);
+        g2d.dispose();
+
+        // Guardar imagen
+        javax.imageio.ImageIO.write(image, "png", imagePath.toFile());
+
+        System.out.println("✅ Created text image: " + imagePath);
+        return imagePath;
     }
 
 }
