@@ -111,84 +111,84 @@ public class EmailService {
         String inviteCode,
         boolean canEdit,
         boolean canComment) {
-    
-    String permissions = canEdit ? "editar y comentar" : 
-                       canComment ? "comentar" : "ver";
-    
+
+    String permissions = canEdit ? "editar contenido y comentar" :
+                        canComment ? "comentar" : "ver contenido";
+
     return String.format("""
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
             <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); 
-                          color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-                .code-box { background: white; border: 2px dashed #667eea; 
-                           padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; }
-                .code { font-size: 32px; font-weight: bold; letter-spacing: 8px; 
-                       color: #667eea; font-family: monospace; }
-                .button { display: inline-block; background: #667eea; color: white; 
-                         padding: 12px 30px; text-decoration: none; border-radius: 5px; 
-                         margin: 20px 0; font-weight: bold; }
-                .permissions { background: #e8f4f8; padding: 15px; border-radius: 5px; 
-                              margin: 15px 0; border-left: 4px solid #667eea; }
-                .footer { text-align: center; color: #666; font-size: 12px; margin-top: 30px; }
-                .register-box { background: #fff3cd; border: 1px solid #ffc107; 
-                               padding: 15px; border-radius: 8px; margin: 15px 0; }
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f7fa; }
+                .container { max-width: 620px; margin: 0 auto; padding: 20px; }
+                .header { background: linear-gradient(135deg, #4F46E5 0%%, #7C3AED 100%%);
+                          color: white; padding: 32px; text-align: center;
+                          border-radius: 14px 14px 0 0; }
+                .content { background: #ffffff; padding: 32px; border-radius: 0 0 14px 14px;
+                           box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+                .code-box { background: #fafafa; border: 2px dashed #4F46E5;
+                           padding: 22px; margin: 24px 0; text-align: center; border-radius: 10px; }
+                .code { font-size: 34px; font-weight: bold; letter-spacing: 8px;
+                       color: #4F46E5; font-family: monospace; }
+                .permissions { background: #eef2ff; padding: 18px; border-radius: 8px;
+                              margin: 20px 0; border-left: 5px solid #4F46E5; }
+                .footer { text-align: center; color: #888; font-size: 12px; margin-top: 30px; }
+                .register-box { background: #fff8e1; border: 1px solid #ffecb5;
+                               padding: 16px; border-radius: 10px; margin: 18px 0; }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>🎊 ¡Tienes una invitación!</h1>
+                    <h1>🌟 ¡Tienes una invitación a Lirium!</h1>
                 </div>
+
                 <div class="content">
                     <p>Hola,</p>
-                    <p><strong>%s</strong> te ha invitado a colaborar en el memorial 
-                       <strong>"%s"</strong> en Remory.</p>
-                    
+
+                    <p><strong>%s</strong> te ha invitado a unirte a un memorial llamado 
+                    <strong>"%s"</strong>, un espacio especial dentro de <strong>Lirium</strong> para honrar y preservar recuerdos significativos.</p>
+
                     <div class="permissions">
-                        <strong>📋 Tus permisos:</strong><br>
-                        Podrás <strong>%s</strong> en este memorial.
+                        <strong>🔐 Tus permisos:</strong><br>
+                        Podrás <strong>%s</strong> dentro de este memorial.
                     </div>
-                    
+
                     <div class="register-box">
-                        <strong>⚠️ ¿Aún no tienes cuenta?</strong><br>
-                        Si no estás registrado en Remory, primero debes crear tu cuenta en la app.
-                        Luego, podrás usar este código para unirte al memorial.
+                        <strong>⚠️ ¿Primera vez en Lirium?</strong><br>
+                        Si no tienes cuenta, deberás crear una antes de ingresar el código.
                     </div>
-                    
-                    <p>Para aceptar la invitación, sigue estos pasos:</p>
+
+                    <p>Para unirte, sigue estos pasos:</p>
                     <ol>
-                        <li><strong>Descarga</strong> la app Remory (si aún no la tienes)</li>
-                        <li><strong>Crea tu cuenta</strong> o inicia sesión</li>
-                        <li>Ve a <strong>"Colaboraciones"</strong></li>
-                        <li>Toca <strong>"Ingresar código"</strong></li>
-                        <li>Ingresa el siguiente código:</li>
+                        <li>Abre la app <strong>Lirium</strong> en tu dispositivo móvil.</li>
+                        <li>Inicia sesión o crea una cuenta si aún no tienes una.</li>
+                        <li>Ve a <strong>“Memoriales”</strong> en la parte inferior.</li>
+                        <li>Ingresa a <strong>“Colaboraciones”</strong>.</li>
+                        <li>Toca <strong>“Ingresar código”</strong>.</li>
+                        <li>Introduce el siguiente código:</li>
                     </ol>
-                    
+
                     <div class="code-box">
                         <div class="code">%s</div>
-                        <p style="color: #666; font-size: 12px; margin-top: 10px;">
-                            ⏰ Válido por 24 horas
+                        <p style="color: #777; font-size: 12px; margin-top: 10px;">
+                            ⏰ Válido por 24 horas.
                         </p>
                     </div>
-                    
+
                     <p style="color: #666; font-size: 14px;">
-                        💡 <strong>Tip:</strong> Guarda este código para cuando crees tu cuenta.
-                        Puedes descargarlo desde tu tienda de aplicaciones favorita.
+                        💡 <strong>Tip:</strong> Guarda este código para facilitar tu ingreso cuando abras la app.
                     </p>
-                    
-                    <p>Si no esperabas esta invitación, puedes ignorar este correo de forma segura.</p>
-                    
-                    <p>¡Esperamos que disfrutes colaborando en Remory!</p>
-                    
+
+                    <p>Si no esperabas esta invitación, puedes ignorar este mensaje de manera segura.</p>
+
+                    <p>Gracias por ser parte de Lirium ✨</p>
+
                     <div class="footer">
                         <p>Este es un correo automático, por favor no respondas.<br>
-                        © 2024 Remory - Preservando memorias, construyendo legados</p>
+                        © 2025 Lirium</p>
                     </div>
                 </div>
             </div>
