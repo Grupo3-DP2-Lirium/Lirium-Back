@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "lirium-3c939",
+  "private_key_id": "32ad6310d074db5ba1739fc6476267beeddd5eff",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCtm7U9ZLdncUrS\n/uCtonuqzJDJYRhYYm0n9Z86Z20LAvTnt5N/jpjGruBIf8q2GgaEOarxkL9PxNqR\n2DQCFaqo9sCKjMjGPTmpLWg3xmL4qvWwhHdLX2Y+SdmNYhReU3WeWEihmaM4FX/b\n4VvchGD5mHscUBIQNtIdfubE83P4mpXOQFhBsHYOF6JlQuypqCGxqL5U+WSHEt1I\nNzZMVnaFSnKqiku8tTka/b0LDEtQbeJQoL8O+2U1BK2W7vwNHxeyuTHehl08WPWE\nlbwOBq3+fcOC7f/7ohe3aRWmHBTwDvWHmK839fbB/alR+uWPidr4cUOeNZTl3CQ6\nZFAy67gtAgMBAAECggEAH0+Gnbq5MDUY2VqCE5bLJogL8eHq1d/0j2EndU1bd4Gy\nQUtU1QvXBnhaN4EiwnqJo9XRvI0OT/jxMZ4UbS7Sr3QHUEWpXUWEDXzEv9BuH6qX\nsp0FdejQBBpmG+9tPIDhZOxHtyuCKjaIb5PisTAH3GQxie7v/xAgD5VIUguVZifQ\ns5WFbuZyscyBLqnRPy/2n4X5RhDmlkyrgeAieSfkqRHCsm0jaKpuLL0O9jsEkzsX\nsMzIqVfEem7OmfkHUPS6EHwhi8tSZa6qTjkmkyvpQIgn7yhpPK6C7d6LToU5FAMT\nrsE3A7DWpcJpAfPJu7oRSdbd4V9KXoZkfpJ0fj//OQKBgQDqoJDWZmcKmdKg6Ygi\nr6jWg7wJcB4cPiINLiM6zeYfyZbTDUUsQ60WEzO7DURG2TvNOuTrnrO5ZO4ce16i\ngpB2BD7UXvCOTwewRQfZ9pVQ1AT94Zaurx0rNm2fDYTt3of1AaX8HY9h7CrTDeAb\nLLitLrEtFT4W8dByIfjrEZ7XRQKBgQC9bDLQAhdC+sgjenZuRg7TuKg4jPvMrhTB\nFKIcHcubYvZgCWTFEuHWQfQsQIBTeJVk+wo5yKumwxTT9j+jTjnb7vDWY0kcX3Zy\npxQDpQrEu8P3WKhv3Njhme2f/sUcM5k2d8DFRBYDwKgKAZLbVWYBi/+FgOEEErr3\nz1rn7X+XyQKBgFhyGMdJqPQ9EkJoZlI1B59932drZV5eKbXwO4WSUnqPIpUCvp22\nEUxuBqUvlhpjD4EI/3y2wadUndIMy5rVPyHN7eVeuK3cqthO3WvT4Wur0QnnfUby\najt89AvuK7sDlRrN+UU123Qdc/NFmsKDtEZMgKuvA03g8CPmHJB4fvlFAoGBAIJv\nJu4lAm+U0Ivdn/9/LmaMGQoXyqu+k3wBAT/rJHDzTEQFM+aggfJPqBtwruzLc9P9\nKaVwkQJcAtOSFXAWRbE0b5Kw+38WHTIF6ro3w5qE0QRZgGLG6HEw1Xf+rywkO7RN\n8efkYmRjHVMGkmGGBJ+8D0+W11s+qpBJsIdT+zBBAoGBAK6q8xgN2NGaqmoO2wDm\nGeLDNX+WWwCVYtfS0GwSaeYFHRUEyiD4TGLazG8JPfvJesurAfaxQ36fIR3qgcxc\nA4zJ1BCQDPQRauIZRyUGVVNvTZYMtqlILDoOU77poJlalN+rRc2XK5fsILok8/iO\nOK/RHkd0GAzLgrk4Tfx7OeP2\n-----END PRIVATE KEY-----\n",
+  "client_email": "analytics-api@lirium-3c939.iam.gserviceaccount.com",
+  "client_id": "115098489005674954725",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/analytics-api%40lirium-3c939.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
