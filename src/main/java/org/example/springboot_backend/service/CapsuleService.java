@@ -15,6 +15,8 @@ import org.example.springboot_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -97,6 +99,7 @@ public class CapsuleService {
 
     /**
      * Inicia la generación de la cápsula (selección automática + video vertical)
+     * FIXED: Ejecuta el procesamiento asíncrono DESPUÉS del commit de la transacción
      */
     @Transactional
     public CapsuleResponse startCapsuleGeneration(UUID capsuleId, UUID userId) {
@@ -145,10 +148,21 @@ public class CapsuleService {
 
         Capsule saved = capsuleRepository.save(capsule);
 
-        // Iniciar procesamiento asíncrono
-        processingService.processCapsule(saved.getIdCapsule());
+        //FIX: Asegurar que memoryIds se persista ANTES del async
+        capsuleRepository.flush();
 
-        System.out.println("✅ Capsule generation started with " + selectedMemories.size() + " memories");
+        final UUID capsuleIdToProcess = saved.getIdCapsule();
+
+        //FIX: Registrar callback para ejecutar DESPUÉS del commit
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                System.out.println("✅ Transaction committed, starting async processing for: " + capsuleIdToProcess);
+                processingService.processCapsule(capsuleIdToProcess);
+            }
+        });
+
+        System.out.println("✅ Capsule generation scheduled with " + selectedMemories.size() + " memories");
         return mapToResponse(saved);
     }
 
