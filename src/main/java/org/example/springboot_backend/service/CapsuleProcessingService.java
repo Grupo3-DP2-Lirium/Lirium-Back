@@ -63,24 +63,29 @@ public class CapsuleProcessingService {
 
     /**
      * Procesa la cápsula de manera asíncrona - VIDEO VERTICAL 9:16
+     * @param capsuleId ID de la cápsula a procesar
+     * @param memoryIds IDs de los recuerdos seleccionados (CSV) pasados como parámetro para evitar race condition
      */
     @Async
-    public void processCapsule(UUID capsuleId) {
+    public void processCapsule(UUID capsuleId, String memoryIds) {
         Path tempDir = null;
         List<Path> downloadedFiles = new ArrayList<>();
         Path outputVideo = null;
+        Capsule capsule = null;
 
         try {
             System.out.println("🎬 Starting CAPSULE generation (vertical 9:16): " + capsuleId);
 
-            Capsule capsule = capsuleRepository.findById(capsuleId)
-                    .orElseThrow(() -> new RuntimeException("Capsule not found"));
+            // Validar que memoryIds no sea null (defensive programming)
+            if (memoryIds == null || memoryIds.isBlank()) {
+                throw new RuntimeException("memoryIds parameter is null or empty");
+            }
 
             updateProgressTransactional(capsuleId, 5, CapsuleStatus.PROCESSING);
 
-            // Cargar memories con files
+            // Cargar memories con files usando el parámetro (no lee de BD para evitar race condition)
             CapsuleProcessingService proxy = applicationContext.getBean(CapsuleProcessingService.class);
-            List<Memory> memories = proxy.loadMemoriesWithFiles(capsule.getMemoryIds());
+            List<Memory> memories = proxy.loadMemoriesWithFiles(memoryIds);
 
             System.out.println("📝 Found " + memories.size() + " memories for capsule");
             updateProgressTransactional(capsuleId, 10, null);
@@ -137,11 +142,11 @@ public class CapsuleProcessingService {
 
             updateProgressTransactional(capsuleId, 0, CapsuleStatus.FAILED);
 
-            Capsule capsule = capsuleRepository.findById(capsuleId).orElse(null);
-            if (capsule != null) {
-                capsule.setErrorMessage(e.getMessage());
-                capsule.setProcessingCompleted(LocalDateTime.now());
-                capsuleRepository.save(capsule);
+            Capsule failedCapsule = capsuleRepository.findById(capsuleId).orElse(null);
+            if (failedCapsule != null) {
+                failedCapsule.setErrorMessage(e.getMessage());
+                failedCapsule.setProcessingCompleted(LocalDateTime.now());
+                capsuleRepository.save(failedCapsule);
             }
 
         } finally {

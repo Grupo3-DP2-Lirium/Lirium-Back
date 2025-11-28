@@ -17,11 +17,25 @@ public class GoogleAnalyticsService {
     
     private static final Logger logger = LoggerFactory.getLogger(GoogleAnalyticsService.class);
     
-    @Autowired
+    @Autowired(required = false)
     private BetaAnalyticsDataClient analyticsDataClient;
     
     @Value("${google.analytics.property.id:510032575}")
     private String propertyId;
+    
+    @Value("${google.analytics.enabled:true}")
+    private boolean enabled;
+    
+    /**
+     * Verifica si Google Analytics está disponible
+     */
+    private boolean isAvailable() {
+        if (!enabled || analyticsDataClient == null) {
+            logger.warn("Google Analytics no está disponible o está deshabilitado");
+            return false;
+        }
+        return true;
+    }
     
     // ==================== MÉTRICAS PRINCIPALES CON FILTRO DE TIEMPO ====================
     
@@ -29,6 +43,10 @@ public class GoogleAnalyticsService {
      * Estadísticas generales con filtro de días
      */
     public AnalyticsStats getAnalyticsStats(int days) {
+        if (!isAvailable()) {
+            return new AnalyticsStats(); // Retorna stats vacías
+        }
+        
         try {
             String property = "properties/" + propertyId;
             String startDate = days + "daysAgo";
@@ -68,6 +86,10 @@ public class GoogleAnalyticsService {
      * Usuarios por día con filtro
      */
     public List<DailyMetric> getDailyUsers(int days) {
+        if (!isAvailable()) {
+            return Collections.emptyList();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             RunReportRequest request = RunReportRequest.newBuilder()
@@ -108,6 +130,10 @@ public class GoogleAnalyticsService {
      * Dispositivos (útil y sin "not set" generalmente)
      */
     public List<DeviceMetric> getDeviceStats(int days) {
+        if (!isAvailable()) {
+            return Collections.emptyList();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             RunReportRequest request = RunReportRequest.newBuilder()
@@ -144,6 +170,10 @@ public class GoogleAnalyticsService {
      * Ubicaciones principales - FILTRADO (sin "not set")
      */
     public List<LocationMetric> getTopLocations(int days, int limit) {
+        if (!isAvailable()) {
+            return Collections.emptyList();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             RunReportRequest request = RunReportRequest.newBuilder()
@@ -184,6 +214,10 @@ public class GoogleAnalyticsService {
      * Tráfico por hora del día
      */
     public List<HourlyMetric> getTrafficByHour(int days) {
+        if (!isAvailable()) {
+            return Collections.emptyList();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             RunReportRequest request = RunReportRequest.newBuilder()
@@ -220,6 +254,10 @@ public class GoogleAnalyticsService {
      * Eventos principales - FILTRADOS (solo eventos útiles)
      */
     public List<EventMetric> getTopEvents(int days, int limit) {
+        if (!isAvailable()) {
+            return Collections.emptyList();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             RunReportRequest request = RunReportRequest.newBuilder()
@@ -271,6 +309,10 @@ public class GoogleAnalyticsService {
      * Retención de usuarios (usuarios que regresan)
      */
     public RetentionMetric getUserRetention(int days) {
+        if (!isAvailable()) {
+            return new RetentionMetric();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             
@@ -309,6 +351,10 @@ public class GoogleAnalyticsService {
      * Engagement por día de la semana
      */
     public List<WeekdayMetric> getEngagementByWeekday(int days) {
+        if (!isAvailable()) {
+            return Collections.emptyList();
+        }
+        
         try {
             String property = "properties/" + propertyId;
             RunReportRequest request = RunReportRequest.newBuilder()

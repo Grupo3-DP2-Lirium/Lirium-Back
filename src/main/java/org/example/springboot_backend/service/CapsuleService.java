@@ -152,13 +152,14 @@ public class CapsuleService {
         capsuleRepository.flush();
 
         final UUID capsuleIdToProcess = saved.getIdCapsule();
+        final String memoryIdsToProcess = memoryIds;
 
         //FIX: Registrar callback para ejecutar DESPUÉS del commit
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
                 System.out.println("✅ Transaction committed, starting async processing for: " + capsuleIdToProcess);
-                processingService.processCapsule(capsuleIdToProcess);
+                processingService.processCapsule(capsuleIdToProcess, memoryIdsToProcess);
             }
         });
 

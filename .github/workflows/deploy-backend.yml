@@ -126,8 +126,13 @@ jobs:
         # Firebase Credentials (JSON comprimido en una línea)
         firebase.credentials.json=${{ secrets.FIREBASE_CREDENTIALS }}
         
+        # Google Analytics Credentials (JSON inline - puede ser el mismo que Firebase)
+        google.analytics.credentials.json=${{ secrets.GOOGLE_ANALYTICS_CREDENTIALS }}
+        google.analytics.property.id=510032575
+        google.analytics.enabled=true
+        google.analytics.cache.ttl=300
+        
         ml.service.url=https://ai-image-enhancer-571288030577.us-central1.run.app
-
 
         # PayPal Product and Plans
         paypal.plan.create_share.monthly=P-27B09919GW936573XNEF7K6I
