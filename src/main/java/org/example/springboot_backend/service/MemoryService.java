@@ -441,7 +441,7 @@ public class MemoryService implements IMemoryService {
         if (request.getLatitude() != null) memory.setLatitude(request.getLatitude());
         if (request.getLongitude() != null) memory.setLongitude(request.getLongitude());
         if (request.getPhotoDate() != null) memory.setPhotoDate(request.getPhotoDate());
-        memory.setVisible(request.isVisible());
+        memory.setVisible(true);
         memory.setUpdatedDate(LocalDateTime.now());
 
         System.out.println("filesToDelete es nulo? " + (filesToDelete == null));
