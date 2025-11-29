@@ -26,6 +26,7 @@ public class MemoryResponse {
     private boolean esLineaTiempo;
     private Double latitude;
     private Double longitude;
+    private UserLiteResponse author;
 
     public UUID getIdMemory() {
         return idMemory;
@@ -160,4 +161,12 @@ public class MemoryResponse {
 
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public void setAuthor(UserLiteResponse authorDto) {
+        this.author = authorDto;
+    }
+
+    public UserLiteResponse getAuthor() {
+        return author;
+    }
 }
