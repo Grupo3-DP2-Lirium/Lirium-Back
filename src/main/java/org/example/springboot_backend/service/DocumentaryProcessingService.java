@@ -317,7 +317,7 @@ public class DocumentaryProcessingService {
         command.add("-i");
         command.add(fileListPath.toString());
 
-        // ✨ AGREGAR MÚSICA COMO SEGUNDO INPUT
+        // Música como segundo input
         if (musicPath != null && Files.exists(musicPath)) {
             command.add("-stream_loop");
             command.add("-1"); // Loop infinito de la música
@@ -449,7 +449,7 @@ public class DocumentaryProcessingService {
             }
 
             try {
-                // ✨ ACTUALIZADO: Pasar narrativeFocus y emotionalTone
+                // Pasar narrativeFocus y emotionalTone
                 String narracion = aiService.generarNarracionRecuerdo(
                         nombrePersona,
                         memory.getTitle(),
@@ -517,7 +517,7 @@ public class DocumentaryProcessingService {
 
         String fontPath = escapeFontPathForFFmpeg(fontsPath);
 
-        // Subtítulo - Más legible con fondo y mejor posicionado
+        // Subtítulo
         filters.append(",drawtext=fontfile='").append(fontPath).append("':")
                 .append("text='").append(textoNarracion).append("':")
                 .append("fontsize=30:")  // Tamaño más pequeño para que quepa mejor
@@ -529,7 +529,7 @@ public class DocumentaryProcessingService {
                 .append("boxborderw=20:")  // Padding interno
                 .append("line_spacing=5");  // Espaciado entre líneas
 
-        // Fecha pequeña (opcional, más arriba para no interferir)
+        // Fecha pequeña
         if (!date.isEmpty()) {
             filters.append(",drawtext=fontfile='").append(fontPath).append("':")
                     .append("text='").append(escapeFFmpegText(date)).append("':")
