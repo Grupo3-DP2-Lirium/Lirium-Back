@@ -337,6 +337,15 @@ public class MemoryService implements IMemoryService {
                         : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
         );
 
+        //enviar el author
+        response.setAuthor(new UserLiteResponse(
+                memory.getAuthor().getIdUser(),
+                memory.getAuthor().getFullName(),
+                memory.getAuthor().getProfilePhoto() != null
+                        ? memory.getAuthor().getProfilePhoto().getFileUrl()
+                        : null
+        ));
+
 
         return response;
     }

@@ -10,6 +10,12 @@ public class UserLiteResponse {
     public UserLiteResponse() {
     }
 
+    public UserLiteResponse(UUID idUser, String fullName, String s) {
+        this.idUser = idUser;
+        this.name = fullName;
+        this.profilePhotoUrl = s;
+    }
+
     public UUID getIdUser() {
         return idUser;
     }
