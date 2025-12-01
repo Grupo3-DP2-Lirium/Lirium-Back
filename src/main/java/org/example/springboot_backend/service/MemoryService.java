@@ -195,6 +195,7 @@ public class MemoryService implements IMemoryService {
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
             r.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
             r.setCreatedDate(memory.getCreatedDate());
+            r.setEsLineaTiempo(memory.getEsLineaTiempo() != null ? memory.getEsLineaTiempo() : false);
 
             if (memory.getAuthor() != null) {
                 UserLiteResponse authorDto = new UserLiteResponse();
