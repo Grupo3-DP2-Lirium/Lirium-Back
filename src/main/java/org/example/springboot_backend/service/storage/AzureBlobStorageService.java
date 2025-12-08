@@ -30,6 +30,8 @@ public class AzureBlobStorageService implements FileStorageService {
 
     private final BlobServiceClient blobServiceClient;
     private final String containerName;
+    @Value("${app.storage.max-file-size}")
+    private long maxFileSize;
 
     public AzureBlobStorageService(
             @Value("${azure.storage.connection-string:}") String connectionString,
@@ -48,44 +50,51 @@ public class AzureBlobStorageService implements FileStorageService {
     @Override
     public StorageResult uploadFile(MultipartFile file, String folder) {
         try {
+            // ⚠️ VALIDACIÓN DE TAMAÑO
+            if (file.getSize() > maxFileSize) {
+                return StorageResult.error(
+                    "El archivo es demasiado grande. Tamaño máximo permitido: " + (maxFileSize / (1024 * 1024)) + " MB"
+                );
+            }
+
             // Generar nombre único para el archivo
             String originalFileName = file.getOriginalFilename();
             String fileExtension = getFileExtension(originalFileName);
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
-            
+
             // Construir la ruta completa del blob
             String blobPath = folder + "/" + uniqueFileName;
-            
+
             // Obtener el container client
             BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
-            
+
             // Crear blob client
             BlobClient blobClient = containerClient.getBlobClient(blobPath);
-            
+
             // Configurar headers HTTP para el blob
             BlobHttpHeaders headers = new BlobHttpHeaders()
                     .setContentType(file.getContentType())
                     .setContentDisposition("inline; filename=\"" + originalFileName + "\"");
-            
+
             // Subir el archivo
             blobClient.upload(file.getInputStream(), file.getSize(), true);
             blobClient.setHttpHeaders(headers);
-            
+
             // Construir URL pública del archivo
             String fileUrl = blobClient.getBlobUrl();
-            
+
             // Mantener tamaño en bytes
-            Double fileSize = (double) file.getSize(); // Keep size in bytes
-            
+            Double fileSize = (double) file.getSize();
+
             return new StorageResult(uniqueFileName, blobPath, fileUrl, fileSize);
-            
+
         } catch (IOException e) {
             return StorageResult.error("Failed to upload file to Azure Blob Storage: " + e.getMessage());
         } catch (Exception e) {
             return StorageResult.error("Unexpected error during file upload: " + e.getMessage());
         }
     }
-    
+
     @Override
     public void deleteFile(String storagePath) {
         try {
