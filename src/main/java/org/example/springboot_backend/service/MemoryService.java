@@ -156,7 +156,6 @@ public class MemoryService implements IMemoryService {
                     memory.setTotalUsedSpace(totalSpace);
                     memory = memoryRepository.save(memory);
 
-
                     storageService.increaseUserUsedSpace(author, totalSpace);
 
                 } catch (Exception e) {
