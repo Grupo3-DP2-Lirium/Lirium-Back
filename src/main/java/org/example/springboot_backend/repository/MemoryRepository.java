@@ -3,6 +3,7 @@ import org.example.springboot_backend.entity.Memory;
 import org.example.springboot_backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +12,10 @@ import java.util.List;
 import java.util.UUID;
 
 public interface MemoryRepository extends JpaRepository<Memory, UUID> {
+
+    @EntityGraph(attributePaths = {"author", "author.profilePhoto"})
+    @Query("SELECT m FROM Memory m WHERE m.memorial.idMemorial = :memorialId ORDER BY m.createdDate DESC")
+    Page<Memory> findByMemorial_IdMemorialOrderByCreatedDateDescWithAuthor(@Param("memorialId") UUID memorialId, Pageable pageable);
 
     List<Memory> findByMemorial_IdMemorialOrderByCreatedDateDesc(UUID memorialId);
     Page<Memory> findByMemorial_IdMemorialOrderByCreatedDateDesc(UUID memorialId, Pageable pageable);

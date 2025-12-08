@@ -10,13 +10,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.example.springboot_backend.dto.FileDeleteRequest;
-import org.example.springboot_backend.dto.FileResponse;
-import org.example.springboot_backend.dto.MemorialResponse;
-import org.example.springboot_backend.dto.MemoriesByTypeResponse;
-import org.example.springboot_backend.dto.MemoryCreateRequest;
-import org.example.springboot_backend.dto.MemoryLiteResponse;
-import org.example.springboot_backend.dto.MemoryResponse;
+import org.example.springboot_backend.dto.*;
 import org.example.springboot_backend.entity.Answer;
 import org.example.springboot_backend.entity.File;
 import org.example.springboot_backend.entity.Memorial;
@@ -185,7 +179,7 @@ public class MemoryService implements IMemoryService {
     @Override
     public Page<MemoryResponse> listByMemorial(UUID memorialId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Memory> result = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDesc(memorialId, pageable);
+        Page<Memory> result = memoryRepository.findByMemorial_IdMemorialOrderByCreatedDateDescWithAuthor(memorialId, pageable);
 
         return result.map(memory -> {
             MemoryResponse r = new MemoryResponse();
@@ -200,6 +194,19 @@ public class MemoryService implements IMemoryService {
             r.setAssociatedQuestion(memory.getAssociatedQuestion());
             r.setTotalUsedSpace(memory.getTotalUsedSpace() != null ? memory.getTotalUsedSpace() / (1024 * 1024) : 0.0); // Convert bytes to MB
             r.setCreatedDate(memory.getCreatedDate());
+            r.setEsLineaTiempo(memory.getEsLineaTiempo() != null ? memory.getEsLineaTiempo() : false);
+
+            if (memory.getAuthor() != null) {
+                UserLiteResponse authorDto = new UserLiteResponse();
+                authorDto.setIdUser(memory.getAuthor().getIdUser());
+                authorDto.setName(memory.getAuthor().getFullName());
+                authorDto.setProfilePhotoUrl(
+                        memory.getAuthor().getProfilePhoto() != null
+                                ? memory.getAuthor().getProfilePhoto().getFileUrl()
+                                : null
+                );
+                r.setAuthor(authorDto);
+            }
 
             if (memory.getFiles() != null && !memory.getFiles().isEmpty()) {
                 // ✅ USAR EL MÉTODO buildFileResponse EXISTENTE QUE MANTIENE LAS URLs DE AZURE
@@ -328,6 +335,15 @@ public class MemoryService implements IMemoryService {
                 memory.getMomentos() == null ? List.of()
                         : memory.getMomentos().stream().map(Enum::name).map(String::toLowerCase).toList()
         );
+
+        //enviar el author
+        response.setAuthor(new UserLiteResponse(
+                memory.getAuthor().getIdUser(),
+                memory.getAuthor().getFullName(),
+                memory.getAuthor().getProfilePhoto() != null
+                        ? memory.getAuthor().getProfilePhoto().getFileUrl()
+                        : null
+        ));
 
 
         return response;

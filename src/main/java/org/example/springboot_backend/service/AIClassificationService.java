@@ -386,7 +386,7 @@ public class AIClassificationService {
                     .replace("\n", " ");
 
             if (narracion.length() > 150) {
-                narracion = narracion.substring(0, 147) + "...";
+                narracion = safeTrim(narracion, 150);
             }
 
             System.out.println("✅ Narración generada: " + narracion);
@@ -397,6 +397,25 @@ public class AIClassificationService {
             return titulo;
         }
     }
+
+    private String safeTrim(String text, int maxChars) {
+        if (text == null) return null;
+        text = text.trim();
+        if (text.length() <= maxChars) return text;
+        // Busca el último espacio antes de maxChars
+        int lastSpace = text.lastIndexOf(' ', maxChars);
+        if (lastSpace <= 0) {
+            // si no hay espacio, corta en maxChars (muy improbable)
+            return text.substring(0, maxChars).trim();
+        }
+        String trimmed = text.substring(0, lastSpace).trim();
+        // Asegura que termine en punto si es una oración
+        if (!trimmed.endsWith(".") && !trimmed.endsWith("!") && !trimmed.endsWith("?")) {
+            trimmed = trimmed + ".";
+        }
+        return trimmed;
+    }
+
 
     /**
      * Prompt actualizado con enfoque narrativo del usuario
@@ -411,7 +430,7 @@ public class AIClassificationService {
                 : "";
 
         return """
-    Crea una narración emotiva y concisa (1-2 oraciones máximo, ~100 caracteres) para un documental 
+    Crea una narración emotiva y concisa (1-2 oraciones máximo 100 caracteres) para un documental 
     conmemorativo de %s. Esta narración aparecerá como subtítulo en el video.
     
     ESTILO REQUERIDO: %s
@@ -449,6 +468,9 @@ public class AIClassificationService {
     Inspirador:
     - "Contra todo pronóstico, Ana cumplió su sueño de convertirse en doctora"
     - "Su determinación cambió el destino de toda su familia"
+    
+    MUY IMPORTANTE:
+    - Máximo 100 caracteres
     
     Responde SOLO con JSON: {"narracion": "tu texto aquí"}
     """.formatted(
