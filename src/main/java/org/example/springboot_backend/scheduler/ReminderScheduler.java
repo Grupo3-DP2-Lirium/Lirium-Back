@@ -2,7 +2,6 @@ package org.example.springboot_backend.scheduler;
 
 import org.example.springboot_backend.entity.Reminder;
 import org.example.springboot_backend.entity.User;
-import org.example.springboot_backend.enums.NotificationType;
 import org.example.springboot_backend.repository.ReminderRepository;
 import org.example.springboot_backend.repository.UserRepository;
 import org.example.springboot_backend.service.NotificationService;
@@ -32,22 +31,23 @@ public class ReminderScheduler {
     private NotificationService notificationService;
     
     /**
-     * ✅ Se ejecuta cada minuto en UTC
-     * Esto funciona sin importar la zona horaria del servidor
+     * ✅ Se ejecuta cada minuto
+     * Ventana: 30 segundos atrás y 30 segundos adelante
      */
     @Scheduled(cron = "0 * * * * *")
     public void checkPendingReminders() {
         logger.debug("🔔 Checking for pending reminders...");
         
         try {
-            // ✅ Usar UTC para todas las comparaciones
             LocalDateTime nowUtc = LocalDateTime.now(ZoneOffset.UTC);
-            LocalDateTime oneMinuteAgoUtc = nowUtc.minusMinutes(1);
+            
+            // ✅ Ventana de búsqueda: -30s a +30s
+            LocalDateTime startWindow = nowUtc.minusSeconds(30);
+            LocalDateTime endWindow = nowUtc.plusSeconds(30);
             
             logger.debug("🌍 Current UTC time: {}", nowUtc);
-            logger.debug("🕐 Checking window: {} to {}", oneMinuteAgoUtc, nowUtc.plusMinutes(1));
+            logger.debug("🕐 Checking window: {} to {}", startWindow, endWindow);
             
-            // Obtener todos los recordatorios activos
             List<Reminder> allReminders = reminderRepository.findAll();
             logger.debug("📊 Total reminders in DB: {}", allReminders.size());
             
@@ -58,18 +58,16 @@ public class ReminderScheduler {
                            reminder.isActive(), 
                            reminder.getNotificationDate());
                 
-                // ✅ notificationDate ya está en UTC (guardado desde el frontend)
+                // ✅ Buscar en ventana de ±30 segundos
                 if (reminder.isActive() && 
-                    reminder.getNotificationDate().isAfter(oneMinuteAgoUtc) && 
-                    reminder.getNotificationDate().isBefore(nowUtc.plusMinutes(1))) {
+                    reminder.getNotificationDate().isAfter(startWindow) && 
+                    reminder.getNotificationDate().isBefore(endWindow)) {
                     
-                    // Buscar usuario por UUID
                     Optional<User> userOpt = userRepository.findByIdUser(reminder.getUserId());
                     
                     if (userOpt.isPresent()) {
                         User user = userOpt.get();
                         
-                        // ✅ CORREGIDO: Usar el método genérico
                         notificationService.notifyReminder(
                             user,
                             reminder.getTitle(),
