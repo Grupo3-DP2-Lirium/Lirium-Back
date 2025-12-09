@@ -84,7 +84,7 @@ public class EmailService {
         
         Email from = new Email(fromEmail, fromName);
         Email to = new Email(toEmail);
-        String subject = String.format("%s te invitó a colaborar en Remory", inviterName);
+        String subject = String.format("%s te invitó a colaborar en Lirium", inviterName);
         Content content = new Content("text/html", buildInvitationEmailBody(
             inviterName, memorialName, inviteCode, canEdit, canComment
         ));
@@ -123,7 +123,7 @@ public class EmailService {
             <style>
                 body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f7fa; }
                 .container { max-width: 620px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(135deg, #4F46E5 0%%, #7C3AED 100%%);
+                .header { background: #FC7171;
                           color: white; padding: 32px; text-align: center;
                           border-radius: 14px 14px 0 0; }
                 .content { background: #ffffff; padding: 32px; border-radius: 0 0 14px 14px;
@@ -241,7 +241,7 @@ public class EmailService {
     private void sendRealEmail(String toEmail, String code) throws IOException {
         Email from = new Email(fromEmail, fromName);
         Email to = new Email(toEmail);
-        String subject = "Código de recuperación - Remory";
+        String subject = "Código de recuperación - Lirium";
         Content content = new Content("text/plain", buildEmailBody(code));
         
         Mail mail = new Mail(from, subject, to, content);
@@ -284,7 +284,7 @@ public class EmailService {
         return String.format("""
             Hola,
             
-            Recibimos una solicitud para restablecer tu contraseña en Remory.
+            Recibimos una solicitud para restablecer tu contraseña en Lirium.
             
             Tu código de verificación es: %s
             
@@ -293,7 +293,7 @@ public class EmailService {
             Si no solicitaste este cambio, puedes ignorar este correo de forma segura.
             
             Saludos,
-            Equipo Remory
+            Equipo Lirium
             """, code);
     }
 }

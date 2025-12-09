@@ -121,7 +121,7 @@ jobs:
         sendgrid.enabled=true
         sendgrid.api.key=${{ secrets.SENDGRID_API_KEY }}
         sendgrid.from.email=no-reply@vacapp.work
-        sendgrid.from.name=Remory
+        sendgrid.from.name=Lirium
         
         # Firebase Credentials (JSON comprimido en una línea)
         firebase.credentials.json=${{ secrets.FIREBASE_CREDENTIALS }}
