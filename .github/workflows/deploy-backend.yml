@@ -80,6 +80,7 @@ jobs:
         
         # Storage Configuration (production)
         app.storage.provider=${{ secrets.STORAGE_PROVIDER }}
+        app.storage.max-file-size=104857600
         azure.storage.container-name=${{ secrets.AZURE_STORAGE_CONTAINER_NAME }}
         azure.storage.connection-string=${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
         
