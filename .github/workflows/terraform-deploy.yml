@@ -1,0 +1,270 @@
+# ============================================================================
+# GITHUB ACTIONS - TERRAFORM INFRASTRUCTURE DEPLOYMENT
+# ============================================================================
+# Workflow manual para desplegar/destruir infraestructura con Terraform
+# Soporta múltiples entornos: dev, staging, prod
+# ============================================================================
+
+name: 🏗️ Terraform Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Entorno a desplegar'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: 'dev'
+      action:
+        description: 'Acción de Terraform'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+        default: 'plan'
+      auto_approve:
+        description: 'Auto-aprobar (solo para dev)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  TF_VERSION: '1.6.0'
+  WORKING_DIR: './terraform'
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+jobs:
+  # ============================================================================
+  # VALIDATE AND PLAN
+  # ============================================================================
+  terraform-plan:
+    name: 📋 Terraform Plan (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    outputs:
+      plan_exit_code: ${{ steps.plan.outputs.exitcode }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 📂 Copy environment backend config
+        run: |
+          cp ./terraform/environments/${{ inputs.environment }}/backend.tf ./terraform/backend.tf
+        shell: bash
+
+      - name: 🔑 Create Azure credentials file for backend
+        run: |
+          echo "Initializing Terraform with Azure backend..."
+        shell: bash
+
+      - name: 🚀 Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=rg-lirium-tfstate" \
+            -backend-config="storage_account_name=stliriumtfstate" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=${{ inputs.environment }}.terraform.tfstate"
+
+      - name: ✅ Terraform Validate
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform validate
+
+      - name: 🔍 Terraform Format Check
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform fmt -check -recursive || echo "⚠️ Some files need formatting"
+        continue-on-error: true
+
+      - name: 📋 Terraform Plan
+        id: plan
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform plan \
+            -var-file="./environments/${{ inputs.environment }}/terraform.tfvars" \
+            -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
+            -var="sendgrid_api_key=${{ secrets.SENDGRID_API_KEY }}" \
+            -var="openrouter_api_key=${{ secrets.OPENROUTER_API_KEY }}" \
+            -var="firebase_credentials_json=${{ secrets.FIREBASE_CREDENTIALS_JSON }}" \
+            -var="google_analytics_credentials_json=${{ secrets.GOOGLE_ANALYTICS_CREDENTIALS_JSON }}" \
+            -var="paypal_client_secret=${{ secrets.PAYPAL_CLIENT_SECRET }}" \
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
+            -out=tfplan \
+            -detailed-exitcode || echo "::set-output name=exitcode::$?"
+        env:
+          TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          TF_VAR_sendgrid_api_key: ${{ secrets.SENDGRID_API_KEY }}
+          TF_VAR_openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          TF_VAR_firebase_credentials_json: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          TF_VAR_google_analytics_credentials_json: ${{ secrets.GOOGLE_ANALYTICS_CREDENTIALS_JSON }}
+          TF_VAR_paypal_client_secret: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+
+      - name: 📦 Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: ${{ env.WORKING_DIR }}/tfplan
+          retention-days: 5
+
+  # ============================================================================
+  # APPLY (only if action is 'apply')
+  # ============================================================================
+  terraform-apply:
+    name: 🚀 Terraform Apply (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: inputs.action == 'apply'
+    environment: ${{ inputs.environment }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 📂 Copy environment backend config
+        run: |
+          cp ./terraform/environments/${{ inputs.environment }}/backend.tf ./terraform/backend.tf
+        shell: bash
+
+      - name: 🚀 Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=rg-lirium-tfstate" \
+            -backend-config="storage_account_name=stliriumtfstate" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=${{ inputs.environment }}.terraform.tfstate"
+
+      - name: 📦 Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.environment }}
+          path: ${{ env.WORKING_DIR }}
+
+      - name: ⚠️ Confirm Production Deploy
+        if: inputs.environment == 'prod' && inputs.auto_approve == false
+        run: |
+          echo "⚠️ ¡ATENCIÓN! Estás a punto de modificar PRODUCCIÓN"
+          echo "Si no quieres continuar, cancela este workflow manualmente."
+          echo "El apply continuará en 30 segundos..."
+          sleep 30
+
+      - name: 🚀 Terraform Apply
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          if [ "${{ inputs.auto_approve }}" == "true" ] && [ "${{ inputs.environment }}" == "dev" ]; then
+            terraform apply -auto-approve tfplan
+          else
+            terraform apply tfplan
+          fi
+        env:
+          TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          TF_VAR_sendgrid_api_key: ${{ secrets.SENDGRID_API_KEY }}
+          TF_VAR_openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          TF_VAR_firebase_credentials_json: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          TF_VAR_google_analytics_credentials_json: ${{ secrets.GOOGLE_ANALYTICS_CREDENTIALS_JSON }}
+          TF_VAR_paypal_client_secret: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+
+      - name: 📤 Terraform Outputs
+        working-directory: ${{ env.WORKING_DIR }}
+        run: terraform output -json > outputs.json
+
+      - name: 📦 Upload Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-${{ inputs.environment }}
+          path: ${{ env.WORKING_DIR }}/outputs.json
+          retention-days: 30
+
+  # ============================================================================
+  # DESTROY (only if action is 'destroy')
+  # ============================================================================
+  terraform-destroy:
+    name: 💥 Terraform Destroy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: inputs.action == 'destroy'
+    environment: ${{ inputs.environment }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: 📂 Copy environment backend config
+        run: |
+          cp ./terraform/environments/${{ inputs.environment }}/backend.tf ./terraform/backend.tf
+        shell: bash
+
+      - name: 🚀 Terraform Init
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=rg-lirium-tfstate" \
+            -backend-config="storage_account_name=stliriumtfstate" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=${{ inputs.environment }}.terraform.tfstate"
+
+      - name: ⛔ Block Production Destroy
+        if: inputs.environment == 'prod'
+        run: |
+          echo "❌ ERROR: No se permite destruir el entorno de PRODUCCIÓN"
+          echo "Si realmente necesitas hacerlo, ejecuta terraform destroy manualmente."
+          exit 1
+
+      - name: ⚠️ Confirm Destroy
+        run: |
+          echo "⚠️ ¡ATENCIÓN! Estás a punto de DESTRUIR toda la infraestructura de ${{ inputs.environment }}"
+          echo "Esta acción es IRREVERSIBLE."
+          echo "El destroy continuará en 60 segundos..."
+          sleep 60
+
+      - name: 💥 Terraform Destroy
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          terraform destroy \
+            -var-file="./environments/${{ inputs.environment }}/terraform.tfvars" \
+            -var="sql_admin_password=${{ secrets.SQL_ADMIN_PASSWORD }}" \
+            -var="sendgrid_api_key=${{ secrets.SENDGRID_API_KEY }}" \
+            -var="openrouter_api_key=${{ secrets.OPENROUTER_API_KEY }}" \
+            -var="firebase_credentials_json=${{ secrets.FIREBASE_CREDENTIALS_JSON }}" \
+            -var="google_analytics_credentials_json=${{ secrets.GOOGLE_ANALYTICS_CREDENTIALS_JSON }}" \
+            -var="paypal_client_secret=${{ secrets.PAYPAL_CLIENT_SECRET }}" \
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
+            -auto-approve
+        env:
+          TF_VAR_sql_admin_password: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          TF_VAR_sendgrid_api_key: ${{ secrets.SENDGRID_API_KEY }}
+          TF_VAR_openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          TF_VAR_firebase_credentials_json: ${{ secrets.FIREBASE_CREDENTIALS_JSON }}
+          TF_VAR_google_analytics_credentials_json: ${{ secrets.GOOGLE_ANALYTICS_CREDENTIALS_JSON }}
+          TF_VAR_paypal_client_secret: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
