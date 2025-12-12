@@ -75,6 +75,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT COUNT(f) FROM File f JOIN f.memory mem WHERE mem.author.idUser = :userId")
     Long countFilesByUserId(@Param("userId") UUID userId);
 
-    
-    
+    /**
+     * Cuenta usuarios que tienen un rol específico
+     */
+    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r = :role")
+    long countByRolesContaining(@Param("role") org.example.springboot_backend.entity.Role role);
 }
