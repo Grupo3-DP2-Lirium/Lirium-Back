@@ -1,0 +1,89 @@
+@startuml AD_Admin_SuspensionUsuario
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Suspensión de Usuario
+caption Sistema Lirium - Administrador
+
+|Administrador|
+|Sistema|
+
+|Administrador|
+start
+
+:Iniciar sesión en el\npanel de administración;
+
+:Acceder al módulo\n"Gestión de Usuarios";
+
+|Sistema|
+:Mostrar lista de usuarios\ncon paginación;
+
+|Administrador|
+:Buscar usuario por\nnombre o email;
+
+|Sistema|
+:Filtrar y mostrar\nresultados de búsqueda;
+
+|Administrador|
+:Seleccionar usuario\nde la lista;
+
+|Sistema|
+:Mostrar detalle completo\ndel usuario:
+- Datos personales
+- Estado actual
+- Plan de suscripción
+- Memoriales creados
+- Fecha de registro;
+
+|Administrador|
+if (¿El usuario debe\nser suspendido?) then (Sí)
+  
+  :Hacer clic en\n"Suspender Usuario";
+  
+  |Sistema|
+  :Mostrar modal de\nconfirmación con advertencia;
+  
+  |Administrador|
+  if (¿Confirmar\nsuspensión?) then (Sí)
+    
+    |Sistema|
+    :Cambiar estado del usuario\na "SUSPENDED";
+    
+    :Registrar acción en\nlog de auditoría:
+    - Admin ID
+    - Usuario afectado
+    - Acción: SUSPEND
+    - Timestamp;
+    
+    :Enviar notificación por\nemail al usuario suspendido;
+    
+    :Mostrar mensaje de\nconfirmación al admin;
+    
+    |Administrador|
+    :Verificar que el estado\ncambió correctamente;
+    
+  else (No)
+    |Administrador|
+    :Cancelar operación;
+  endif
+  
+else (No)
+  :Continuar revisando\notros usuarios;
+endif
+
+stop
+
+note right
+  **Nota:** El usuario suspendido
+  no podrá iniciar sesión hasta
+  que un administrador lo reactive.
+  
+  Sus memoriales permanecen
+  intactos pero inaccesibles.
+end note
+
+@enduml

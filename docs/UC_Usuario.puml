@@ -1,0 +1,185 @@
+@startuml UC_Usuario
+!theme plain
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+skinparam packageStyle rectangle
+
+title Diagrama de Casos de Uso - Usuario
+caption Sistema Lirium - Plataforma de Memoriales Digitales
+
+left to right direction
+
+actor "Usuario" as User
+actor "Colaborador" as Collaborator
+
+rectangle "Sistema Lirium" {
+    
+    ' ========== AUTENTICACIÓN ==========
+    usecase "Registrarse" as UC_Registrarse
+    usecase "Iniciar Sesión" as UC_Login
+    usecase "Recuperar Contraseña" as UC_RecuperarPassword
+    
+    ' ========== GESTIÓN DE MEMORIALES ==========
+    usecase "Gestionar Memoriales" as UC_GestionMemoriales
+    usecase "Crear Memorial" as UC_CrearMemorial
+    usecase "Editar Memorial" as UC_EditarMemorial
+    usecase "Eliminar Memorial" as UC_EliminarMemorial
+    usecase "Ver Mis Memoriales" as UC_VerMemoriales
+    
+    ' ========== GESTIÓN DE MEMORIAS ==========
+    usecase "Gestionar Memorias" as UC_GestionMemorias
+    usecase "Crear Memoria" as UC_CrearMemoria
+    usecase "Subir Fotos/Videos" as UC_SubirArchivos
+    usecase "Mejorar Foto con IA" as UC_MejorarFotoIA
+    usecase "Editar Memoria" as UC_EditarMemoria
+    usecase "Eliminar Memoria" as UC_EliminarMemoria
+    usecase "Ver Memorias por Tipo" as UC_VerMemoriasTipo
+    
+    ' ========== CÁPSULAS DEL TIEMPO ==========
+    usecase "Gestionar Cápsulas" as UC_GestionCapsulas
+    usecase "Crear Cápsula" as UC_CrearCapsula
+    usecase "Seleccionar Memorias" as UC_SeleccionarMemorias
+    usecase "Generar Video de Cápsula" as UC_GenerarVideoCapsula
+    usecase "Descargar Cápsula" as UC_DescargarCapsula
+    
+    ' ========== DOCUMENTALES ==========
+    usecase "Gestionar Documentales" as UC_GestionDocumentales
+    usecase "Crear Documental" as UC_CrearDocumental
+    usecase "Generar Documental" as UC_GenerarDocumental
+    usecase "Descargar Documental" as UC_DescargarDocumental
+    
+    ' ========== COMPARTIR ==========
+    usecase "Compartir Memorial" as UC_CompartirMemorial
+    usecase "Generar Link Público" as UC_GenerarLink
+    usecase "Ver Memorial Público" as UC_VerMemorialPublico
+    
+    ' ========== COLABORADORES ==========
+    usecase "Gestionar Colaboradores" as UC_GestionColaboradores
+    usecase "Generar Código de Invitación" as UC_GenerarCodigoInvitacion
+    usecase "Validar Código" as UC_ValidarCodigo
+    usecase "Unirse a Memorial" as UC_UnirseMemorial
+    usecase "Ver Colaboraciones" as UC_VerColaboraciones
+    
+    ' ========== SUSCRIPCIONES ==========
+    usecase "Gestionar Suscripción" as UC_GestionSuscripcion
+    usecase "Ver Planes" as UC_VerPlanes
+    usecase "Suscribirse a Plan" as UC_Suscribirse
+    usecase "Pagar con PayPal" as UC_PagarPayPal
+    usecase "Comprar Almacenamiento Extra" as UC_ComprarStorage
+    usecase "Ver Suscripción Actual" as UC_VerSuscripcionActual
+    
+    ' ========== NOTIFICACIONES ==========
+    usecase "Gestionar Notificaciones" as UC_GestionNotificaciones
+    usecase "Ver Notificaciones" as UC_VerNotificaciones
+    usecase "Configurar Recordatorios" as UC_ConfigurarRecordatorios
+    
+    ' ========== PERFIL ==========
+    usecase "Gestionar Perfil" as UC_GestionPerfil
+}
+
+' ========== RELACIONES PRINCIPALES DEL USUARIO ==========
+User --> UC_Login
+User --> UC_Registrarse
+User --> UC_RecuperarPassword
+User --> UC_GestionMemoriales
+User --> UC_GestionMemorias
+User --> UC_GestionCapsulas
+User --> UC_GestionDocumentales
+User --> UC_CompartirMemorial
+User --> UC_GestionColaboradores
+User --> UC_GestionSuscripcion
+User --> UC_GestionNotificaciones
+User --> UC_GestionPerfil
+
+' ========== RELACIONES DEL COLABORADOR ==========
+Collaborator --> UC_ValidarCodigo
+Collaborator --> UC_UnirseMemorial
+Collaborator --> UC_VerColaboraciones
+Collaborator --> UC_CrearMemoria
+Collaborator --|> User : <<es un>>
+
+' ========== GESTIÓN DE MEMORIALES (includes/extends) ==========
+UC_GestionMemoriales ..> UC_VerMemoriales : <<include>>
+UC_GestionMemoriales ..> UC_CrearMemorial : <<include>>
+UC_CrearMemorial ..> UC_EditarMemorial : <<extend>>
+UC_CrearMemorial ..> UC_EliminarMemorial : <<extend>>
+
+' ========== GESTIÓN DE MEMORIAS (includes/extends) ==========
+UC_GestionMemorias ..> UC_CrearMemoria : <<include>>
+UC_CrearMemoria ..> UC_SubirArchivos : <<include>>
+UC_SubirArchivos ..> UC_MejorarFotoIA : <<extend>>
+UC_GestionMemorias ..> UC_VerMemoriasTipo : <<include>>
+UC_CrearMemoria ..> UC_EditarMemoria : <<extend>>
+UC_CrearMemoria ..> UC_EliminarMemoria : <<extend>>
+
+' ========== CÁPSULAS (includes/extends) ==========
+UC_GestionCapsulas ..> UC_CrearCapsula : <<include>>
+UC_CrearCapsula ..> UC_SeleccionarMemorias : <<include>>
+UC_GenerarVideoCapsula ..> UC_SeleccionarMemorias : <<include>>
+UC_GestionCapsulas ..> UC_GenerarVideoCapsula : <<include>>
+UC_GestionCapsulas ..> UC_DescargarCapsula : <<extend>>
+
+' ========== DOCUMENTALES (includes/extends) ==========
+UC_GestionDocumentales ..> UC_CrearDocumental : <<include>>
+UC_CrearDocumental ..> UC_SeleccionarMemorias : <<include>>
+UC_GenerarDocumental ..> UC_SeleccionarMemorias : <<include>>
+UC_GestionDocumentales ..> UC_GenerarDocumental : <<include>>
+UC_GestionDocumentales ..> UC_DescargarDocumental : <<extend>>
+
+' ========== COMPARTIR (includes) ==========
+UC_CompartirMemorial ..> UC_GenerarLink : <<include>>
+
+' ========== COLABORADORES (includes/extends) ==========
+UC_GestionColaboradores ..> UC_GenerarCodigoInvitacion : <<include>>
+UC_UnirseMemorial ..> UC_ValidarCodigo : <<include>>
+UC_GestionColaboradores ..> UC_VerColaboraciones : <<include>>
+
+' ========== SUSCRIPCIONES (includes/extends) ==========
+UC_GestionSuscripcion ..> UC_VerPlanes : <<include>>
+UC_GestionSuscripcion ..> UC_VerSuscripcionActual : <<include>>
+UC_Suscribirse ..> UC_PagarPayPal : <<include>>
+UC_GestionSuscripcion ..> UC_Suscribirse : <<extend>>
+UC_GestionSuscripcion ..> UC_ComprarStorage : <<extend>>
+
+' ========== NOTIFICACIONES ==========
+UC_GestionNotificaciones ..> UC_VerNotificaciones : <<include>>
+UC_GestionNotificaciones ..> UC_ConfigurarRecordatorios : <<extend>>
+
+' ========== NOTAS ==========
+note right of UC_MejorarFotoIA
+  Usa servicio de IA
+  para mejorar fotos
+  antiguas o de baja
+  calidad
+end note
+
+note right of UC_GenerarVideoCapsula
+  Video vertical generado
+  automáticamente con
+  las memorias seleccionadas
+  (FFmpeg)
+end note
+
+note right of UC_GenerarDocumental
+  Requiere mínimo 50
+  memorias para generar
+end note
+
+note bottom of UC_CompartirMemorial
+  Genera un link único
+  para compartir el
+  memorial públicamente
+end note
+
+note left of Collaborator
+  Un Colaborador es un
+  Usuario invitado a
+  participar en un memorial
+  de otro usuario
+end note
+
+@enduml

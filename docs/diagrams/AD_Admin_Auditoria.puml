@@ -1,0 +1,124 @@
+@startuml AD_Admin_Auditoria
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Auditoría (Revisión de Logs)
+caption Sistema Lirium - Administrador
+
+|Administrador|
+|Sistema|
+
+|Administrador|
+start
+
+:Iniciar sesión en el\npanel de administración;
+
+:Acceder al módulo\n"Logs de Auditoría";
+
+|Sistema|
+:Cargar últimos 20 logs\n(paginación por defecto);
+
+:Mostrar tabla con columnas:
+- Fecha/Hora
+- Admin responsable
+- Acción realizada
+- Tipo de entidad
+- ID de entidad afectada;
+
+|Administrador|
+if (¿Aplicar filtros?) then (Sí)
+  
+  :Configurar filtros\nde búsqueda;
+  
+  fork
+    :Filtrar por Admin ID;
+  fork again
+    :Filtrar por tipo\nde acción:
+    - CREATE
+    - UPDATE
+    - DELETE
+    - SUSPEND
+    - REACTIVATE;
+  fork again
+    :Filtrar por tipo\nde entidad:
+    - USER
+    - MEMORIAL
+    - SUBSCRIPTION;
+  fork again
+    :Filtrar por rango\nde fechas:
+    - Fecha inicio
+    - Fecha fin;
+  end fork
+  
+  |Sistema|
+  :Aplicar filtros y\nactualizar resultados;
+  
+  :Mostrar registros\nfiltrados con paginación;
+  
+else (No)
+  :Continuar con\nvista por defecto;
+endif
+
+|Administrador|
+:Revisar registros\nde actividad;
+
+if (¿Detecta actividad\nsospechosa?) then (Sí)
+  
+  :Seleccionar registro\npara ver detalle;
+  
+  |Sistema|
+  :Mostrar información\ncompleta del log:
+  - Datos anteriores
+  - Datos nuevos
+  - IP de origen (si aplica)
+  - User Agent;
+  
+  |Administrador|
+  if (¿Requiere acción\ninmediata?) then (Sí)
+    
+    :Navegar al módulo\ncorrespondiente;
+    
+    :Tomar acción correctiva:
+    - Suspender usuario
+    - Revertir cambio
+    - Contactar usuario;
+    
+    |Sistema|
+    :Registrar nueva acción\nen log de auditoría;
+    
+  else (No)
+    :Documentar hallazgo\npara seguimiento;
+  endif
+  
+else (No)
+  :Confirmar que todo\nestá en orden;
+endif
+
+|Administrador|
+if (¿Continuar revisión?) then (Sí)
+  :Navegar a siguiente\npágina de logs;
+  
+  |Sistema|
+  :Cargar siguiente página\nde registros;
+  
+else (No)
+  :Finalizar auditoría;
+endif
+
+stop
+
+note right
+  **Tipos de Acciones Registradas:**
+  - Cambios de estado de usuario
+  - Modificaciones de suscripción
+  - Accesos administrativos
+  - Cambios de configuración
+  
+  **Retención:** 90 días
+end note
+
+@enduml

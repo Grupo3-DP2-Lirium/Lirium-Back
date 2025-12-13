@@ -1,0 +1,185 @@
+@startuml AD_Usuario_GeneracionCapsulaDocumental
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Generación de Cápsula / Documental
+caption Sistema Lirium - Usuario
+
+|Usuario|
+|Sistema|
+|Servicio FFmpeg|
+
+|Usuario|
+start
+
+:Acceder al memorial;
+
+:Seleccionar opción de\ngeneración de video;
+
+|Sistema|
+:Mostrar opciones:
+- Cápsula (video vertical corto)
+- Documental (video horizontal largo);
+
+|Usuario|
+switch (Tipo de video)
+
+case ( Cápsula )
+  |Sistema|
+  :Validar memorial tiene\nal menos 1 memoria;
+  
+  if (¿Tiene memorias\nsuficientes?) then (Sí)
+    :Continuar con cápsula;
+  else (No)
+    :Mostrar mensaje:\n"Agrega memorias primero";
+    stop
+  endif
+
+case ( Documental )
+  |Sistema|
+  :Validar memorial tiene\nmínimo 50 memorias;
+  
+  if (¿Tiene 50+\nmemorias?) then (Sí)
+    :Continuar con documental;
+  else (No)
+    :Mostrar mensaje:\n"Se requieren mínimo\n50 memorias";
+    
+    :Mostrar progreso actual:\n"Tienes X de 50 memorias";
+    stop
+  endif
+
+endswitch
+
+|Sistema|
+:Mostrar formulario de\nconfiguración del video;
+
+|Usuario|
+:Escribir prompt/descripción\ndel video deseado:
+"Quiero un video sobre los
+mejores momentos de la
+infancia con música alegre";
+
+if (¿Es Documental?) then (Sí)
+  :Seleccionar configuración:
+  - Duración preferida
+  - Estilo visual
+  - Tipo de música;
+endif
+
+:Confirmar configuración;
+
+|Sistema|
+:Crear borrador (DRAFT)\ndel video;
+
+:Analizar memorias del\nmemorial con IA;
+
+:Seleccionar automáticamente\nmemorias relevantes según\nel prompt del usuario;
+
+:Mostrar vista previa:\n- Memorias seleccionadas\n- Orden propuesto;
+
+|Usuario|
+if (¿Ajustar selección?) then (Sí)
+  
+  :Modificar memorias:\n- Agregar/quitar\n- Reordenar;
+  
+  |Sistema|
+  :Actualizar selección;
+  
+else (No)
+  :Mantener selección\nautomática;
+endif
+
+|Usuario|
+:Confirmar e iniciar\ngeneración del video;
+
+|Sistema|
+:Cambiar estado a\n"PROCESSING";
+
+:Enviar a cola de\nprocesamiento;
+
+|Servicio FFmpeg|
+:Descargar memorias\nseleccionadas;
+
+:Procesar imágenes y videos;
+
+:Aplicar transiciones\ny efectos;
+
+:Agregar música de fondo;
+
+if (¿Es Cápsula?) then (Sí)
+  :Generar video vertical\n(9:16) optimizado para\nmóviles y redes sociales;
+else (No)
+  :Generar video horizontal\n(16:9) estilo documental\ncon narrativa;
+endif
+
+:Renderizar video final;
+
+:Subir video a\nAzure Blob Storage;
+
+|Sistema|
+:Cambiar estado a\n"COMPLETED";
+
+:Generar URL de descarga;
+
+:Crear notificación:\n"Tu video está listo!";
+
+:Enviar notificación push\nal usuario;
+
+|Usuario|
+:Recibir notificación;
+
+:Acceder a sección\n"Mis Videos";
+
+|Sistema|
+:Mostrar video generado\ncon opciones;
+
+|Usuario|
+if (¿Descargar video?) then (Sí)
+  
+  |Sistema|
+  :Generar link de\ndescarga temporal;
+  
+  |Usuario|
+  :Descargar video\nal dispositivo;
+  
+else (No)
+  :Ver en línea;
+endif
+
+if (¿Compartir video?) then (Sí)
+  
+  |Sistema|
+  :Generar link público\npara compartir;
+  
+  |Usuario|
+  :Compartir en redes\nsociales o por mensaje;
+  
+else (No)
+  :Mantener privado;
+endif
+
+floating note right
+  **Diferencias Cápsula vs Documental:**
+  
+  | Aspecto | Cápsula | Documental |
+  |---------|---------|------------|
+  | Orientación | Vertical 9:16 | Horizontal 16:9 |
+  | Duración | 30s - 2min | 5min - 15min |
+  | Memorias mín. | 1 | 50 |
+  | Estilo | Redes sociales | Narrativo |
+  
+  **Procesamiento Asíncrono:**
+  - El usuario puede cerrar la app
+  - Recibirá notificación push
+    cuando el video esté listo
+  - Tiempo estimado: 2-10 min
+    según cantidad de memorias
+end note
+
+stop
+
+@enduml

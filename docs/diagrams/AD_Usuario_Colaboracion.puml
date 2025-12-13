@@ -1,0 +1,192 @@
+@startuml AD_Usuario_Colaboracion
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Colaboración en Memorial
+caption Sistema Lirium - Usuario (Dueño y Colaborador)
+
+|Dueño del Memorial|
+|Sistema|
+|Colaborador Invitado|
+
+' ========== FLUJO DEL DUEÑO: GENERAR INVITACIÓN ==========
+
+|Dueño del Memorial|
+start
+
+:Acceder al memorial\nque desea compartir;
+
+:Ir a sección\n"Gestionar Colaboradores";
+
+|Sistema|
+:Mostrar lista de\ncolaboradores actuales\n(si existen);
+
+|Dueño del Memorial|
+:Hacer clic en\n"Invitar Colaborador";
+
+|Sistema|
+:Mostrar formulario\nde invitación;
+
+|Dueño del Memorial|
+:Configurar permisos\ndel colaborador:
+- Puede agregar memorias
+- Puede ver memorias
+- Puede comentar;
+
+:Confirmar generación\nde código;
+
+|Sistema|
+:Generar código único\nde invitación (6-8 caracteres);
+
+:Establecer expiración\ndel código (24-72 horas);
+
+:Guardar código en\nbase de datos;
+
+:Mostrar código al dueño\ncon opciones para compartir;
+
+|Dueño del Memorial|
+:Copiar código o\ncompartir por:
+- WhatsApp
+- Email
+- SMS
+- Otro medio;
+
+' ========== FLUJO DEL COLABORADOR: UNIRSE ==========
+
+|Colaborador Invitado|
+:Recibir código de\ninvitación;
+
+:Abrir aplicación Lirium;
+
+if (¿Tiene cuenta?) then (No)
+  :Registrarse en\nla plataforma;
+  
+  |Sistema|
+  :Crear cuenta nueva;
+  
+  |Colaborador Invitado|
+  :Iniciar sesión;
+else (Sí)
+  :Iniciar sesión;
+endif
+
+|Colaborador Invitado|
+:Ir a sección\n"Unirse a Memorial";
+
+:Ingresar código\nde invitación;
+
+|Sistema|
+:Validar código:
+- ¿Existe?
+- ¿No expirado?
+- ¿No usado?;
+
+if (¿Código válido?) then (Sí)
+  
+  :Mostrar información\ndel memorial:
+  - Nombre
+  - Descripción
+  - Dueño
+  - Permisos otorgados;
+  
+  |Colaborador Invitado|
+  if (¿Aceptar unirse?) then (Sí)
+    
+    :Confirmar unión\nal memorial;
+    
+    |Sistema|
+    :Agregar colaborador\na la lista del memorial;
+    
+    :Marcar código como\nutilizado;
+    
+    :Registrar en log\nde actividad;
+    
+    :Notificar al dueño:\n"[Nombre] se unió a\ntu memorial";
+    
+    |Dueño del Memorial|
+    :Recibir notificación\nde nuevo colaborador;
+    
+    |Sistema|
+    :Mostrar memorial en\n"Mis Colaboraciones"\ndel nuevo colaborador;
+    
+    |Colaborador Invitado|
+    :Acceder al memorial\ncompartido;
+    
+    :Puede realizar acciones\nsegún permisos:
+    - Agregar memorias
+    - Ver contenido
+    - Comentar;
+    
+  else (No)
+    :Cancelar operación;
+    stop
+  endif
+  
+else (No)
+  :Mostrar error:
+  - "Código inválido"
+  - "Código expirado"
+  - "Código ya utilizado";
+  
+  |Colaborador Invitado|
+  :Solicitar nuevo código\nal dueño del memorial;
+  stop
+endif
+
+' ========== GESTIÓN CONTINUA ==========
+
+|Dueño del Memorial|
+if (¿Gestionar\ncolaboradores?) then (Sí)
+  
+  :Ver lista de\ncolaboradores activos;
+  
+  if (¿Revocar acceso\na alguno?) then (Sí)
+    
+    :Seleccionar colaborador;
+    
+    :Hacer clic en\n"Revocar Acceso";
+    
+    |Sistema|
+    :Confirmar acción;
+    
+    :Eliminar colaborador\ndel memorial;
+    
+    :Notificar al colaborador\nremovido;
+    
+    |Colaborador Invitado|
+    :Pierde acceso al\nmemorial;
+    
+  else (No)
+    :Mantener colaboradores\nactuales;
+  endif
+  
+else (No)
+  :Continuar con\nuso normal;
+endif
+
+floating note right
+  **Código de Invitación:**
+  - Único por invitación
+  - Expira en 24-72 horas
+  - Un solo uso
+  - Puede ser revocado
+  
+  **Permisos de Colaborador:**
+  - Ver memorias del memorial
+  - Agregar nuevas memorias
+  - Comentar (si está habilitado)
+  
+  **No puede:**
+  - Eliminar memorial
+  - Eliminar memorias de otros
+  - Invitar más colaboradores
+  - Modificar configuración
+end note
+
+stop
+
+@enduml

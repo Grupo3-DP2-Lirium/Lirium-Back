@@ -1,0 +1,109 @@
+@startuml AD_Usuario_CreacionMemorial
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Creación de Memorial Completo
+caption Sistema Lirium - Usuario
+
+|Usuario|
+|Sistema|
+
+|Usuario|
+start
+
+:Iniciar sesión\nen la aplicación;
+
+|Sistema|
+:Validar credenciales\ny cargar perfil;
+
+|Usuario|
+:Acceder a sección\n"Mis Memoriales";
+
+:Hacer clic en\n"Crear Memorial";
+
+|Sistema|
+:Mostrar formulario\nde creación;
+
+|Usuario|
+:Completar datos básicos:
+- Nombre del memorial
+- Descripción
+- Fecha significativa (opcional);
+
+if (¿Agregar foto\nde portada?) then (Sí)
+  
+  :Seleccionar imagen\ndesde dispositivo;
+  
+  |Sistema|
+  :Validar formato y tamaño\n(máx 150MB);
+  
+  if (¿Imagen válida?) then (Sí)
+    :Subir imagen a\nAzure Blob Storage;
+    :Generar URL de acceso;
+  else (No)
+    :Mostrar error\nde validación;
+    |Usuario|
+    :Seleccionar otra imagen;
+  endif
+  
+else (No)
+  |Sistema|
+  :Usar imagen por\ndefecto del sistema;
+endif
+
+|Usuario|
+:Confirmar creación\ndel memorial;
+
+|Sistema|
+:Guardar memorial en\nbase de datos;
+
+:Crear notificación:\n"Memorial creado exitosamente";
+
+:Enviar notificación\npush al usuario;
+
+:Redirigir al detalle\ndel memorial creado;
+
+|Usuario|
+:Ver memorial vacío\nlisto para agregar memorias;
+
+if (¿Agregar memorias\nahora?) then (Sí)
+  
+  :Navegar a\n"Agregar Memoria";
+  
+  note right
+    Ver diagrama:
+    **AD_Usuario_CreacionMemoria**
+  end note
+  
+else (No)
+  :Finalizar por ahora;
+endif
+
+if (¿Invitar\ncolaboradores?) then (Sí)
+  
+  :Navegar a\n"Gestionar Colaboradores";
+  
+  note right
+    Ver diagrama:
+    **AD_Usuario_Colaboracion**
+  end note
+  
+else (No)
+  :Memorial listo\npara uso personal;
+endif
+
+floating note right
+  **Almacenamiento:**
+  - Depende del plan del usuario
+  - Plan gratuito: límite básico
+  - Planes premium: mayor capacidad
+  - Se puede comprar almacenamiento extra
+end note
+
+stop
+
+@enduml

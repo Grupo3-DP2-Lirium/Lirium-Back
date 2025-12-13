@@ -1,0 +1,226 @@
+@startuml AD_Usuario_CreacionMemoria
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Creación de Memoria
+caption Sistema Lirium - Usuario (3 modalidades)
+
+|Usuario|
+|Sistema|
+|Servicio IA|
+
+|Usuario|
+start
+
+:Acceder al memorial\ndonde agregar memoria;
+
+:Hacer clic en\n"Agregar Memoria";
+
+|Sistema|
+:Mostrar opciones de\ntipo de memoria:
+a) Responder Pregunta
+b) Escribir Carta
+c) Subir Archivo;
+
+|Usuario|
+switch (Seleccionar tipo de memoria)
+
+case ( A: Responder Pregunta )
+  
+  |Sistema|
+  :Mostrar lista de\ncategorías predefinidas:
+  - Infancia
+  - Familia
+  - Momentos especiales
+  - Anécdotas
+  - Tradiciones
+  - etc.;
+  
+  |Usuario|
+  :Seleccionar categoría;
+  
+  |Sistema|
+  :Mostrar todas las preguntas\nde la categoría seleccionada;
+  
+  |Usuario|
+  :Seleccionar pregunta\na responder;
+  
+  :Escribir respuesta\nen campo de texto;
+  
+  if (¿Adjuntar archivo\na la respuesta?) then (Sí)
+    
+    :Seleccionar tipo de archivo;
+    
+    switch (Tipo de archivo)
+    case ( Foto )
+      #Orange:Subir foto desde\ndispositivo;
+      
+      |Sistema|
+      :Analizar imagen subida;
+      
+      :Ofrecer mejora con IA:\n"¿Desea mejorar esta foto?";
+      
+      |Usuario|
+      if (¿Aplicar mejora IA?) then (Sí)
+        
+        |Servicio IA|
+        :Procesar imagen con\nmodelo de mejora;
+        
+        :Retornar imagen\nmejorada;
+        
+        |Sistema|
+        :Mostrar comparación:\n- Original\n- Mejorada;
+        
+        |Usuario|
+        if (¿Usar versión\nmejorada?) then (Sí)
+          |Sistema|
+          :Guardar versión mejorada;
+        else (No)
+          |Sistema|
+          :Mantener versión original;
+        endif
+        
+      else (No)
+        |Sistema|
+        :Mantener imagen original;
+      endif
+      
+    case ( Video )
+      #LightCoral:Subir video desde\ndispositivo;
+      |Sistema|
+      :Validar formato y duración;
+      
+    case ( Audio )
+      #LightCyan:Subir audio o\ngrabar directamente;
+      |Sistema|
+      :Validar formato;
+      
+    endswitch
+    
+  else (No)
+    |Sistema|
+    :Continuar solo\ncon texto;
+  endif
+
+case ( B: Escribir Carta )
+  
+  |Sistema|
+  :Mostrar editor de texto\nenriquecido para carta;
+  
+  |Usuario|
+  :Escribir carta con\nformato libre:
+  - Título de la carta
+  - Contenido extenso
+  - Solo texto (sin archivos);
+  
+  :Revisar y editar\nel contenido;
+
+case ( C: Subir Archivo Directo )
+  
+  |Sistema|
+  :Mostrar opciones de\ncarga de archivo;
+  
+  |Usuario|
+  :Seleccionar tipo;
+  
+  switch (Tipo de archivo)
+  case ( Foto )
+    #Orange:Seleccionar foto(s)\ndesde dispositivo;
+    
+    |Sistema|
+    :Analizar imagen(es);
+    
+    :Ofrecer mejora con IA\npara cada foto antigua\no de baja calidad;
+    
+    |Usuario|
+    if (¿Aplicar mejora IA?) then (Sí)
+      
+      |Servicio IA|
+      :Procesar con modelo\nde restauración;
+      
+      |Sistema|
+      :Mostrar resultado;
+      
+      |Usuario|
+      :Elegir versión a guardar;
+      
+    else (No)
+      :Continuar con original;
+    endif
+    
+  case ( Video )
+    #LightCoral:Seleccionar video(s)\ndesde dispositivo;
+    
+    |Sistema|
+    :Validar:
+    - Formato soportado
+    - Tamaño máximo
+    - Duración;
+    
+  case ( Audio )
+    #LightCyan:Seleccionar audio o\ngrabar nuevo;
+    
+    |Sistema|
+    :Validar formato de audio;
+    
+  endswitch
+  
+  |Usuario|
+  :Agregar título y\ndescripción opcional;
+
+endswitch
+
+|Usuario|
+:Agregar metadatos:
+- Título de la memoria
+- Fecha del recuerdo (opcional)
+- Etiquetas (opcional);
+
+:Confirmar creación\nde memoria;
+
+|Sistema|
+:Subir archivos a\nAzure Blob Storage;
+
+:Guardar memoria en\nbase de datos;
+
+:Clasificar automáticamente\ncon IA (categorización);
+
+:Crear notificación:\n"Memoria agregada exitosamente";
+
+if (¿Memorial es\ncolaborativo?) then (Sí)
+  :Notificar al dueño\ndel memorial;
+endif
+
+:Mostrar memoria creada\nen el memorial;
+
+|Usuario|
+:Visualizar memoria\nagregada correctamente;
+
+floating note right
+  **Mejora IA de Fotos:**
+  - Restauración de fotos antiguas
+  - Mejora de calidad
+  - Corrección de color
+  - Reducción de ruido
+  
+  **Servicio:** ML Cloud Run
+  
+  ====
+  
+  **Formatos Soportados:**
+  - Fotos: JPG, PNG, WEBP
+  - Videos: MP4, MOV, AVI
+  - Audio: MP3, WAV, M4A
+  
+  **Límites:**
+  - Archivo máximo: 150MB
+  - Según plan del usuario
+end note
+
+stop
+
+@enduml

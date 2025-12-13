@@ -1,0 +1,208 @@
+@startuml AD_Usuario_Suscripcion
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Suscripción
+caption Sistema Lirium - Usuario (Integración PayPal)
+
+|Usuario|
+|Sistema|
+|PayPal|
+
+|Usuario|
+start
+
+:Iniciar sesión\nen la aplicación;
+
+:Acceder a sección\n"Mi Suscripción";
+
+|Sistema|
+:Mostrar estado actual:
+- Plan actual (o gratuito)
+- Fecha de vencimiento
+- Almacenamiento usado
+- Almacenamiento disponible;
+
+|Usuario|
+if (¿Tiene suscripción\nactiva?) then (Sí)
+  
+  if (¿Desea cambiar\no cancelar?) then (Cambiar Plan)
+    :Ver planes disponibles;
+  else (Cancelar)
+    :Solicitar cancelación;
+    
+    |Sistema|
+    :Mostrar consecuencias:\n- Perderá beneficios\n- Mantendrá datos hasta\n  fin del período;
+    
+    |Usuario|
+    if (¿Confirmar\ncancelación?) then (Sí)
+      |Sistema|
+      :Programar cancelación\nal fin del período;
+      :Notificar por email;
+      stop
+    else (No)
+      :Mantener suscripción;
+    endif
+  endif
+  
+else (No)
+  :Ver planes disponibles;
+endif
+
+|Sistema|
+:Mostrar catálogo de planes:
+
+**Crear y Compartir**
+- Almacenamiento base
+- Memoriales ilimitados
+- Compartir enlaces
+
+**Legado Eterno**
+- Almacenamiento premium
+- Cápsulas del tiempo
+- Documentales
+- Colaboradores ilimitados;
+
+:Mostrar precios:
+- Mensual
+- Anual (descuento);
+
+|Usuario|
+:Seleccionar plan deseado;
+
+:Seleccionar frecuencia\nde pago:
+- Mensual
+- Anual;
+
+|Sistema|
+:Calcular precio final;
+
+:Mostrar resumen:\n- Plan seleccionado\n- Frecuencia\n- Precio total;
+
+|Usuario|
+:Confirmar selección;
+
+|Sistema|
+:Iniciar proceso de\npago con PayPal;
+
+:Generar orden de\nsuscripción;
+
+|PayPal|
+:Mostrar página de\npago de PayPal;
+
+|Usuario|
+if (¿Tiene cuenta\nPayPal?) then (Sí)
+  :Iniciar sesión\nen PayPal;
+else (No)
+  :Pagar como invitado\ncon tarjeta;
+endif
+
+:Revisar detalles\ndel pago;
+
+if (¿Confirmar pago?) then (Sí)
+  
+  :Autorizar pago\nrecurrente;
+  
+  |PayPal|
+  :Procesar pago;
+  
+  if (¿Pago exitoso?) then (Sí)
+    
+    :Generar confirmación;
+    
+    :Enviar webhook a\nSistema Lirium;
+    
+    |Sistema|
+    :Recibir confirmación\nde PayPal;
+    
+    :Activar suscripción\nen base de datos;
+    
+    :Actualizar beneficios\ndel usuario:
+    - Nuevo almacenamiento
+    - Funciones premium;
+    
+    :Crear notificación:\n"¡Suscripción activada!";
+    
+    :Enviar email de\nconfirmación;
+    
+    |Usuario|
+    :Ver confirmación\nen pantalla;
+    
+    :Acceder a nuevas\nfuncionalidades premium;
+    
+  else (No)
+    |PayPal|
+    :Mostrar error de pago;
+    
+    |Usuario|
+    :Revisar método de\npago e intentar de nuevo;
+    stop
+  endif
+  
+else (No)
+  |Usuario|
+  :Cancelar proceso;
+  stop
+endif
+
+' ========== ALMACENAMIENTO EXTRA ==========
+
+|Usuario|
+if (¿Necesita más\nalmacenamiento?) then (Sí)
+  
+  :Ir a sección\n"Almacenamiento Extra";
+  
+  |Sistema|
+  :Mostrar paquetes:
+  - 10 GB extra
+  - 50 GB extra
+  - 100 GB extra;
+  
+  |Usuario|
+  :Seleccionar paquete;
+  
+  |Sistema|
+  :Iniciar pago con PayPal;
+  
+  |PayPal|
+  :Procesar pago único\no recurrente;
+  
+  |Sistema|
+  :Agregar almacenamiento\na la cuenta del usuario;
+  
+  |Usuario|
+  :Ver nuevo espacio\ndisponible;
+  
+else (No)
+  :Continuar con\nalmacenamiento actual;
+endif
+
+floating note right
+  **Planes Disponibles:**
+  
+  | Plan | Mensual | Anual |
+  |------|---------|-------|
+  | Crear y Compartir | $X.XX | $XX.XX |
+  | Legado Eterno | $X.XX | $XX.XX |
+  
+  **Almacenamiento Extra:**
+  - 10 GB: $X.XX/mes
+  - 50 GB: $X.XX/mes
+  - 100 GB: $X.XX/mes
+  
+  **Renovación Automática:**
+  - PayPal cobra automáticamente
+  - Usuario recibe notificación
+    3 días antes de renovación
+  - Puede cancelar en cualquier
+    momento (efectivo al fin
+    del período pagado)
+end note
+
+stop
+
+@enduml

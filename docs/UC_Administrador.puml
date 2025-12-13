@@ -1,0 +1,95 @@
+@startuml UC_Administrador
+!theme plain
+skinparam actorStyle awesome
+skinparam usecase {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+skinparam packageStyle rectangle
+
+title Diagrama de Casos de Uso - Administrador
+caption Sistema Lirium - Plataforma de Memoriales Digitales
+
+left to right direction
+
+actor "Administrador" as Admin
+
+rectangle "Sistema Lirium - Panel de Administración" {
+    
+    ' ========== GESTIÓN DE USUARIOS ==========
+    usecase "Gestionar Usuarios" as UC_GestionUsuarios
+    usecase "Listar Usuarios" as UC_ListarUsuarios
+    usecase "Buscar Usuarios" as UC_BuscarUsuarios
+    usecase "Filtrar Usuarios" as UC_FiltrarUsuarios
+    usecase "Ver Detalle de Usuario" as UC_VerDetalleUsuario
+    usecase "Cambiar Estado de Usuario" as UC_CambiarEstadoUsuario
+    usecase "Suspender Usuario" as UC_SuspenderUsuario
+    usecase "Reactivar Usuario" as UC_ReactivarUsuario
+    
+    ' ========== ANALYTICS ==========
+    usecase "Ver Analytics" as UC_VerAnalytics
+    usecase "Ver Estadísticas Generales" as UC_EstadisticasGenerales
+    usecase "Ver Usuarios por Día" as UC_UsuariosPorDia
+    usecase "Ver Estadísticas por Dispositivo" as UC_EstadisticasDispositivo
+    usecase "Ver Ubicaciones Principales" as UC_Ubicaciones
+    usecase "Ver Tráfico por Hora" as UC_TraficoPorHora
+    
+    ' ========== LOGS DE AUDITORÍA ==========
+    usecase "Ver Logs de Auditoría" as UC_VerLogs
+    usecase "Filtrar Logs" as UC_FiltrarLogs
+    
+    ' ========== REPORTES ==========
+    usecase "Generar Reportes" as UC_GenerarReportes
+    
+    ' ========== AUTENTICACIÓN ==========
+    usecase "Iniciar Sesión" as UC_Login
+}
+
+' ========== RELACIONES DEL ADMINISTRADOR ==========
+Admin --> UC_Login
+Admin --> UC_GestionUsuarios
+Admin --> UC_VerAnalytics
+Admin --> UC_VerLogs
+Admin --> UC_GenerarReportes
+
+' ========== RELACIONES DE GESTIÓN DE USUARIOS ==========
+UC_GestionUsuarios ..> UC_ListarUsuarios : <<include>>
+UC_GestionUsuarios ..> UC_BuscarUsuarios : <<include>>
+UC_ListarUsuarios ..> UC_FiltrarUsuarios : <<extend>>
+UC_ListarUsuarios ..> UC_VerDetalleUsuario : <<extend>>
+
+UC_CambiarEstadoUsuario --|> UC_GestionUsuarios
+UC_SuspenderUsuario --|> UC_CambiarEstadoUsuario
+UC_ReactivarUsuario --|> UC_CambiarEstadoUsuario
+
+' ========== RELACIONES DE ANALYTICS ==========
+UC_VerAnalytics ..> UC_EstadisticasGenerales : <<include>>
+UC_EstadisticasGenerales ..> UC_UsuariosPorDia : <<extend>>
+UC_EstadisticasGenerales ..> UC_EstadisticasDispositivo : <<extend>>
+UC_EstadisticasGenerales ..> UC_Ubicaciones : <<extend>>
+UC_EstadisticasGenerales ..> UC_TraficoPorHora : <<extend>>
+
+' ========== RELACIONES DE LOGS ==========
+UC_VerLogs ..> UC_FiltrarLogs : <<extend>>
+
+note right of UC_GestionUsuarios
+  Incluye:
+  - Paginación
+  - Búsqueda por nombre/email
+  - Filtrado por estado/plan
+end note
+
+note bottom of UC_VerAnalytics
+  Integración con 
+  Google Analytics
+  (GA4)
+end note
+
+note right of UC_VerLogs
+  Registra todas las
+  acciones administrativas
+  (auditoría de seguridad)
+end note
+
+@enduml

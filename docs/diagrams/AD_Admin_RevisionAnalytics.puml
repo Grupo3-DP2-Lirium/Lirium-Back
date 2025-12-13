@@ -1,0 +1,108 @@
+@startuml AD_Admin_RevisionAnalytics
+!theme plain
+skinparam activityShape roundBox
+skinparam ActivityBackgroundColor White
+skinparam ActivityBorderColor Black
+skinparam ArrowColor Black
+skinparam DiamondBackgroundColor White
+
+title Diagrama de Actividades - Proceso de Revisión de Analytics
+caption Sistema Lirium - Administrador (Integración Google Analytics)
+
+|Administrador|
+|Sistema|
+|Google Analytics|
+
+|Administrador|
+start
+
+:Iniciar sesión en el\npanel de administración;
+
+:Acceder al módulo\n"Analytics";
+
+|Sistema|
+:Solicitar estadísticas\na Google Analytics API;
+
+|Google Analytics|
+:Procesar solicitud y\nretornar datos;
+
+|Sistema|
+:Mostrar Dashboard con\nestadísticas generales:
+- Total usuarios activos
+- Nuevos usuarios (período)
+- Sesiones totales
+- Duración promedio;
+
+|Administrador|
+:Seleccionar período\nde análisis;
+
+fork
+  :7 días;
+fork again
+  :30 días;
+fork again
+  :90 días;
+end fork
+
+|Sistema|
+:Actualizar métricas\nsegún período seleccionado;
+
+|Administrador|
+if (¿Ver detalle por\ncategoría?) then (Sí)
+  
+  :Seleccionar categoría\nde análisis;
+  
+  switch (Categoría)
+  case ( Usuarios por Día )
+    |Sistema|
+    :Mostrar gráfico de líneas\ncon usuarios diarios;
+    :Mostrar tendencia y\ncomparación con período anterior;
+    
+  case ( Dispositivos )
+    |Sistema|
+    :Mostrar distribución:
+    - Desktop
+    - Mobile
+    - Tablet;
+    :Mostrar gráfico de\npastel con porcentajes;
+    
+  case ( Ubicaciones )
+    |Sistema|
+    :Mostrar top 10 países/ciudades;
+    :Filtrar resultados "not set";
+    :Mostrar mapa de calor\n(si aplica);
+    
+  case ( Tráfico por Hora )
+    |Sistema|
+    :Mostrar gráfico de barras\ncon actividad por hora;
+    :Identificar horas pico;
+    
+  endswitch
+  
+else (No)
+  :Continuar en\ndashboard principal;
+endif
+
+|Administrador|
+if (¿Exportar reporte?) then (Sí)
+  
+  |Sistema|
+  :Generar reporte en\nformato descargable;
+  
+  |Administrador|
+  :Descargar reporte;
+  
+else (No)
+  :Finalizar revisión;
+endif
+
+stop
+
+note right
+  **Integración GA4:**
+  - Property ID: 510032575
+  - Datos en tiempo casi real
+  - Cache TTL: 300 segundos
+end note
+
+@enduml
