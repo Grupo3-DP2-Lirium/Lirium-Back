@@ -396,7 +396,8 @@ public class DocumentaryProcessingService {
         }
 
         // 2. GENERAR OUTRO (5 segundos)
-        Path outroClip = generateTextClip("Creado con Lirium", 5, processedDir, "outro");
+        String outroText = "Creado con Lirium\nPor " + documentary.getMemorial().getName();
+        Path outroClip = generateTextClip(outroText, 5, processedDir, "outro");
         fileListContent.add("file '" + outroClip.toAbsolutePath().toString().replace("\\", "/") + "'");
         totalDuration += 5;
 
@@ -482,8 +483,8 @@ public class DocumentaryProcessingService {
      * Procesa un archivo individual con narración generada por IA
      */
     private int processIndividualFileWithNarration(Path inputFile, Path outputFile,
-                                                    Memory memory, String narracion,
-                                                    Documentary documentary) throws IOException, InterruptedException {
+                                                   Memory memory, String narracion,
+                                                   Documentary documentary) throws IOException, InterruptedException {
 
         String resolution = getResolutionDimensions(documentary.getResolution());
         String styleFilter = getStyleFilter(documentary.getStyleFilter());
@@ -497,7 +498,7 @@ public class DocumentaryProcessingService {
         }
 
         // La narración se divide en líneas para mejor legibilidad
-        String textoNarracion = wrapText(narracion, 80); // Máximo 50 caracteres por línea
+        String textoNarracion = wrapText(narracion, 80);
         textoNarracion = escapeFFmpegText(textoNarracion);
 
         // Fecha (opcional)
@@ -507,9 +508,12 @@ public class DocumentaryProcessingService {
         // Construir filtros
         StringBuilder filters = new StringBuilder();
 
-        //String fileType = getFileType(inputFile);
-
-        filters.append("scale=").append(resolution).append(",setsar=1");
+        // Mantener aspect ratio con pad
+        // scale con force_original_aspect_ratio mantiene el ratio
+        // pad agrega barras negras para llenar el frame
+        filters.append("scale=").append(resolution).append(":force_original_aspect_ratio=decrease,")
+                .append("pad=").append(resolution).append(":(ow-iw)/2:(oh-ih)/2:black,")
+                .append("setsar=1");
 
         if (styleFilter != null) {
             filters.append(",").append(styleFilter);
@@ -520,14 +524,14 @@ public class DocumentaryProcessingService {
         // Subtítulo
         filters.append(",drawtext=fontfile='").append(fontPath).append("':")
                 .append("text='").append(textoNarracion).append("':")
-                .append("fontsize=30:")  // Tamaño más pequeño para que quepa mejor
+                .append("fontsize=30:")
                 .append("fontcolor=white:")
-                .append("x=(w-text_w)/2:")  // Centrado horizontal
-                .append("y=h-h/5:")  // Posicionado en el quinto inferior de la pantalla
-                .append("box=1:")  // Caja de fondo
-                .append("boxcolor=black@0.6:")  // Fondo negro semi-transparente
-                .append("boxborderw=20:")  // Padding interno
-                .append("line_spacing=5");  // Espaciado entre líneas
+                .append("x=(w-text_w)/2:")
+                .append("y=h-h/5:")
+                .append("box=1:")
+                .append("boxcolor=black@0.6:")
+                .append("boxborderw=20:")
+                .append("line_spacing=5");
 
         // Fecha pequeña
         if (!date.isEmpty()) {
